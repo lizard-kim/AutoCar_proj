@@ -1,13 +1,13 @@
-CP_PATH=$(abspath ../..)/CrossCompiler
+CP_PATH=$(abspath ../../..)/CrossCompiler
 CROSS_COMPILE=$(CP_PATH)/gcc-linaro-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
 
 ARCH=arm
 CC=$(CROSS_COMPILE)gcc
-OBJ = controlSensor.o car_lib.c
+OBJ = clock.c car_lib.c
 
-OBJNAME = controlSensor
+OBJNAME = clock
 $(OBJNAME): $(OBJ)
-	$(CC) -o $(OBJNAME) $(OBJ)
+	$(CC) -o $(OBJNAME) $(OBJ) -lm
 
 clean:
 	rm -rf *.o $(OBJNAME)
