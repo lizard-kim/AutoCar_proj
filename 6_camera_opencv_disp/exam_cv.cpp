@@ -179,6 +179,7 @@ void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char
 	Scalar red(0, 0, 255);
 	Mat rgb_color, hsv_color;
     Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
+    Mat dstRGB(nh, nw, CV_8UC3, outBuf);
 
 	Coloring(rgb_color, red);
 
@@ -263,9 +264,11 @@ void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char
 			*/
 		}
 	}
+    resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+	// outBuf = img_result;
 	//imshow("input", img_input);
-	imshow("result", img_result);
-	waitKey(1);
+	//imshow("result", img_result);
+	//waitKey(1);
 	//	}
 	//return 0;
 }
