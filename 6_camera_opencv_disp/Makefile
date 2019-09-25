@@ -27,7 +27,7 @@ clean:
 	rm -f *.a *.o $(TARGET) *.lo
 
 $(TARGET): main.c v4l2.lo display-kms.lo util.lo vpe-common.lo input_cmd.lo drawing.lo exam_cv.lo
-	$(CC) $(CFLAGS) -o $@ main.c v4l2.lo display-kms.lo util.lo vpe-common.lo input_cmd.lo drawing.lo exam_cv.lo $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ main.c v4l2.lo display-kms.lo util.lo vpe-common.lo input_cmd.lo drawing.lo exam_cv.lo stop_when_accident.lo $(LDFLAGS)
 
 v4l2.lo: v4l2.c v4l2.h
 	$(CC) -c $(CFLAGS) -o $@ v4l2.c
@@ -47,6 +47,8 @@ drawing.lo: drawing.c drawing.h font_8x8.h
 input_cmd.lo: input_cmd.cpp input_cmd.h
 	$(CXX) -c $(CXXFLAGS) -o $@ input_cmd.cpp
 
-exam_cv.lo: exam_cv.cpp exam_cv.h car_lib.h
-	$(CXX) -c $(CXXFLAGS) -o $@ exam_cv.cpp
+exam_cv.lo: exam_cv.cpp exam_cv.h stop_when_accident.h
+	$(CXX) -c $(CXXFLAGS) -o $@ exam_cv.cpp -Lmydir 
 
+stop_when_accident.lo: stop_when_accident.h
+	$(CXX) -c $(CXXFLAGS) -o $@ stop_when_accident.cpp -Lmydir

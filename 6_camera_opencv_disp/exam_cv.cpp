@@ -12,7 +12,7 @@
 #include <opencv2/objdetect/objdetect.hpp>
 
 #include "car_lib.h"
-
+#include "stop_when_accident.h"
 #define PI 3.1415926
 
 using namespace std;
@@ -172,6 +172,106 @@ void OpenCV_canny_edge_image(char* file, unsigned char* outBuf, int nw, int nh)
   */
 void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
 {
+
+	int range_count = 0;
+	Mat img_input, img_result, img_gray;
+	Scalar blue(10, 200, 50);
+	Scalar red(0, 0, 255);
+	Mat rgb_color, hsv_color;
+    Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
+
+	Coloring(rgb_color, red);
+
+	cvtColor(rgb_color, hsv_color, COLOR_BGR2HSV);
+
+	int hue = (int)hsv_color.at<Vec3b>(0, 0)[0];
+	//int saturation = (int)hsv_color.at<Vec3b>(0, 0)[1];
+	//int value = (int)hsv_color.at<Vec3b>(0, 0)[2];
+
+	int low_hue = hue - 30;//¿¿¿ ¿¿
+	int high_hue = hue + 3;
+	int low_hue1 = 0, low_hue2 = 0;
+	int high_hue1 = 0, high_hue2 = 0;
+
+	MakeLimit(low_hue, low_hue1, low_hue2, high_hue, high_hue1, high_hue2, range_count);
+
+	namedWindow("CAM", 0);
+	resizeWindow("CAM", 1280, 720);
+	//while(1){
+	//¿¿¿¿¿¿ ¿¿¿¿ image¿ ¿¿  
+	//cap.read(img_input);
+	img_input = srcRGB;
+
+	//¿¿¿¿¿¿ ¿¿¿¿ ¿¿  
+	cvtColor(img_input, img_gray, COLOR_BGR2HSV);
+
+	//¿¿¿ ¿¿¿¿ ¿¿
+	Mat binary_image;
+	//threshold(img_hsv, img_hsv, 125, 255, THRESH_BINARY_INV | THRESH_OTSU);
+	Mat img_mask1, img_mask2;
+	inRange(img_gray, Scalar(low_hue1, 50, 50), Scalar(high_hue1, 255, 255), img_mask1);
+	if (range_count == 2) {
+		inRange(img_gray, Scalar(low_hue2, 50, 50), Scalar(high_hue2, 255, 255), img_mask2);
+		img_mask1 |= img_mask2;
+	}
+
+	//contour¿ ¿¿¿.
+	vector<vector<Point> > contours;
+	findContours(img_mask1, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
+
+	//contour¿ ¿¿¿¿¿.
+	vector<Point2f> approx;
+	img_result = img_mask1.clone();
+
+	for (size_t i = 0; i < contours.size(); i++){
+		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
+
+		if (fabs(contourArea(Mat(approx))) > 10000)  //¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿. 
+		{
+			int size = approx.size();
+
+			//Contour¿ ¿¿¿¿ ¿¿¿ ¿¿¿.
+			if (size % 2 == 0) {
+				line(img_result, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+
+				for (int k = 0; k < size - 1; k++)
+					line(img_result, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+				for (int k = 0; k < size; k++)
+					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
+			}
+			else {
+				line(img_result, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+
+				for (int k = 0; k < size - 1; k++)
+					line(img_result, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+				for (int k = 0; k < size; k++)
+					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
+			}
+
+			//¿¿¿ ¿¿¿¿.
+			if (size == 7)
+				setLabel(img_result, "left!", contours[i]); //¿¿¿
+			else if (size > 7)
+				setLabel(img_result, "circle!!", contours[i]); //¿
+			/*
+			//¿¿¿ ¿¿ ¿¿¿¿ ¿¿ convex¿¿ ¿¿ ¿¿
+			else if (size == 4 && isContourConvex(Mat(approx))) 
+			setLabel(img_result, "rectangle", contours[i]); //¿¿¿
+
+			//¿ ¿¿¿ ¿¿ ¿¿¿ ¿¿¿ ¿¿¿ ¿¿¿ ¿¿¿ ¿¿
+			else setLabel(img_result, to_string(approx.size()), contours[i]);
+			*/
+		}
+	}
+	//imshow("input", img_input);
+	imshow("result", img_result);
+	waitKey(1);
+	//	}
+	//return 0;
+}
+
+    
+        /*
     //cout << "akkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk" << endl;
     //[TODO]
     int cam_id = 0;
@@ -273,7 +373,7 @@ void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char
     cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
 
-
+*/
 
 
     /*
@@ -359,5 +459,5 @@ void OpenCV_merge_image(unsigned char* src1, unsigned char* src2, unsigned char*
     memcpy(dst, src1AR32.data, w*h*4);
 }
 
-}
+
 
