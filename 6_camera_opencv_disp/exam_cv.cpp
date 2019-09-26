@@ -272,7 +272,7 @@ void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char
 	}  
 	dstRGB = img_result.clone();
 	// printf("wtf2\n");
-    resize(img_result, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+    resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 	// printf("wtf3\n");
 	// outBuf = img_result;
 	//imshow("input", img_input);

@@ -1,3 +1,4 @@
+
 /*******************************************************************************
  *  INCLUDE FILES
  *******************************************************************************
@@ -43,13 +44,13 @@ void main(void)
 
     //jobs to be done beforehand;
     SpeedControlOnOff_Write(CONTROL);   // speed controller must be also ON !!!
-    speed = 150; // speed set     --> speed must be set when using position controller
+    speed = 500; // speed set     --> speed must be set when using position controller
     DesireSpeed_Write(speed);
 
     //control on/off
     status = PositionControlOnOff_Read();
     printf("PositionControlOnOff_Read() = %d\n", status);
-    PositionControlOnOff_Write(CONTROL);
+    PositionControlOnOff_Write(CONTROL); 
 
     //position controller gain set
     gain = PositionProportionPoint_Read();    // default value = 10, range : 1~50
@@ -62,7 +63,7 @@ void main(void)
     EncoderCounter_Write(posInit); // write은 초기화시키는거
     
     //position set
-    posDes = 30000;//30000 encoder가 측정한 만큼 가라(약 150cm)
+    posDes = 10000;//30000 encoder가 측정한 만큼 가라(약 50cm)
     position = posInit+posDes;
     DesireEncoderCount_Write(position); //desire write은 이동시키기
 
@@ -73,17 +74,21 @@ void main(void)
     tol = 0;    // tolerance
     while(abs(posRead-position)>tol)
     {
-        posRead=EncoderCounter_Read();
+		posRead=EncoderCounter_Read();
         printf("EncoderCounter_Read() = %d, ", posRead);
         speed = DesireSpeed_Read();
         printf("DesireSpeed_Read() = %d \n", speed);
-    }
-    sleep(1);
-    
+		int bla = EncoderCounter_Read();
+		if(bla - posRead < 1){
+			printf("%d - %d\n", bla, posRead);
+			exit(0);
+
+		}
+	}
+	sleep(1);
 
 #endif
   
 }
-
 
 
