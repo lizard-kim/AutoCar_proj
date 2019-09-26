@@ -188,16 +188,15 @@ void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char
 	int hue = (int)hsv_color.at<Vec3b>(0, 0)[0];
 	//int saturation = (int)hsv_color.at<Vec3b>(0, 0)[1];
 	//int value = (int)hsv_color.at<Vec3b>(0, 0)[2];
-
-	int low_hue = hue - 30;//¿¿¿ ¿¿
-	int high_hue = hue + 3;
+	int low_hue = hue - 5;//¿¿¿ ¿¿
+	int high_hue = hue + 0.2;
 	int low_hue1 = 0, low_hue2 = 0;
 	int high_hue1 = 0, high_hue2 = 0;
 
 	MakeLimit(low_hue, low_hue1, low_hue2, high_hue, high_hue1, high_hue2, range_count);
 
-	namedWindow("CAM", 0);
-	resizeWindow("CAM", 1280, 720);
+	// namedWindow("CAM", 0);
+	// resizeWindow("CAM", 1280, 720);
 	//while(1){
 	//¿¿¿¿¿¿ ¿¿¿¿ image¿ ¿¿  
 	//cap.read(img_input);
@@ -221,13 +220,17 @@ void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char
 	findContours(img_mask1, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
 
 	//contour¿ ¿¿¿¿¿.
-	vector<Point2f> approx;
+	vector<Point> approx;
 	img_result = img_mask1.clone();
 
 	for (size_t i = 0; i < contours.size(); i++){
+		// printf("wtfsdfafasdf\n");
+		// printf("i = %d\n", i);
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
+		// approxPolyDP(Mat(contours[i]), approx, 1, true);
+		// printf("wtf\n");
 
-		if (fabs(contourArea(Mat(approx))) > 10000)  //¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿. 
+		if (fabs(contourArea(Mat(approx))) > 1200)  //¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿. 
 		{
 			int size = approx.size();
 
@@ -250,10 +253,13 @@ void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char
 			}
 
 			//¿¿¿ ¿¿¿¿.
-			if (size == 7)
+			if (size == 7){
 				setLabel(img_result, "left!", contours[i]); //¿¿¿
-			else if (size > 7)
+			}
+			else if (size > 7){
 				setLabel(img_result, "circle!!", contours[i]); //¿
+				cout << "circle" << endl;
+			}
 			/*
 			//¿¿¿ ¿¿ ¿¿¿¿ ¿¿ convex¿¿ ¿¿ ¿¿
 			else if (size == 4 && isContourConvex(Mat(approx))) 
@@ -263,8 +269,11 @@ void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char
 			else setLabel(img_result, to_string(approx.size()), contours[i]);
 			*/
 		}
-	}
-    resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+	}  
+	dstRGB = img_result.clone();
+	// printf("wtf2\n");
+    resize(img_result, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+	// printf("wtf3\n");
 	// outBuf = img_result;
 	//imshow("input", img_input);
 	//imshow("result", img_result);
