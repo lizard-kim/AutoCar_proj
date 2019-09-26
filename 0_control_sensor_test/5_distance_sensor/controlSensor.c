@@ -75,7 +75,7 @@ void main(void)
 
     //jobs to be done beforehand;
     SpeedControlOnOff_Write(CONTROL);   // speed controller must be also ON !!!
-    speed = 150; // speed set     --> speed must be set when using position controller
+    speed = 50; // speed set     --> speed must be set when using position controller
     DesireSpeed_Write(speed);
 
     //control on/off
