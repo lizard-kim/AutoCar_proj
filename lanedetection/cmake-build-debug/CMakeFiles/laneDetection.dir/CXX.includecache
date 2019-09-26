@@ -6,12 +6,6 @@
 
 #IncludeRegexTransform: 
 
-/Users/parkkyuyeol/CLionProjects/laneDetection/laneDetection.cpp
-laneDetection.h
-/Users/parkkyuyeol/CLionProjects/laneDetection/laneDetection.h
-vector
--
-
 /Users/parkkyuyeol/CLionProjects/laneDetection/laneDetection.h
 iostream
 -
@@ -30,6 +24,12 @@ opencv2/highgui/highgui.hpp
 opencv2/core/core.hpp
 -
 opencv2/objdetect/objdetect.hpp
+-
+
+/Users/parkkyuyeol/CLionProjects/laneDetection/main.cpp
+laneDetection.h
+/Users/parkkyuyeol/CLionProjects/laneDetection/laneDetection.h
+iostream
 -
 
 /usr/local/Cellar/opencv@3/3.4.5_3/include/opencv2/calib3d.hpp
