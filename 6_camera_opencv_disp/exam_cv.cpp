@@ -170,12 +170,12 @@ void OpenCV_canny_edge_image(char* file, unsigned char* outBuf, int nw, int nh)
              nh : height value of destination buffer
   * @retval none
   */
-void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
+void OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
 {
 
 	int range_count = 0;
 	Mat img_input, img_result, img_gray;
-	Scalar blue(10, 200, 50);
+	// Scalar blue(10, 200, 50);
 	Scalar red(0, 0, 255);
 	Mat rgb_color, hsv_color;
     Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
@@ -197,17 +197,11 @@ void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char
 
 	// namedWindow("CAM", 0);
 	// resizeWindow("CAM", 1280, 720);
-	//while(1){
-	//¿¿¿¿¿¿ ¿¿¿¿ image¿ ¿¿  
-	//cap.read(img_input);
 	img_input = srcRGB;
 
-	//¿¿¿¿¿¿ ¿¿¿¿ ¿¿  
 	cvtColor(img_input, img_gray, COLOR_BGR2HSV);
 
-	//¿¿¿ ¿¿¿¿ ¿¿
 	Mat binary_image;
-	//threshold(img_hsv, img_hsv, 125, 255, THRESH_BINARY_INV | THRESH_OTSU);
 	Mat img_mask1, img_mask2;
 	inRange(img_gray, Scalar(low_hue1, 50, 50), Scalar(high_hue1, 255, 255), img_mask1);
 	if (range_count == 2) {
@@ -224,11 +218,8 @@ void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char
 	img_result = img_mask1.clone();
 
 	for (size_t i = 0; i < contours.size(); i++){
-		// printf("wtfsdfafasdf\n");
-		// printf("i = %d\n", i);
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
 		// approxPolyDP(Mat(contours[i]), approx, 1, true);
-		// printf("wtf\n");
 
 		if (fabs(contourArea(Mat(approx))) > 1200)  //¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿. 
 		{
@@ -251,195 +242,117 @@ void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char
 				for (int k = 0; k < size; k++)
 					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
 			}
+			if(size > 7)
+				cout << "size = " << size << endl;
 
-			//¿¿¿ ¿¿¿¿.
-			if (size == 7){
-				setLabel(img_result, "left!", contours[i]); //¿¿¿
+			if (size > 9){
+				// setLabel(img_result, "circle!!", contours[i]); //¿
+				cout << "red_circle" << endl;
 			}
-			else if (size > 7){
-				setLabel(img_result, "circle!!", contours[i]); //¿
-				cout << "circle" << endl;
-			}
-			/*
-			//¿¿¿ ¿¿ ¿¿¿¿ ¿¿ convex¿¿ ¿¿ ¿¿
-			else if (size == 4 && isContourConvex(Mat(approx))) 
-			setLabel(img_result, "rectangle", contours[i]); //¿¿¿
-
-			//¿ ¿¿¿ ¿¿ ¿¿¿ ¿¿¿ ¿¿¿ ¿¿¿ ¿¿¿ ¿¿
-			else setLabel(img_result, to_string(approx.size()), contours[i]);
-			*/
 		}
 	}  
 	dstRGB = img_result.clone();
-	// printf("wtf2\n");
     resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
-	// printf("wtf3\n");
-	// outBuf = img_result;
+
 	//imshow("input", img_input);
 	//imshow("result", img_result);
 	//waitKey(1);
-	//	}
-	//return 0;
 }
 
-    
-        /*
-    //cout << "akkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk" << endl;
-    //[TODO]
-    int cam_id = 0;
-    int range_count=0;
+void OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
+{
 
-    Mat dstRGB(nh, nw, CV_8UC3, outBuf);
+	int range_count = 0;
+	Mat img_input, img_result, img_gray;
+	Scalar green(10, 200, 50);
+	// Scalar red(0, 0, 255);
+	Mat rgb_color, hsv_color;
     Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
-    Mat resRGB(ih, iw, CV_8UC3);
-    
-    Scalar red = cv::Scalar(0,0,255);
-	Mat rgb_color = Mat(1, 1, CV_8UC3, red);//coloring red in all pixels
-	Mat hsv_color;
-    
-    cvtColor(rgb_color, hsv_color, COLOR_BGR2HSV);
+    Mat dstRGB(nh, nw, CV_8UC3, outBuf);
+
+	Coloring(rgb_color, green);
+
+	cvtColor(rgb_color, hsv_color, COLOR_BGR2HSV);
 
 	int hue = (int)hsv_color.at<Vec3b>(0, 0)[0];
-	int saturation = (int)hsv_color.at<Vec3b>(0, 0)[1];
-	int value = (int)hsv_color.at<Vec3b>(0, 0)[2];
-
-    int low_hue = hue - 3;//¿¿¿ ¿¿
-	int high_hue = hue + 3;
-    int low_hue1 = 0, low_hue2 = 0;
+	//int saturation = (int)hsv_color.at<Vec3b>(0, 0)[1];
+	//int value = (int)hsv_color.at<Vec3b>(0, 0)[2];
+	int low_hue = hue - 8;//¿¿¿ ¿¿
+	int high_hue = hue + 2;
+	int low_hue1 = 0, low_hue2 = 0;
 	int high_hue1 = 0, high_hue2 = 0;
 
-	if (low_hue < 10 ) {
-		range_count = 2;
+	MakeLimit(low_hue, low_hue1, low_hue2, high_hue, high_hue1, high_hue2, range_count);
 
-		high_hue1 = 180;
-		low_hue1 = low_hue + 180;
-		high_hue2 = high_hue;
-		low_hue2 = 0;
-	}
-	else if (high_hue > 170) {
-		range_count = 2;
+	// namedWindow("CAM", 0);
+	// resizeWindow("CAM", 1280, 720);
+	img_input = srcRGB;
 
-		high_hue1 = low_hue;
-		low_hue1 = 180;
-		high_hue2 = high_hue - 180;
-		low_hue2 = 0;
-	}
-	else {
-		range_count = 1;
+	cvtColor(img_input, img_gray, COLOR_BGR2HSV);
 
-		low_hue1 = low_hue;
-		high_hue1 = high_hue;
+	Mat binary_image;
+	Mat img_mask1, img_mask2;
+	inRange(img_gray, Scalar(low_hue1, 50, 50), Scalar(high_hue1, 255, 255), img_mask1);
+	if (range_count == 2) {
+		inRange(img_gray, Scalar(low_hue2, 50, 50), Scalar(high_hue2, 255, 255), img_mask2);
+		img_mask1 |= img_mask2;
 	}
 
-    //videocapture cap(cam_id);
-    //if(!cap.isopened()){
-    //    cout << "wtf error!!" << endl;
-    //    return -1;
-    //}
-    //namedwindow("cam", 0);
-    //resizewindow("cam", 1280, 720);
-    Mat img_hsv;
+	//contour¿ ¿¿¿.
+	vector<vector<Point> > contours;
+	findContours(img_mask1, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
 
-    double width = iw;//cap.get(cv_cap_prop_frame_width);
-    double height = ih;//cap.get(cv_cap_prop_frame_height);
-    int whitenum = 0;
+	//contour¿ ¿¿¿¿¿.
+	vector<Point> approx;
+	img_result = img_mask1.clone();
 
-    cvtColor(srcRGB, img_hsv, COLOR_BGR2HSV);//hsv¿ ¿¿
+	for (size_t i = 0; i < contours.size(); i++){
+		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
+		// approxPolyDP(Mat(contours[i]), approx, 1, true);
 
+		if (fabs(contourArea(Mat(approx))) > 1200)  //¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿. 
+		{
+			int size = approx.size();
 
-    //¿¿¿ hsv ¿¿¿ ¿¿¿¿ ¿¿¿ ¿¿¿
-    Mat img_mask1, img_mask2;
-    inRange(img_hsv, Scalar(low_hue1, 50, 50), Scalar(high_hue1, 255, 255), img_mask1);
-    if (range_count == 2) {
-            inRange(img_hsv, Scalar(low_hue2, 50, 50), Scalar(high_hue2, 255, 255), img_mask2);
-            img_mask1 |= img_mask2;
-    }
+			//Contour¿ ¿¿¿¿ ¿¿¿ ¿¿¿.
+			if (size % 2 == 0) {
+				line(img_result, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
 
+				for (int k = 0; k < size - 1; k++)
+					line(img_result, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+				for (int k = 0; k < size; k++)
+					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
+			}
+			else {
+				line(img_result, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
 
-    //morphological opening ¿¿ ¿¿¿ ¿¿ 
-    erode(img_mask1, img_mask1, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-    dilate(img_mask1, img_mask1, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+				for (int k = 0; k < size - 1; k++)
+					line(img_result, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+				for (int k = 0; k < size; k++)
+					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
+			}
+			
+			if(size >= 7)
+				cout << "size = " << size << endl;
 
+			if (size == 7){
+				// setLabel(img_result, "left!", contours[i]); //¿¿¿
+				cout << "left" << endl;
+			}
+			else if (size > 8){
+				// setLabel(img_result, "circle!!", contours[i]); //¿
+				cout << "circle" << endl;
+			}
+		}
+	}  
+	dstRGB = img_result.clone();
+    resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
-    //morphological closing ¿¿¿ ¿¿ ¿¿¿ 
-    dilate(img_mask1, img_mask1, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-    erode(img_mask1, img_mask1, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-
-    for(int i = 0; i < iw; i++){
-            for(int j = 0; j < ih; j++){
-                    if(img_mask1.at<uchar>(j,i)==255){
-                            whitenum++;
-                    }
-            }
-    }
-
-    //imshow("cam", img_mask1);
-
-    //waitkey(1);
-    if(whitenum > 100){
-            cout << "red!!!!" << whitenum << endl;
-            //alarm_write(on);
-    }
-    whitenum = 0;
-
-    cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
-
-
-*/
-
-
-    /*
-    Scalar lineColor = cv::Scalar(255,255,255);
-    
-    Mat dstRGB(nh, nw, CV_8UC3, outBuf);
-    
-    Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
-    Mat resRGB(ih, iw, CV_8UC3);
-    //cvtColor(srcRGB, srcRGB, CV_BGR2BGRA);
-
-    // Ä³´Ï ¾Ë°í¸®Áò Àû¿ë
-    cv::Mat contours;
-    cv::Canny(srcRGB, contours, 125, 350);
-    
-    // ¼± °¨Áö À§ÇÑ ÇãÇÁ º¯È¯
-    std::vector<cv::Vec2f> lines;
-    cv::HoughLines(contours, lines, 1, PI/180, // ´Ü°èº° Å©±â (1°ú ¥ð/180¿¡¼­ ´Ü°èº°·Î °¡´ÉÇÑ ¸ðµç °¢µµ·Î ¹ÝÁö¸§ÀÇ ¼±À» Ã£À½)
-        80);  // ÅõÇ¥(vote) ÃÖ´ë °³¼ö
-    
-    // ¼± ±×¸®±â
-    cv::Mat result(contours.rows, contours.cols, CV_8UC3, lineColor);
-    //printf("Lines detected: %d\n", lines.size());
-
-    // ¼± º¤ÅÍ¸¦ ¹Ýº¹ÇØ ¼± ±×¸®±â
-    std::vector<cv::Vec2f>::const_iterator it= lines.begin();
-    while (it!=lines.end()) 
-    {
-        float rho = (*it)[0];   // Ã¹ ¹øÂ° ¿ä¼Ò´Â rho °Å¸®
-        float theta = (*it)[1]; // µÎ ¹øÂ° ¿ä¼Ò´Â µ¨Å¸ °¢µµ
-        
-        if (theta < PI/4. || theta > 3.*PI/4.) // ¼öÁ÷ Çà
-        {
-            cv::Point pt1(rho/cos(theta), 0); // Ã¹ Çà¿¡¼­ ÇØ´ç ¼±ÀÇ ±³Â÷Á¡   
-            cv::Point pt2((rho-result.rows*sin(theta))/cos(theta), result.rows);
-            // ¸¶Áö¸· Çà¿¡¼­ ÇØ´ç ¼±ÀÇ ±³Â÷Á¡
-            cv::line(srcRGB, pt1, pt2, lineColor, 1); // ÇÏ¾á ¼±À¸·Î ±×¸®±â
-
-        } 
-        else // ¼öÆò Çà
-        { 
-            cv::Point pt1(0,rho/sin(theta)); // Ã¹ ¹øÂ° ¿­¿¡¼­ ÇØ´ç ¼±ÀÇ ±³Â÷Á¡  
-            cv::Point pt2(result.cols,(rho-result.cols*cos(theta))/sin(theta));
-            // ¸¶Áö¸· ¿­¿¡¼­ ÇØ´ç ¼±ÀÇ ±³Â÷Á¡
-            cv::line(srcRGB, pt1, pt2, lineColor, 1); // ÇÏ¾á ¼±À¸·Î ±×¸®±â
-        }
-        //printf("line: rho=%f, theta=%f\n", rho, theta);
-        ++it;
-    }
-
-    cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
-*/
+	//imshow("input", img_input);
+	//imshow("result", img_result);
+	//waitKey(1);
 }
-
+}
 /**
   * @brief  Merge two source images of the same size into the output buffer.
   * @param  src1: pointer to parameter of rgb32 image buffer
