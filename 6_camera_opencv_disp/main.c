@@ -154,7 +154,7 @@ static void draw_operatingtime(struct display *disp, uint32_t time)
                  cambuf: vpe output buffer that converted capture image
   * @retval none
   */
-static void hough_transform(struct display *disp, struct buffer *cambuf)
+static void color_detection(struct display *disp, struct buffer *cambuf)
 {
     unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
     uint32_t optime;
@@ -166,7 +166,8 @@ static void hough_transform(struct display *disp, struct buffer *cambuf)
 
         gettimeofday(&st, NULL);
 
-        OpenCV_hough_transform(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+        OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+        /** OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); */
 
         //¿¿¿¿ ¿¿¿
         gettimeofday(&et, NULL);
@@ -236,7 +237,9 @@ void * capture_thread(void *arg)
        //[TODO] my function
        // gogo!
 
-        hough_transform(vpe->disp, capt);
+        /** hough_transform(vpe->disp, capt); */
+		
+		color_detection(vpe->disp, capt);
 
         if (disp_post_vid_buffer(vpe->disp, capt, 0, 0, vpe->dst.width, vpe->dst.height)) {
             ERROR("Post buffer failed");
