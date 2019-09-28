@@ -174,13 +174,15 @@ void OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* 
 {
 
 	int range_count = 0;
-	Mat img_input, img_result, img_gray;
+	Mat img_input, img_gray;
 	// Scalar blue(10, 200, 50);
 	Scalar red(0, 0, 255);
 	Mat rgb_color, hsv_color;
     Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
+    Mat test(ih, iw, CV_8UC3, srcBuf);
     Mat dstRGB(nh, nw, CV_8UC3, outBuf);
 
+    Mat img_result(ih, iw, CV_8UC3, srcBuf);
 	Coloring(rgb_color, red);
 
 	cvtColor(rgb_color, hsv_color, COLOR_BGR2HSV);
@@ -200,6 +202,7 @@ void OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* 
 	img_input = srcRGB;
 
 	cvtColor(img_input, img_gray, COLOR_BGR2HSV);
+	cvtColor(img_input, test, COLOR_BGR2GRAY);
 
 	Mat binary_image;
 	Mat img_mask1, img_mask2;
@@ -215,7 +218,7 @@ void OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* 
 
 	//contour¿ ¿¿¿¿¿.
 	vector<Point> approx;
-	img_result = img_mask1.clone();
+	img_result = img_mask1;
 
 	for (size_t i = 0; i < contours.size(); i++){
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
@@ -227,20 +230,20 @@ void OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* 
 
 			//Contour¿ ¿¿¿¿ ¿¿¿ ¿¿¿.
 			if (size % 2 == 0) {
-				line(img_result, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+				line(img_gray, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
 
 				for (int k = 0; k < size - 1; k++)
-					line(img_result, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+					line(img_gray, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
 				for (int k = 0; k < size; k++)
-					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
+					circle(img_gray, approx[k], 3, Scalar(0, 0, 255));
 			}
 			else {
-				line(img_result, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+				line(img_gray, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
 
 				for (int k = 0; k < size - 1; k++)
-					line(img_result, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+					line(img_gray, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
 				for (int k = 0; k < size; k++)
-					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
+					circle(img_gray, approx[k], 3, Scalar(0, 0, 255));
 			}
 			if(size > 7)
 				cout << "size = " << size << endl;
@@ -251,8 +254,11 @@ void OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* 
 			}
 		}
 	}  
-	dstRGB = img_result.clone();
-    resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+	// srcRGB = img_result;
+	// unsigned char* data = img_result.data;
+	// srcBuf = data;
+	// srcRGB(iw, ih, CV_8UC3, data);
+    resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
 	//imshow("input", img_input);
 	//imshow("result", img_result);
