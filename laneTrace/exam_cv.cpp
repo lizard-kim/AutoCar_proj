@@ -169,7 +169,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	int range_count = 0;
 	int stopornot = 1;
 	Mat img_input, img_gray;
-	signed short speed = 200;
+	signed short speed = 120;
 	// Scalar blue(10, 200, 50);
 	Scalar red(0, 0, 255);
 	Mat rgb_color, hsv_color;
@@ -249,7 +249,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 				speed = 0;
 				// stopornot = 0;
 			}
-			resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+			// resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 		}
 	}
 

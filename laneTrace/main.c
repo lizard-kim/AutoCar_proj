@@ -217,17 +217,14 @@ int main(int argc, char **argv)
     /** speed = 120; */
     /** DesireSpeed_Write(speed); */
 /**  */
-	int lll = 0;
     while(1){
         angle = 1500-(tdata.angle/90)*500;
 		speed = real_speed; 
 		/** printf("speed = %d\n", speed); */
-		SteeringServoControl_Write(angle);
-
 		DesireSpeed_Write(speed);
+		SteeringServoControl_Write(angle); 
 
-		lll++;
-		//usleep(50000);
+		usleep(50000);
     }
 
     pause();
@@ -280,8 +277,8 @@ void color_detection(struct display *disp, struct buffer *cambuf)
 
         gettimeofday(&st, NULL);
 
-        /** speed = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); */
-        speed = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+        speed = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+        /** speed = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); */
 		printf("speeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed : %d\n", speed);
         //¿¿¿¿ ¿¿¿
         gettimeofday(&et, NULL);
@@ -344,9 +341,9 @@ void * capture_thread(void *arg)
 
 
 
-        data->angle = hough_transform(vpe->disp, capt); // Hough transform 알고리즘 수행 */
+        data->angle = hough_transform(vpe->disp, capt); // Hough transform 알고리즘 수행  
 
-		/** color_detection(vpe->disp, capt); */
+		color_detection(vpe->disp, capt);
 
 		/** if(k == 0) */
 		/**     data->speed = 0; */
