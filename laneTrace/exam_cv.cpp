@@ -11,6 +11,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/objdetect/objdetect.hpp>
 
+#include "stop_when_accident.h"
 #define PI 3.1415926
 
 using namespace std;
@@ -162,6 +163,204 @@ void OpenCV_canny_edge_image(char* file, unsigned char* outBuf, int nw, int nh)
              nh : height value of destination buffer
   * @retval none
   */
+signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
+{
+
+	int range_count = 0;
+	int stopornot = 1;
+	Mat img_input, img_gray;
+	signed short speed = 200;
+	// Scalar blue(10, 200, 50);
+	Scalar red(0, 0, 255);
+	Mat rgb_color, hsv_color;
+    Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
+    Mat test(ih, iw, CV_8UC3, srcBuf);
+    Mat dstRGB(nh, nw, CV_8UC3, outBuf);
+
+    Mat img_result(ih, iw, CV_8UC3, srcBuf);
+	Coloring(rgb_color, red);
+
+	cvtColor(rgb_color, hsv_color, COLOR_BGR2HSV);
+
+	int hue = (int)hsv_color.at<Vec3b>(0, 0)[0];
+	//int saturation = (int)hsv_color.at<Vec3b>(0, 0)[1];
+	//int value = (int)hsv_color.at<Vec3b>(0, 0)[2];
+	int low_hue = hue - 5;//¿¿¿ ¿¿
+	int high_hue = hue + 0.2;
+	int low_hue1 = 0, low_hue2 = 0;
+	int high_hue1 = 0, high_hue2 = 0;
+
+	MakeLimit(low_hue, low_hue1, low_hue2, high_hue, high_hue1, high_hue2, range_count);
+
+	// namedWindow("CAM", 0);
+	// resizeWindow("CAM", 1280, 720);
+	img_input = srcRGB;
+
+	cvtColor(img_input, img_gray, COLOR_BGR2HSV);
+	cvtColor(img_input, test, COLOR_BGR2GRAY);
+
+	Mat binary_image;
+	Mat img_mask1, img_mask2;
+	inRange(img_gray, Scalar(low_hue1, 50, 50), Scalar(high_hue1, 255, 255), img_mask1);
+	if (range_count == 2) {
+		inRange(img_gray, Scalar(low_hue2, 50, 50), Scalar(high_hue2, 255, 255), img_mask2);
+		img_mask1 |= img_mask2;
+	}
+
+	//contour¿ ¿¿¿.
+	vector<vector<Point> > contours;
+	findContours(img_mask1, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
+	
+	//contour¿ ¿¿¿¿¿.
+	vector<Point> approx;
+	img_result = img_mask1;
+
+	for (size_t i = 0; i < contours.size(); i++){
+		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
+		// approxPolyDP(Mat(contours[i]), approx, 1, true);
+
+		if (fabs(contourArea(Mat(approx))) > 1200)  //¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿. 
+		{
+			int size = approx.size();
+
+			//Contour¿ ¿¿¿¿ ¿¿¿ ¿¿¿.
+			if (size % 2 == 0) {
+				line(img_gray, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+
+				for (int k = 0; k < size - 1; k++)
+					line(img_gray, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+				for (int k = 0; k < size; k++)
+					circle(img_gray, approx[k], 3, Scalar(0, 0, 255));
+			}
+			else {
+				line(img_gray, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+
+				for (int k = 0; k < size - 1; k++)
+					line(img_gray, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+				for (int k = 0; k < size; k++)
+					circle(img_gray, approx[k], 3, Scalar(0, 0, 255));
+			}
+			if(size > 7){
+				// cout << "size = " << size << endl;
+			}
+			if (size > 7){
+				// setLabel(img_result, "circle!!", contours[i]); //¿
+				cout << "red_circle" << endl;
+				speed = 0;
+				// stopornot = 0;
+			}
+			resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+		}
+	}
+
+	return speed;
+	// srcRGB = img_result;
+	// unsigned char* data = img_result.data;
+	// srcBuf = data;
+	// srcRGB(iw, ih, CV_8UC3, data);
+	//imshow("input", img_input);
+	//imshow("result", img_result);
+	//waitKey(1);
+}
+
+signed short OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
+{
+
+	int range_count = 0;
+	Mat img_input, img_result, img_gray;
+	Scalar green(10, 200, 50);
+	// Scalar red(0, 0, 255);
+	Mat rgb_color, hsv_color;
+	Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
+	Mat dstRGB(nh, nw, CV_8UC3, outBuf);
+	signed short speed = 200;
+
+	Coloring(rgb_color, green);
+
+	cvtColor(rgb_color, hsv_color, COLOR_BGR2HSV);
+
+	int hue = (int)hsv_color.at<Vec3b>(0, 0)[0];
+	//int saturation = (int)hsv_color.at<Vec3b>(0, 0)[1];
+	//int value = (int)hsv_color.at<Vec3b>(0, 0)[2];
+	int low_hue = hue - 10;//¿¿¿ ¿¿
+	int high_hue = hue + 10;
+	int low_hue1 = 0, low_hue2 = 0;
+	int high_hue1 = 0, high_hue2 = 0;
+
+	MakeLimit(low_hue, low_hue1, low_hue2, high_hue, high_hue1, high_hue2, range_count);
+
+	img_input = srcRGB;
+
+	cvtColor(img_input, img_gray, COLOR_BGR2HSV);
+	// namedWindow("CAM", 0);
+	// resizeWindow("CAM", 1280, 720);
+	img_input = srcRGB;
+
+	cvtColor(img_input, img_gray, COLOR_BGR2HSV);
+
+	Mat binary_image;
+	Mat img_mask1, img_mask2;
+	inRange(img_gray, Scalar(low_hue1, 50, 50), Scalar(high_hue1, 255, 255), img_mask1);
+	if (range_count == 2) {
+		inRange(img_gray, Scalar(low_hue2, 50, 50), Scalar(high_hue2, 255, 255), img_mask2);
+		img_mask1 |= img_mask2;
+	}
+
+	//contour¿ ¿¿¿.
+	vector<vector<Point> > contours;
+	findContours(img_mask1, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
+
+	//contour¿ ¿¿¿¿¿.
+	vector<Point> approx;
+	// img_result = img_mask1.clone();
+
+	for (size_t i = 0; i < contours.size(); i++){
+		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
+		// approxPolyDP(Mat(contours[i]), approx, 1, true);
+
+		if (fabs(contourArea(Mat(approx))) > 1200)  //¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿. 
+		{
+			int size = approx.size();
+
+			//Contour¿ ¿¿¿¿ ¿¿¿ ¿¿¿.
+			if (size % 2 == 0) {
+				line(img_gray, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+
+				for (int k = 0; k < size - 1; k++)
+					line(img_gray, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+				for (int k = 0; k < size; k++)
+					circle(img_gray, approx[k], 3, Scalar(0, 0, 255));
+			}
+			else {
+				line(img_gray, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+
+				for (int k = 0; k < size - 1; k++)
+					line(img_gray, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+				for (int k = 0; k < size; k++)
+					circle(img_gray, approx[k], 3, Scalar(0, 0, 255));
+			}
+
+			if(size >= 7)
+				cout << "size = " << size << endl;
+
+			if (size == 7){
+				// setLabel(img_result, "left!", contours[i]); //¿¿¿
+				cout << "left" << endl;
+				speed = 0;
+			}
+			else if (size > 8){
+				// setLabel(img_result, "circle!!", contours[i]); //¿
+				cout << "circle" << endl;
+			}
+			resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+		}
+	}  
+	return speed;
+	//imshow("input", img_input);
+	//imshow("result", img_result);
+	//waitKey(1);
+}
+
 void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
 {
     Scalar lineColor = cv::Scalar(255,255,255);

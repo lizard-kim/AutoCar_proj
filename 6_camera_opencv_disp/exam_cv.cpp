@@ -170,7 +170,7 @@ void OpenCV_canny_edge_image(char* file, unsigned char* outBuf, int nw, int nh)
              nh : height value of destination buffer
   * @retval none
   */
-void OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
+signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
 {
 
 	int range_count = 0;
@@ -245,21 +245,22 @@ void OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* 
 				for (int k = 0; k < size; k++)
 					circle(img_gray, approx[k], 3, Scalar(0, 0, 255));
 			}
-			if(size > 7)
-				cout << "size = " << size << endl;
-
+			if(size > 7){
+				// cout << "size = " << size << endl;
+			}
 			if (size > 9){
 				// setLabel(img_result, "circle!!", contours[i]); //¿
 				cout << "red_circle" << endl;
+				return 0;
 			}
+			resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 		}
 	}  
 	// srcRGB = img_result;
 	// unsigned char* data = img_result.data;
 	// srcBuf = data;
 	// srcRGB(iw, ih, CV_8UC3, data);
-    resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
-
+	return 150;
 	//imshow("input", img_input);
 	//imshow("result", img_result);
 	//waitKey(1);

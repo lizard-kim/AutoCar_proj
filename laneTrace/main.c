@@ -56,7 +56,6 @@
 
 #define DUMP_MSGQ_KEY           1020
 #define DUMP_MSGQ_MSG_TYPE      0x02
-
 /////////////////////////////////////////////////////////////////////////
 //////////////////////// Functions //////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////
@@ -81,6 +80,7 @@ struct thr_data {
     struct buffer **input_bufs;
 
     double angle;
+	signed short speed;
 
     DumpState dump_state;
     unsigned char dump_img_data[VPE_OUTPUT_IMG_SIZE];
@@ -90,7 +90,7 @@ struct thr_data {
     bool bstream_start;
     pthread_t threads[3];
 };
-
+signed short real_speed = 0;
 
 static int allocate_input_buffers(struct thr_data *data);
 static void free_input_buffers(struct buffer **buffer, uint32_t n, bool bmultiplanar);
@@ -199,6 +199,11 @@ int main(int argc, char **argv)
     CarControlInit();
     SpeedControlOnOff_Write(UNCONTROL);
 
+    //jobs to be done beforehand;
+    /** SpeedControlOnOff_Write(CONTROL);   // speed controller must be also ON !!! */
+    /** speed = tdata.speed; // speed set     --> speed must be set when using position controller */
+    /** DesireSpeed_Write(speed); */
+
      //camera y servo set
     camera_angle = CameraYServoControl_Read();
     printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500, 0x5dc
@@ -206,16 +211,23 @@ int main(int argc, char **argv)
     camera_angle = 1600;
     CameraYServoControl_Write(camera_angle);    
 
-    //speed set    
-    check_speed = DesireSpeed_Read();
-    printf("DesireSpeed_Read() = %d \n", check_speed);
-    speed = 120;
-    DesireSpeed_Write(speed);
-
+    //speed set     */
+    check_speed = DesireSpeed_Read();  
+    printf("DesireSpeed_Read() = %d \n", check_speed); 
+    /** speed = 120; */
+    /** DesireSpeed_Write(speed); */
+/**  */
+	int lll = 0;
     while(1){
         angle = 1500-(tdata.angle/90)*500;
-        SteeringServoControl_Write(angle);
-        //usleep(50000);
+		speed = real_speed; 
+		/** printf("speed = %d\n", speed); */
+		SteeringServoControl_Write(angle);
+
+		DesireSpeed_Write(speed);
+
+		lll++;
+		//usleep(50000);
     }
 
     pause();
@@ -255,6 +267,34 @@ static void getSteeringwithLane(struct display *disp, struct buffer *cambuf)
   * @param  arg: pointer to parameter of thr_data
   * @retval none
   */
+void color_detection(struct display *disp, struct buffer *cambuf)
+{
+    unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
+    uint32_t optime;
+    struct timeval st, et;
+	signed short speed = 0;
+
+    unsigned char* cam_pbuf[4];
+    if(get_framebuf(cambuf, cam_pbuf) == 0) {
+        memcpy(srcbuf, cam_pbuf[0], VPE_OUTPUT_W*VPE_OUTPUT_H*3);
+
+        gettimeofday(&st, NULL);
+
+        /** speed = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); */
+        speed = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+		printf("speeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed : %d\n", speed);
+        //¿¿¿¿ ¿¿¿
+        gettimeofday(&et, NULL);
+        optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
+        draw_operatingtime(disp, optime);
+    }
+
+	real_speed = speed;
+	/** printf("color_detection func speed: %d\n", speed); */
+
+}
+
+
 void * capture_thread(void *arg)
 {
     struct thr_data *data = (struct thr_data *)arg;
@@ -264,7 +304,7 @@ void * capture_thread(void *arg)
     bool isFirst = true;
     int index;
     int count = 0;
-    int i;
+    int i, k;
 
     v4l2_reqbufs(v4l2, NUMBUF); // 영상 저장할 큐 버퍼 메모리 할당
     vpe_input_init(vpe); // VPE 입력 초기화
@@ -304,10 +344,19 @@ void * capture_thread(void *arg)
 
 
 
-        data->angle = hough_transform(vpe->disp, capt); // Hough transform 알고리즘 수행
+        data->angle = hough_transform(vpe->disp, capt); // Hough transform 알고리즘 수행 */
 
+		/** color_detection(vpe->disp, capt); */
 
-
+		/** if(k == 0) */
+		/**     data->speed = 0; */
+		/** else if(k == 1) */
+		/**     data->speed = 150; */
+		/** else{ */
+		/**     printf("error!!!!!!\n"); */
+		/**     exit(1); */
+		/** } */
+/**  */
 
         // fineLane(vpe->disp, capt);
 
@@ -589,7 +638,7 @@ static void draw_operatingtime(struct display *disp, uint32_t time)
 double hough_transform(struct display *disp, struct buffer *cambuf)
 {
     double angle;
-    
+    signed short speed;
     unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
     uint32_t optime;
     struct timeval st, et;
@@ -601,6 +650,8 @@ double hough_transform(struct display *disp, struct buffer *cambuf)
         gettimeofday(&st, NULL);
 
         angle = laneDetection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+		/** speed = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);  */
+	
 
         gettimeofday(&et, NULL);
         optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
