@@ -422,11 +422,13 @@ void parking()
     
 
 }
+}
 
 
 int parParkingSignal_1 = 0;
 int parParkingSignal_2 = 0;
-void parparking()
+
+void parparking(void)
 {
     DesireSpeed_Write(100);
     if(parParkingSignal_2 == 1)
@@ -527,4 +529,5 @@ void parparking()
 
         return 0;
     }
+    
 }
