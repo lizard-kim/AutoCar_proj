@@ -209,7 +209,7 @@ int main(int argc, char **argv)
     camera_angle = CameraYServoControl_Read();
     printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500, 0x5dc
 
-    camera_angle = 1600;
+    camera_angle = 1650;
     CameraYServoControl_Write(camera_angle);    
 
     //speed set     */
@@ -223,11 +223,13 @@ int main(int argc, char **argv)
 			break;
 
         angle = 1500-(tdata.angle/90)*500;
-		speed = real_speed; 
-		/** printf("speed = %d\n", speed); */
-		DesireSpeed_Write(speed);
-		SteeringServoControl_Write(angle); 
+		/** speed = real_speed;  */
+		printf("speed = %d\n", tdata.speed);
 
+		SteeringServoControl_Write(angle); 
+		if(tdata.speed == 0)
+			usleep(500000);
+		DesireSpeed_Write(tdata.speed);
 		usleep(50000);
     }
 
@@ -263,36 +265,12 @@ int main(int argc, char **argv)
 
 
 
-
-// 이미지로부터 차선을 인지하여 조향각 결정
-static void getSteeringwithLane(struct display *disp, struct buffer *cambuf)
-{
-    unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
-    uint32_t optime;
-    struct timeval st, et;
-
-    unsigned char* cam_pbuf[4];
-    if(get_framebuf(cambuf, cam_pbuf) == 0) {
-        memcpy(srcbuf, cam_pbuf[0], VPE_OUTPUT_W*VPE_OUTPUT_H*3);
-
-        gettimeofday(&st, NULL);
-
-        OpenCV_hough_transform(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
-
-        gettimeofday(&et, NULL);
-        optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
-        draw_operatingtime(disp, optime);
-    }
-}
-
-
-
 /**
   * @brief  Camera capture, capture image covert by VPE and display after sobel edge
   * @param  arg: pointer to parameter of thr_data
   * @retval none
   */
-void color_detection(struct display *disp, struct buffer *cambuf)
+signed short color_detection(struct display *disp, struct buffer *cambuf)
 {
     unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
     uint32_t optime;
@@ -314,8 +292,10 @@ void color_detection(struct display *disp, struct buffer *cambuf)
         draw_operatingtime(disp, optime);
     }
 
-	real_speed = speed;
+	/** printf("speeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed = %d\n", speed); */
+	/** real_speed = speed; */
 	/** printf("color_detection func speed: %d\n", speed); */
+	return speed;
 
 }
 
@@ -369,19 +349,20 @@ void * capture_thread(void *arg)
 
 
 
-        /** data->angle = hough_transform(vpe->disp, capt); // Hough transform 알고리즘 수행   */
+        data->angle = hough_transform(vpe->disp, capt); // Hough transform 알고리즘 수행 
 
-		color_detection(vpe->disp, capt);
-
-		/** if(k == 0) */
-		/**     data->speed = 0; */
-		/** else if(k == 1) */
-		/**     data->speed = 150; */
-		/** else{ */
-		/**     printf("error!!!!!!\n"); */
-		/**     exit(1); */
-		/** } */
-/**  */
+		data->speed = color_detection(vpe->disp, capt);
+        /**  */
+        /** if (data->angle == 1234) { */
+        /**     data->angle = 0; */
+        /**     [> data->speed = 0; <] */
+		/**     real_speed = 0; */
+        /** } */
+        /** [> else { <] */
+        /**     [> data->speed = 120; <] */
+		/**     real_speed = 120; */
+        /** } */
+        /**  */
 
         // fineLane(vpe->disp, capt);
 

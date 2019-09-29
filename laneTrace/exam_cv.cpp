@@ -169,7 +169,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	int range_count = 0;
 	int stopornot = 1;
 	Mat img_input, img_gray;
-	signed short speed = 120;
+	signed short speed = 100;
 	// Scalar blue(10, 200, 50);
 	Scalar red(0, 0, 255);
 	Mat rgb_color, hsv_color;
@@ -240,10 +240,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 				for (int k = 0; k < size; k++)
 					circle(img_gray, approx[k], 3, Scalar(0, 0, 255));
 			}
-			if(size > 7){
-				// cout << "size = " << size << endl;
-			}
-			if (size > 7){
+			if (size >= 7){
 				// setLabel(img_result, "circle!!", contours[i]); //¿
 				cout << "red_circle" << endl;
 				speed = 0;
