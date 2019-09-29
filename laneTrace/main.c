@@ -96,7 +96,7 @@ int is_Traffic_Light = 0; //1 is traffic light mission 1 is left, 2 is right
 static int allocate_input_buffers(struct thr_data *data);
 static void free_input_buffers(struct buffer **buffer, uint32_t n, bool bmultiplanar);
 static void draw_operatingtime(struct display *disp, uint32_t time);
-double hough_transform(struct display *disp, struct buffer *cambuf);
+double getSteeringWithLane(struct display *disp, struct buffer *cambuf);
 void * capture_thread(void *arg);
 void * capture_dump_thread(void *arg);
 void * input_thread(void *arg);
@@ -252,6 +252,17 @@ int main(int argc, char **argv)
 		}
 		else if(is_Traffic_Light == 2){
 			//right
+			SteeringServoControl_Write(1050);
+			DesireSpeed_Write(100);
+			usleep(2000000);
+			printf("step 1...\n");
+
+			SteeringServoControl_Write(1500);
+			usleep(1000000);
+			printf("step 2...\n");
+
+			printf("Basic Mode is ready... traffic light finished..!!!\n");
+			DesireSpeed_Write(0); //E-Stop;
 		}
 		else{
 			printf("ERROR!!!!\n");
@@ -349,7 +360,7 @@ void * capture_thread(void *arg)
 
 
 
-        data->angle = hough_transform(vpe->disp, capt); // Hough transform 알고리즘 수행 
+        data->angle = getSteeringWithLane(vpe->disp, capt); // Hough transform 알고리즘 수행 
 
 		data->speed = color_detection(vpe->disp, capt);
         /**  */
@@ -641,7 +652,7 @@ static void draw_operatingtime(struct display *disp, uint32_t time)
                  cambuf: vpe output buffer that converted capture image
   * @retval none
   */
-double hough_transform(struct display *disp, struct buffer *cambuf)
+double getSteeringWithLane(struct display *disp, struct buffer *cambuf)
 {
     double angle;
     signed short speed;
@@ -663,6 +674,7 @@ double hough_transform(struct display *disp, struct buffer *cambuf)
         optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
         draw_operatingtime(disp, optime);
     }
+	return angle;
 }
 
 
