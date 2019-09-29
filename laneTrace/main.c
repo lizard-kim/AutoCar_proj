@@ -91,11 +91,12 @@ struct thr_data {
     pthread_t threads[3];
 };
 signed short real_speed = 0;
+int is_Traffic_Light = 0; //1 is traffic light mission 1 is left, 2 is right
 
 static int allocate_input_buffers(struct thr_data *data);
 static void free_input_buffers(struct buffer **buffer, uint32_t n, bool bmultiplanar);
 static void draw_operatingtime(struct display *disp, uint32_t time);
-double hough_transform(struct display *disp, struct buffer *cambuf);
+double getSteeringWithLane(struct display *disp, struct buffer *cambuf);
 void * capture_thread(void *arg);
 void * capture_dump_thread(void *arg);
 void * input_thread(void *arg);
@@ -208,7 +209,7 @@ int main(int argc, char **argv)
     camera_angle = CameraYServoControl_Read();
     printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500, 0x5dc
 
-    camera_angle = 1600;
+    camera_angle = 1650;
     CameraYServoControl_Write(camera_angle);    
 
     //speed set     */
@@ -217,48 +218,61 @@ int main(int argc, char **argv)
     /** speed = 120; */
     /** DesireSpeed_Write(speed); */
 /**  */
-	int lll = 0;
     while(1){
+		if(is_Traffic_Light >= 1)
+			break;
+
         angle = 1500-(tdata.angle/90)*500;
-		speed = real_speed; 
-		/** printf("speed = %d\n", speed); */
-		SteeringServoControl_Write(angle);
+		/** speed = real_speed;  */
+		printf("speed = %d\n", tdata.speed);
 
-		DesireSpeed_Write(speed);
-
-		lll++;
-		//usleep(50000);
+		SteeringServoControl_Write(angle); 
+		if(tdata.speed == 0)
+			usleep(500000);
+		DesireSpeed_Write(tdata.speed);
+		usleep(50000);
     }
 
-    pause();
+	if(is_Traffic_Light >= 1){
+		//시간제어
+		//좌회전 하도록 하기
+		if(is_Traffic_Light == 1){
+			//left
+			SteeringServoControl_Write(1950);
+			DesireSpeed_Write(100);
+			usleep(2000000);
+			printf("step 1...\n");
 
-    return ret;
+			SteeringServoControl_Write(1500);
+			usleep(1000000);
+			printf("step 2...\n");
+
+			printf("Basic Mode is ready... traffic light finished..!!!\n");
+			DesireSpeed_Write(0); //E-Stop;
+		}
+		else if(is_Traffic_Light == 2){
+			//right
+			SteeringServoControl_Write(1050);
+			DesireSpeed_Write(100);
+			usleep(2000000);
+			printf("step 1...\n");
+
+			SteeringServoControl_Write(1500);
+			usleep(1000000);
+			printf("step 2...\n");
+
+			printf("Basic Mode is ready... traffic light finished..!!!\n");
+			DesireSpeed_Write(0); //E-Stop;
+		}
+		else{
+			printf("ERROR!!!!\n");
+		}
+	}
+	pause();
+
+	return ret;
 }
 
-
-
-
-
-// 이미지로부터 차선을 인지하여 조향각 결정
-static void getSteeringwithLane(struct display *disp, struct buffer *cambuf)
-{
-    unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
-    uint32_t optime;
-    struct timeval st, et;
-
-    unsigned char* cam_pbuf[4];
-    if(get_framebuf(cambuf, cam_pbuf) == 0) {
-        memcpy(srcbuf, cam_pbuf[0], VPE_OUTPUT_W*VPE_OUTPUT_H*3);
-
-        gettimeofday(&st, NULL);
-
-        OpenCV_hough_transform(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
-
-        gettimeofday(&et, NULL);
-        optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
-        draw_operatingtime(disp, optime);
-    }
-}
 
 
 
@@ -267,7 +281,7 @@ static void getSteeringwithLane(struct display *disp, struct buffer *cambuf)
   * @param  arg: pointer to parameter of thr_data
   * @retval none
   */
-void color_detection(struct display *disp, struct buffer *cambuf)
+signed short color_detection(struct display *disp, struct buffer *cambuf)
 {
     unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
     uint32_t optime;
@@ -280,17 +294,19 @@ void color_detection(struct display *disp, struct buffer *cambuf)
 
         gettimeofday(&st, NULL);
 
-        /** speed = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); */
-        speed = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
-		printf("speeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed : %d\n", speed);
+        speed = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+        is_Traffic_Light = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+		/** printf("speeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed : %d\n", speed); */
         //¿¿¿¿ ¿¿¿
         gettimeofday(&et, NULL);
         optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
         draw_operatingtime(disp, optime);
     }
 
-	real_speed = speed;
+	/** printf("speeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed = %d\n", speed); */
+	/** real_speed = speed; */
 	/** printf("color_detection func speed: %d\n", speed); */
+	return speed;
 
 }
 
@@ -344,19 +360,20 @@ void * capture_thread(void *arg)
 
 
 
-        data->angle = hough_transform(vpe->disp, capt); // Hough transform 알고리즘 수행 */
+        data->angle = getSteeringWithLane(vpe->disp, capt); // Hough transform 알고리즘 수행 
 
-		/** color_detection(vpe->disp, capt); */
-
-		/** if(k == 0) */
-		/**     data->speed = 0; */
-		/** else if(k == 1) */
-		/**     data->speed = 150; */
-		/** else{ */
-		/**     printf("error!!!!!!\n"); */
-		/**     exit(1); */
-		/** } */
-/**  */
+		data->speed = color_detection(vpe->disp, capt);
+        /**  */
+        /** if (data->angle == 1234) { */
+        /**     data->angle = 0; */
+        /**     [> data->speed = 0; <] */
+		/**     real_speed = 0; */
+        /** } */
+        /** [> else { <] */
+        /**     [> data->speed = 120; <] */
+		/**     real_speed = 120; */
+        /** } */
+        /**  */
 
         // fineLane(vpe->disp, capt);
 
@@ -635,7 +652,7 @@ static void draw_operatingtime(struct display *disp, uint32_t time)
                  cambuf: vpe output buffer that converted capture image
   * @retval none
   */
-double hough_transform(struct display *disp, struct buffer *cambuf)
+double getSteeringWithLane(struct display *disp, struct buffer *cambuf)
 {
     double angle;
     signed short speed;
@@ -657,6 +674,7 @@ double hough_transform(struct display *disp, struct buffer *cambuf)
         optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
         draw_operatingtime(disp, optime);
     }
+	return angle;
 }
 
 

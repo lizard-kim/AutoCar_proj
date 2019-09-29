@@ -1,3 +1,0 @@
-/Users/parkkyuyeol/CLionProjects/laneDetection/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/Users/parkkyuyeol/CLionProjects/laneDetection/cmake-build-debug/CMakeFiles/edit_cache.dir
-/Users/parkkyuyeol/CLionProjects/laneDetection/cmake-build-debug/CMakeFiles/laneDetection.dir

@@ -198,14 +198,14 @@ double laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBu
         else {
             angle = angle * (1 + ((double)new_width/8 - (double)abs(diff))/40);
         }
-        cout << "angle : " << angle << endl;
+        // cout << "angle : " << angle << endl;
     }
     else {
-        cout << "Lane not detected ㅜㅜ" << endl;
+        // cout << "Lane not detected ㅜㅜ" << endl;
     }
 
-    srcRGB = warpframe;
-    cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+    // srcRGB = warpframe;
+    // cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
     return angle;
 }
