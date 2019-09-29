@@ -263,17 +263,17 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	//waitKey(1);
 }
 
-signed short OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
+int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
 {
 
 	int range_count = 0;
 	Mat img_input, img_result, img_gray;
-	Scalar green(10, 200, 50);
+	Scalar green(0, 200, 50);
 	// Scalar red(0, 0, 255);
 	Mat rgb_color, hsv_color;
 	Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
 	Mat dstRGB(nh, nw, CV_8UC3, outBuf);
-	signed short speed = 200;
+	int is_Traffic_Light = 0;
 
 	Coloring(rgb_color, green);
 
@@ -340,22 +340,20 @@ signed short OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsig
 					circle(img_gray, approx[k], 3, Scalar(0, 0, 255));
 			}
 
-			if(size >= 7)
-				cout << "size = " << size << endl;
-
 			if (size == 7){
 				// setLabel(img_result, "left!", contours[i]); //¿¿¿
 				cout << "left" << endl;
-				speed = 0;
+				is_Traffic_Light = 1;
 			}
 			else if (size > 8){
 				// setLabel(img_result, "circle!!", contours[i]); //¿
 				cout << "circle" << endl;
+				is_Traffic_Light = 2;
 			}
 			resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 		}
 	}  
-	return speed;
+	return is_Traffic_Light;
 	//imshow("input", img_input);
 	//imshow("result", img_result);
 	//waitKey(1);

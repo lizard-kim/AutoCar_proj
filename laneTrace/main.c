@@ -91,6 +91,7 @@ struct thr_data {
     pthread_t threads[3];
 };
 signed short real_speed = 0;
+int is_Traffic_Light = 0; //1 is traffic light mission 1 is left, 2 is right
 
 static int allocate_input_buffers(struct thr_data *data);
 static void free_input_buffers(struct buffer **buffer, uint32_t n, bool bmultiplanar);
@@ -218,6 +219,9 @@ int main(int argc, char **argv)
     /** DesireSpeed_Write(speed); */
 /**  */
     while(1){
+		if(is_Traffic_Light >= 1)
+			break;
+
         angle = 1500-(tdata.angle/90)*500;
 		speed = real_speed; 
 		/** printf("speed = %d\n", speed); */
@@ -227,9 +231,33 @@ int main(int argc, char **argv)
 		usleep(50000);
     }
 
-    pause();
+	if(is_Traffic_Light >= 1){
+		//시간제어
+		//좌회전 하도록 하기
+		if(is_Traffic_Light == 1){
+			//left
+			SteeringServoControl_Write(1950);
+			DesireSpeed_Write(100);
+			usleep(2000000);
+			printf("step 1...\n");
 
-    return ret;
+			SteeringServoControl_Write(1500);
+			usleep(1000000);
+			printf("step 2...\n");
+
+			printf("Basic Mode is ready... traffic light finished..!!!\n");
+			DesireSpeed_Write(0); //E-Stop;
+		}
+		else if(is_Traffic_Light == 2){
+			//right
+		}
+		else{
+			printf("ERROR!!!!\n");
+		}
+	}
+	pause();
+
+	return ret;
 }
 
 
@@ -278,8 +306,8 @@ void color_detection(struct display *disp, struct buffer *cambuf)
         gettimeofday(&st, NULL);
 
         speed = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
-        /** speed = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); */
-		printf("speeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed : %d\n", speed);
+        is_Traffic_Light = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+		/** printf("speeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed : %d\n", speed); */
         //¿¿¿¿ ¿¿¿
         gettimeofday(&et, NULL);
         optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
@@ -341,7 +369,7 @@ void * capture_thread(void *arg)
 
 
 
-        data->angle = hough_transform(vpe->disp, capt); // Hough transform 알고리즘 수행  
+        /** data->angle = hough_transform(vpe->disp, capt); // Hough transform 알고리즘 수행   */
 
 		color_detection(vpe->disp, capt);
 
