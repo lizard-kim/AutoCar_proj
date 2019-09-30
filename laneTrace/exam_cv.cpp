@@ -198,6 +198,8 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 
 	Mat binary_image;
 	Mat img_mask1, img_mask2;
+
+	//accept red filter for detect red stop sign
 	inRange(img_gray, Scalar(low_hue1, 50, 50), Scalar(high_hue1, 255, 255), img_mask1);
 	if (range_count == 2) {
 		inRange(img_gray, Scalar(low_hue2, 50, 50), Scalar(high_hue2, 255, 255), img_mask2);
@@ -211,6 +213,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	vector<Point> approx;
 	img_result = img_mask1;
 
+	//
 	for (size_t i = 0; i < contours.size(); i++){
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
 		// approxPolyDP(Mat(contours[i]), approx, 1, true);
@@ -241,6 +244,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 				// cout << "red_circle" << endl;
 				speed = 0;
 			}
+			// for display
 			// resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 		}
 	}
@@ -279,6 +283,8 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 
 	Mat binary_image;
 	Mat img_mask1, img_mask2;
+
+	//accept green filter for detect Traffic light
 	inRange(img_gray, Scalar(low_hue1, 50, 50), Scalar(high_hue1, 255, 255), img_mask1);
 	if (range_count == 2) {
 		inRange(img_gray, Scalar(low_hue2, 50, 50), Scalar(high_hue2, 255, 255), img_mask2);
@@ -293,7 +299,7 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 	for (size_t i = 0; i < contours.size(); i++){
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
 
-		if (fabs(contourArea(Mat(approx))) > 500)  //¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿. 
+		if (fabs(contourArea(Mat(approx))) > 500) //[TODO]we have to do fine tuning 
 		{
 			int size = approx.size();
 
@@ -314,17 +320,18 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 					circle(img_gray, approx[k], 3, Scalar(0, 0, 255));
 			}
 
-			if (size == 7){
+			if (size == 7){//go left!
 				// setLabel(img_result, "left!", contours[i]); //¿¿¿
 				cout << "left" << endl;
-				is_Traffic_Light = 1;
+				is_Traffic_Light = 1; //left signal
 			}
-			else if (size > 8){
+			else if (size >= 8){//circle, go right!!
 				// setLabel(img_result, "circle!!", contours[i]); //¿
 				cout << "circle" << endl;
-				is_Traffic_Light = 2;
+				is_Traffic_Light = 2; //right signal
 			}
-			resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+			// display result
+			// resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 		}
 	}  
 	return is_Traffic_Light;
