@@ -74,7 +74,7 @@ double DistFunc(double data)
 }
 
 
-void dynamic_obs(void) {
+void dynamic_obs(void) { /// this function is for executing moving obstacle in rotary
 
     while (1) {
         int a;
@@ -164,7 +164,7 @@ void check_linesensors(void) { /// for checking line sensor in while roop
     printf("while roop end");
 }
 
-void tunnel()
+void tunnel() /// this function is for executing tunnel mission by using psd
 {
     CarLight_Write(FRONT_ON);
     I_data_2 = DistanceSensor(2);
@@ -190,7 +190,7 @@ void tunnel()
 }
 
 
-void tunnel_adv()
+void tunnel_adv() /// tunnel advanced function: it check front distance
 {
     
     I_data_1 = DistanceSensor(1);
@@ -216,7 +216,6 @@ void tunnel_adv()
         }
         if(O_data_1 < 40)
         {
-            printf("FUCK");
             //angle = -16*O_data_1 + 2140;
             angle = 1990;
         }
@@ -232,7 +231,6 @@ void tunnel_adv()
         angle = -30*O_data_2 + 1800;
         if(O_data_1 < 40)
         {
-            printf("FUCK2222");
             //angle = -16*O_data_1 + 2140;
             angle = 1990;
         }
@@ -250,7 +248,6 @@ void tunnel_adv()
         {
             angle = 1800;
             printf("tunnel, right curve = %d", angle);
-            printf("FUCK");
             SteeringServoControl_Write(angle);
         }
         else if(O_data_2  - O_data_5 <= 3) // left curve, looking front
@@ -264,7 +261,7 @@ void tunnel_adv()
 
 
 
-void tunnel_real()
+void tunnel_real() /// it's for tunnel mission: it use all of psd sensors
 {
     
     I_data_1 = DistanceSensor(1);
@@ -290,7 +287,6 @@ void tunnel_real()
         }
         if(O_data_1 < 20 && O_data_2 - O_data_6 <= 3) // if right curve
         {
-            printf("FUCK");
             angle = 16*O_data_1 + 860;
         }
         if(O_data_1 < 2 && O_data_6 - O_data_2 <= 3) // if left curve
@@ -305,7 +301,6 @@ void tunnel_real()
         angle = -30*O_data_2 + 1800;
         if(O_data_1 < 20 && O_data_2 - O_data_6 <= 3) // if right curve
         {
-            printf("FUCK2222");
             angle = 16*O_data_1 + 860;
         }
         if(O_data_1 < 20 && O_data_6 - O_data_2 <= 3)
@@ -330,7 +325,7 @@ void tunnel_real()
 
 int ParkingSignal_1 = 0;
 int ParkingSignal_2 = 0;
-void parking()
+void parking() /// it's for T parking
 {
     DesireSpeed_Write(100);
     if(ParkingSignal_2 == 1)
@@ -395,13 +390,12 @@ void parking()
         DesireSpeed_Write(-100);
         usleep(300000);
 
-        printf("FUCK0");
         SteeringServoControl_Write(1500);
         DesireSpeed_Write(100);
         usleep(300000);
         EncoderCounter_Write(0);
         
-        printf("FUCK0_1");
+
         SteeringServoControl_Write(1050);
         DesireSpeed_Write(200);
         usleep(1230000);
@@ -409,7 +403,6 @@ void parking()
         /* 
         if(EncoderCounter_Read() == 18000)
         {
-            printf("FUCK2");
             SteeringServoControl_Write(1500);
         }*/
 
@@ -428,7 +421,7 @@ void parking()
 int parParkingSignal_1 = 0;
 int parParkingSignal_2 = 0;
 
-void parparking(void)
+void parparking(void) /// parallel parking
 {
     DesireSpeed_Write(100);
     if(parParkingSignal_2 == 1)
