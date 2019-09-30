@@ -58,3 +58,5 @@ laneDetection.lo: laneDetection.cpp laneDetection.h
 
 stop_when_accident.lo: stop_when_accident.h
 	$(CXX) -c $(CXXFLAGS) -o $@ stop_when_accident.cpp -Lmydir
+#edit
+

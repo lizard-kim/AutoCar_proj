@@ -12,6 +12,7 @@
 #include <opencv2/objdetect/objdetect.hpp>
 
 #include "stop_when_accident.h"
+
 #define PI 3.1415926
 
 using namespace std;
@@ -169,7 +170,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	int range_count = 0;
 	int stopornot = 1;
 	Mat img_input, img_gray;
-	signed short speed = 100;
+	signed short speed = 150;
 	// Scalar blue(10, 200, 50);
 	Scalar red(0, 0, 255);
 	Mat rgb_color, hsv_color;
@@ -242,7 +243,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 			}
 			if (size >= 7){
 				// setLabel(img_result, "circle!!", contours[i]); //¿
-				cout << "red_circle" << endl;
+				// cout << "red_circle" << endl;
 				speed = 0;
 				// stopornot = 0;
 			}
@@ -315,7 +316,7 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
 		// approxPolyDP(Mat(contours[i]), approx, 1, true);
 
-		if (fabs(contourArea(Mat(approx))) > 1200)  //¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿. 
+		if (fabs(contourArea(Mat(approx))) > 500)  //¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿. 
 		{
 			int size = approx.size();
 
@@ -355,6 +356,130 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 	//imshow("result", img_result);
 	//waitKey(1);
 }
+
+bool pixel_detector(Mat image, char* order){
+	int count = 0;
+	if(order == "first") {
+		for(int j = (2*(image.rows))/3; j < image.rows; j++){
+			uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
+			for(int i = 0; i < (image.cols)/3; i++){
+				//cout << "(" << i << ", " << j << ") " << "pixel 값 : " << int(pointer[i]) << endl;
+				if(int(pointer[i]) == 255) count ++;
+				pointer[i]++;
+			}
+		}
+	}
+	else if(order == "second"){
+		for(int j = (2*(image.rows))/3; j < image.rows; j++){
+			uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
+			for(int i = image.cols/3; i < (2*image.cols)/3; i++){
+				//cout << "(" << i << ", " << j << ") " << "pixel 값 : " << int(pointer[i]) << endl;
+				if(int(pointer[i]) == 255) count ++;
+				pointer[i]++;
+			}
+		}
+	}
+	else if(order == "third"){
+		for(int j = (2*(image.rows))/3; j < image.rows; j++){
+			uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
+			for(int i = (2*image.cols)/3; i < image.cols; i++){
+				//cout << "(" << i << ", " << j << ") " << "pixel 값 : " << int(pointer[i]) << endl;
+				if(int(pointer[i]) == 255) count ++;
+				pointer[i]++;
+			}
+		}
+	}
+
+	cout << "count 값 : " << count << endl;
+	return count > 1000 ? true : false;
+}
+
+Mat pre_histogram_backprojection(){
+	Mat srcImage = imread("overroad2.jpg", IMREAD_COLOR); // 이게 기준값!
+	//if (srcImage.empty())
+	//	return ;
+	cout << "이미지의 크기는 : " << srcImage.cols << " " << srcImage.rows << endl;
+	resize(srcImage, srcImage, Size(srcImage.cols/5, srcImage.rows/5));
+	Mat hsvImage;
+	cvtColor(srcImage, hsvImage, COLOR_BGR2HSV);
+	Rect roi(Point(480, 570), Point(495, 585));
+	rectangle(srcImage, roi, Scalar(0, 0, 255), 2);
+	Mat roiImage = hsvImage(roi);
+
+	int histSize = 256;
+	float hValue[] = { 0, 256 };
+	float sValue[] = { 0, 256 };
+	float vValue[] = { 0, 256 };
+	const float* ranges[] = { hValue, sValue, vValue };
+	int channels[] = {0, 1, 2};
+	int dims = 3; // dimenstion 차원
+
+	Mat hist;
+	calcHist(&roiImage, 1, channels, Mat(), hist, dims, &histSize, ranges); //관심 영역을 히스토그램 계산
+
+	return hist;
+}
+
+int histogram_backprojection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
+{
+	Mat dstRGB(nh, nw, CV_8UC3, outBuf); // 나중에
+	//Mat srcRGB(ih, iw, CV_8UC3, srcBuf); // 이미지 받아오기
+	Mat srcImage(ih, iw, CV_8UC3, srcBuf);
+	Mat resRGB(ih, iw, CV_8UC3);
+	Mat hsvImage;
+	float hValue[] = { 0, 256 };
+	float sValue[] = { 0, 256 };
+	float vValue[] = { 0, 256 };
+	const float* ranges[] = { hValue, sValue, vValue };
+	int channels[] = {0, 1, 2};
+
+	if (srcImage.empty())
+		cout << "이미지 인식 실패\n" << endl;
+		return -1;//fail
+	cout << "이미지의 크기는 : " << srcImage.cols << " " << srcImage.rows << endl;
+	resize(srcImage, srcImage, Size(srcImage.cols/5, srcImage.rows/5));
+
+	cvtColor(srcImage, hsvImage, COLOR_BGR2HSV); //히스토그램은 밝기값을 통해 계산하기 때문에
+												 //RGB 영상을 HSV 영상으로 바꾼 후 H 채널만 분리하도록 한다.
+
+	Mat hist = pre_histogram_backprojection(); // 여기서 pre_histogram 함수 사용
+	Mat backProject;
+	calcBackProject(&hsvImage, 1, channels, hist, backProject, ranges);
+
+	Mat backProject2;
+	normalize(backProject, backProject2, 0, 255, NORM_MINMAX, CV_8U); //정규화하여 더 나은 시각화를 이룸
+
+	threshold(backProject2, backProject2, 180, 255, CV_THRESH_BINARY);
+
+	Mat mask2 = getStructuringElement(MORPH_RECT, Size(4, 4));
+	dilate(backProject2, backProject2, mask2, Point(-1, -1), 1);
+
+	cv::resize(srcImage, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+
+	bool answer = pixel_detector(backProject2, "first"); // 여기서 pixet_detector 함수 사용
+	cout << "첫번째 탐지" << endl;
+	if(answer == 1) cout << "장애물 감지!!" << endl;
+	else cout << "감지되지 않았습니다" << endl;
+
+	cout << "두번째 탐지" << endl;
+	bool answer2 = pixel_detector(backProject2, "second");
+	if(answer2 == 1) cout << "장애물 감지!!" << endl;
+	else cout << "감지되지 않았습니다" << endl;
+
+	bool answer3 = pixel_detector(backProject2, "third");
+	if(answer3 == 1) cout << "장애물 감지!!" << endl;
+	else cout << "감지되지 않았습니다" << endl;
+
+	if(answer == 0 && answer2 == 1 && answer3 == 1){
+		return 1;//left
+	}
+	else if(answer == 1 && answer2 == 1 && answer3 == 0){
+		return 2;//right
+	}
+	else return -1;//fail
+}
+
+
 
 void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
 {

@@ -23,6 +23,7 @@
 #include "input_cmd.h"
 #include "exam_cv.h"
 #include "laneDetection.h"
+#include "passing_master.h"
 
 /////////////////////////////////////////////////////////////////////////
 //////////////////////// Defines ////////////////////////////////////////
@@ -92,6 +93,8 @@ struct thr_data {
 };
 signed short real_speed = 0;
 int is_Traffic_Light = 0; //1 is traffic light mission 1 is left, 2 is right
+int passing_where = -1; // 1 is left 2 is right
+int passing = 0;
 
 static int allocate_input_buffers(struct thr_data *data);
 static void free_input_buffers(struct buffer **buffer, uint32_t n, bool bmultiplanar);
@@ -100,6 +103,9 @@ double getSteeringWithLane(struct display *disp, struct buffer *cambuf);
 void * capture_thread(void *arg);
 void * capture_dump_thread(void *arg);
 void * input_thread(void *arg);
+double distance_calculate(double data);
+double distance_sensor();
+static void passing_master(struct display *disp, struct buffer *cambuf);
 
 static struct thr_data* pexam_data = NULL;
 void signal_handler(int sig);
@@ -196,8 +202,12 @@ int main(int argc, char **argv)
     signed short speed, check_speed;
     double angle = 1500;
     int camera_angle;
+	int position, posInit, posDes, posRead;
+	int channel;
+	int tol;
+	int data, distance; // distance 센서용
 
-    CarControlInit();
+	CarControlInit();
     SpeedControlOnOff_Write(UNCONTROL);
 
     //jobs to be done beforehand;
@@ -221,15 +231,17 @@ int main(int argc, char **argv)
     while(1){
 		if(is_Traffic_Light >= 1)
 			break;
+		if(passing == 1)
+			break;
 
         angle = 1500-(tdata.angle/90)*500;
 		/** speed = real_speed;  */
 		printf("speed = %d\n", tdata.speed);
 
 		SteeringServoControl_Write(angle); 
+		DesireSpeed_Write(tdata.speed);
 		if(tdata.speed == 0)
 			usleep(500000);
-		DesireSpeed_Write(tdata.speed);
 		usleep(50000);
     }
 
@@ -239,12 +251,12 @@ int main(int argc, char **argv)
 		if(is_Traffic_Light == 1){
 			//left
 			SteeringServoControl_Write(1950);
-			DesireSpeed_Write(100);
-			usleep(2000000);
+			DesireSpeed_Write(200);
+			usleep(1700000);
 			printf("step 1...\n");
 
 			SteeringServoControl_Write(1500);
-			usleep(1000000);
+			usleep(100000);
 			printf("step 2...\n");
 
 			printf("Basic Mode is ready... traffic light finished..!!!\n");
@@ -266,6 +278,110 @@ int main(int argc, char **argv)
 		}
 		else{
 			printf("ERROR!!!!\n");
+		}
+	}
+	printf("main passing_where = %d\n", passing_where);
+	printf("main passing = %d\n", passing);
+	//koo
+	if(passing_where != -1){
+		printf("뒤로 가자!\n");
+		SpeedControlOnOff_Write(CONTROL);
+		speed = -200;
+
+		//control on/off
+		PositionControlOnOff_Write(CONTROL);
+
+		//position controller gain set
+		gain = 30;
+		PositionProportionPoint_Write(gain);
+
+		//position write
+		posInit = 0;  //initialize
+		EncoderCounter_Write(posInit);
+
+		//position set
+		posDes = -800;
+		position = posInit+posDes;
+		DesireEncoderCount_Write(position);
+
+		position=DesireEncoderCount_Read();
+		printf("DesireEncoderCount_Read() = %d\n", position);
+
+		sleep(1);
+		speed = 0;
+		DesireSpeed_Write(speed);
+		//mission_count ++;
+
+		// 모드가 바뀔 때 빛과 소리가 납니다
+		CarLight_Write(ALL_ON);
+		Alarm_Write(ON);
+		usleep(100000);
+		Alarm_Write(OFF);
+		CarLight_Write(ALL_OFF);
+
+		if(passing_where == 1){
+			printf("왼쪽으로 가자!\n");
+		}
+		else if(passing_where == 2){
+			printf("오른쪽으로 가자!\n");
+
+			SpeedControlOnOff_Write(CONTROL);
+
+			speed = 70;
+			DesireSpeed_Write(speed);
+
+			angle = 1150;
+			SteeringServoControl_Write(angle);
+
+			//control on/off
+			PositionControlOnOff_Write(CONTROL);
+
+			//position controller gain set
+			gain = 30;
+			PositionProportionPoint_Write(gain);
+
+			//position write
+			posInit = 0;  //initialize
+			EncoderCounter_Write(posInit);
+
+			//position set
+			posDes = 1000;
+			position = posInit+posDes;
+			DesireEncoderCount_Write(position);
+
+			position=DesireEncoderCount_Read();
+			printf("DesireEncoderCount_Read() = %d\n", position);
+
+			tol = 100;    // tolerance
+			while(abs(posRead-position)>tol)
+			{
+				posRead=EncoderCounter_Read();
+				printf("EncoderCounter_Read() = %d\n", posRead);
+				speed = DesireSpeed_Read();
+				printf("DesireSpeed_Read() = %d \n", speed);
+			}
+			sleep(1);
+
+			PositionControlOnOff_Write(UNCONTROL); // position controller must be OFF !!!
+			SpeedControlOnOff_Write(CONTROL);   // speed controller must be also ON !!!
+
+			speed = 70;
+			DesireSpeed_Write(speed);
+			// 다시 원래 주행각도로 돌아오기 위해서
+			angle = 1850;
+			SteeringServoControl_Write(angle);
+			usleep(1500000);
+
+			angle = 1500;
+			SteeringServoControl_Write(angle);
+
+			speed = 70;
+			DesireSpeed_Write(speed);
+
+			usleep(150000);
+			speed = 0;
+			DesireSpeed_Write(speed);
+
 		}
 	}
 	pause();
@@ -360,9 +476,12 @@ void * capture_thread(void *arg)
 
 
 
-        data->angle = getSteeringWithLane(vpe->disp, capt); // Hough transform 알고리즘 수행 
+        data->angle = getSteeringWithLane(vpe->disp, capt); // Hough transform 알고리즘 수행  */
 
-		data->speed = color_detection(vpe->disp, capt);
+		data->speed = color_detection(vpe->disp, capt); 
+		passing_master(vpe->disp, capt);
+		if(passing_where != -1)
+			passing = 1;
         /**  */
         /** if (data->angle == 1234) { */
         /**     data->angle = 0; */
@@ -677,4 +796,87 @@ double getSteeringWithLane(struct display *disp, struct buffer *cambuf)
 	return angle;
 }
 
+//koo
+double distance_calculate(double data){
+	/** printf("fuck data = %lf\n", data); */
+    double middle = data / 22691;
+	/** printf("middle = %lf\n", middle); */
+    double distance = pow(middle, -(1/1.07));
+	/** printf("fuck dis = %lf\n", distance); */
+    return distance;
+}
+
+double distance_sensor(){
+	int channel = 1;
+	double data;
+    /** printf("distance sensor start!!!\n"); */
+    double distance = 1;
+    while(1){
+        data = DistanceSensor(channel);
+        distance = distance_calculate(data);
+        /** printf("channel = %d, distance = %d\n", channel, distance); */
+        return distance;
+    }
+}
+
+
+
+static void passing_master(struct display *disp, struct buffer *cambuf){
+    unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
+    uint32_t optime;
+    struct timeval st, et;
+    int decision; 
+    signed short speed;
+    double distance;
+	/** printf("Koo is Passing master!!!!!!! wow!!!!!!\n"); */
+
+    unsigned char* cam_pbuf[4];
+    if(get_framebuf(cambuf, cam_pbuf) == 0) {
+        memcpy(srcbuf, cam_pbuf[0], VPE_OUTPUT_W*VPE_OUTPUT_H*3);
+
+        gettimeofday(&st, NULL);
+
+
+
+
+//=================================================================================
+        decision = histogram_backprojection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+		decision = 2;//[TODO] delete this!!!
+        
+        distance = distance_sensor();
+        /**  */
+        /** if(distance > 15){  */
+        /**     printf("기본주행모드 입니다"); */
+        /**     speed = 100; */
+        /**     DesireSpeed_Write(speed); */
+        /** } */
+		/** printf("decision= %d\n", decision); */
+
+        //거리가 15 미만이면 회피
+        if(distance < 15){
+			//[TODO] move to main func
+            /** if(decision == -1){ */
+            /** printf("기본주행모드 입니다");             */
+            /** speed = 100; */
+            /** DesireSpeed_Write(speed); */
+            /** } */
+            if(decision == 1){
+                //passing_left();
+				passing_where = 1;
+            } 
+            else if(decision == 2){
+                //passing_right();
+				passing_where = 2;
+            }
+        }
+		/** printf("passing_where = %d\n", passing_where); */
+//=======================================================================================
+
+        gettimeofday(&et, NULL);
+        optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
+        draw_operatingtime(disp, optime);
+    }
+
+
+}
 
