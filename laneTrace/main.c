@@ -94,18 +94,18 @@ struct thr_data {
 signed short real_speed = 0;
 int is_Traffic_Light = 0; //1 is traffic light mission 1 is left, 2 is right
 int passing_where = -1; // 1 is left 2 is right
-int passing = 0;
+int passing = 0; // decide the time to passing other car 
 
 static int allocate_input_buffers(struct thr_data *data);
 static void free_input_buffers(struct buffer **buffer, uint32_t n, bool bmultiplanar);
 static void draw_operatingtime(struct display *disp, uint32_t time);
-double getSteeringWithLane(struct display *disp, struct buffer *cambuf);
+double getSteeringWithLane(struct display *disp, struct buffer *cambuf); //detect yellow lane
 void * capture_thread(void *arg);
 void * capture_dump_thread(void *arg);
 void * input_thread(void *arg);
-double distance_calculate(double data);
-double distance_sensor();
-static void passing_master(struct display *disp, struct buffer *cambuf);
+double distance_calculate(double data); // make sensor input data to real distance data
+double distance_sensor(); //get sensor input data
+static void passing_master(struct display *disp, struct buffer *cambuf); // passing other car 차선변경 미션
 
 static struct thr_data* pexam_data = NULL;
 void signal_handler(int sig);
@@ -125,18 +125,18 @@ int main(int argc, char **argv)
     tdata.dump_state = DUMP_NONE;
     memset(tdata.dump_img_data, 0, sizeof(tdata.dump_img_data)); // dump data를 0으로 채워서 초기화
 
-    // VPE 하드웨어 사용을 위한 초기화
+    // init for using VPE hardware
     vpe = vpe_open(); if(!vpe) return 1;
-    // 이미지 입력 속성
+    // image input
     vpe->src.width  = CAPTURE_IMG_W;
     vpe->src.height = CAPTURE_IMG_H;
     describeFormat(CAPTURE_IMG_FORMAT, &vpe->src);
-    // 이미지 출력 속성
+    // image output
     vpe->dst.width  = VPE_OUTPUT_W;
     vpe->dst.height = VPE_OUTPUT_H;
     describeFormat (VPE_OUTPUT_FORMAT, &vpe->dst);
 
-    // display 영상 출력을 위한 초기화
+    // init for display 
     vpe->disp = disp_open(disp_argc, disp_argv);
     if (!vpe->disp) {
         ERROR("disp open error!");
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // 기본 설정 세팅
+    // basic setting
     set_z_order(vpe->disp, vpe->disp->overlay_p.id);
     set_global_alpha(vpe->disp, vpe->disp->overlay_p.id);
     set_pre_multiplied_alpha(vpe->disp, vpe->disp->overlay_p.id);
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
         ERROR("Invalid parameters\n");
     }
 
-    // 영상 캡쳐를 위한 초기화
+    // init for capture the video
     v4l2 = v4l2_open(vpe->src.fourcc, vpe->src.width, vpe->src.height);
     if (!v4l2) {
         ERROR("v4l2 open error!");
@@ -197,27 +197,18 @@ int main(int argc, char **argv)
 
     printf("\n\n 2. speed control\n");
 
-    unsigned char status;
     unsigned char gain;
     signed short speed, check_speed;
     double angle = 1500;
     int camera_angle;
 	int position, posInit, posDes, posRead;
-	int channel;
-	int tol;
-	int data, distance; // distance 센서용
 
 	CarControlInit();
     SpeedControlOnOff_Write(UNCONTROL);
 
-    //jobs to be done beforehand;
-    /** SpeedControlOnOff_Write(CONTROL);   // speed controller must be also ON !!! */
-    /** speed = tdata.speed; // speed set     --> speed must be set when using position controller */
-    /** DesireSpeed_Write(speed); */
-
      //camera y servo set
     camera_angle = CameraYServoControl_Read();
-    printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500, 0x5dc
+    printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500
 
     camera_angle = 1650;
     CameraYServoControl_Write(camera_angle);    
@@ -225,31 +216,26 @@ int main(int argc, char **argv)
     //speed set     */
     check_speed = DesireSpeed_Read();  
     printf("DesireSpeed_Read() = %d \n", check_speed); 
-    /** speed = 120; */
-    /** DesireSpeed_Write(speed); */
-/**  */
+
     while(1){
-		if(is_Traffic_Light >= 1)
+		if(is_Traffic_Light >= 1) //Traffic light mission
 			break;
-		if(passing == 1)
+		if(passing == 1) //passing other car mission
 			break;
 
-        angle = 1500-(tdata.angle/90)*500;
-		/** speed = real_speed;  */
+        angle = 1500-(tdata.angle/90)*500; //get angle from data structure
 		printf("speed = %d\n", tdata.speed);
 
 		SteeringServoControl_Write(angle); 
 		DesireSpeed_Write(tdata.speed);
 		if(tdata.speed == 0)
-			usleep(500000);
-		usleep(50000);
+			usleep(500000); //calibrate IO delay
+		usleep(50000); //calibrate IO delay
     }
 
-	if(is_Traffic_Light >= 1){
-		//시간제어
-		//좌회전 하도록 하기
+	if(is_Traffic_Light >= 1){ //traffic mission
 		if(is_Traffic_Light == 1){
-			//left
+			//go left
 			SteeringServoControl_Write(1950);
 			DesireSpeed_Write(200);
 			usleep(1700000);
@@ -259,21 +245,21 @@ int main(int argc, char **argv)
 			usleep(100000);
 			printf("step 2...\n");
 
-			printf("Basic Mode is ready... traffic light finished..!!!\n");
+			printf("traffic light finished..!!!\n");
 			DesireSpeed_Write(0); //E-Stop;
 		}
 		else if(is_Traffic_Light == 2){
 			//right
 			SteeringServoControl_Write(1050);
 			DesireSpeed_Write(100);
-			usleep(2000000);
+			usleep(1700000);
 			printf("step 1...\n");
 
 			SteeringServoControl_Write(1500);
 			usleep(1000000);
 			printf("step 2...\n");
 
-			printf("Basic Mode is ready... traffic light finished..!!!\n");
+			printf("traffic light finished..!!!\n");
 			DesireSpeed_Write(0); //E-Stop;
 		}
 		else{
@@ -282,9 +268,9 @@ int main(int argc, char **argv)
 	}
 	printf("main passing_where = %d\n", passing_where);
 	printf("main passing = %d\n", passing);
-	//koo
-	if(passing_where != -1){
-		printf("뒤로 가자!\n");
+
+	if(passing_where != -1){//passing other car mission
+		printf("Go back!\n");
 		SpeedControlOnOff_Write(CONTROL);
 		speed = -200;
 
@@ -312,7 +298,6 @@ int main(int argc, char **argv)
 		DesireSpeed_Write(speed);
 		//mission_count ++;
 
-		// 모드가 바뀔 때 빛과 소리가 납니다
 		CarLight_Write(ALL_ON);
 		Alarm_Write(ON);
 		usleep(100000);
@@ -320,10 +305,12 @@ int main(int argc, char **argv)
 		CarLight_Write(ALL_OFF);
 
 		if(passing_where == 1){
-			printf("왼쪽으로 가자!\n");
+			printf("Go left!\n");
+			//[TODO]To be continue...
+			//However, mechanism is similar with go right!
 		}
 		else if(passing_where == 2){
-			printf("오른쪽으로 가자!\n");
+			printf("GO right!\n");
 
 			SpeedControlOnOff_Write(CONTROL);
 
@@ -351,23 +338,24 @@ int main(int argc, char **argv)
 
 			position=DesireEncoderCount_Read();
 			printf("DesireEncoderCount_Read() = %d\n", position);
-
-			tol = 100;    // tolerance
-			while(abs(posRead-position)>tol)
-			{
-				posRead=EncoderCounter_Read();
-				printf("EncoderCounter_Read() = %d\n", posRead);
-				speed = DesireSpeed_Read();
-				printf("DesireSpeed_Read() = %d \n", speed);
-			}
-			sleep(1);
+            /**  */
+			/** tol = 100;    // tolerance */
+			/** while(abs(posRead-position)>tol) */
+			/** { */
+			/**     posRead=EncoderCounter_Read(); */
+			/**     printf("EncoderCounter_Read() = %d\n", posRead); */
+			/**     speed = DesireSpeed_Read(); */
+			/**     printf("DesireSpeed_Read() = %d \n", speed); */
+			/** } */
+			/** sleep(1); */
 
 			PositionControlOnOff_Write(UNCONTROL); // position controller must be OFF !!!
 			SpeedControlOnOff_Write(CONTROL);   // speed controller must be also ON !!!
 
 			speed = 70;
 			DesireSpeed_Write(speed);
-			// 다시 원래 주행각도로 돌아오기 위해서
+			
+			// basic driving
 			angle = 1850;
 			SteeringServoControl_Write(angle);
 			usleep(1500000);
@@ -378,6 +366,7 @@ int main(int argc, char **argv)
 			speed = 70;
 			DesireSpeed_Write(speed);
 
+			//stop
 			usleep(150000);
 			speed = 0;
 			DesireSpeed_Write(speed);
@@ -412,18 +401,14 @@ signed short color_detection(struct display *disp, struct buffer *cambuf)
 
         speed = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
         is_Traffic_Light = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
-		/** printf("speeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed : %d\n", speed); */
-        //¿¿¿¿ ¿¿¿
+		/** printf("speed : %d\n", speed); */
+
         gettimeofday(&et, NULL);
         optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
         draw_operatingtime(disp, optime);
     }
 
-	/** printf("speeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeed = %d\n", speed); */
-	/** real_speed = speed; */
-	/** printf("color_detection func speed: %d\n", speed); */
 	return speed;
-
 }
 
 
@@ -435,8 +420,9 @@ void * capture_thread(void *arg)
     struct buffer *capt;
     bool isFirst = true;
     int index;
-    int count = 0;
-    int i, k;
+    int i;
+
+	//for understanding capture_thread...
 
     v4l2_reqbufs(v4l2, NUMBUF); // 영상 저장할 큐 버퍼 메모리 할당
     vpe_input_init(vpe); // VPE 입력 초기화
@@ -472,43 +458,34 @@ void * capture_thread(void *arg)
         capt = vpe->disp_bufs[index];
 
 
-// -------------------- capt로 이미지 처리 ----------------------------------
-
-
-
-        data->angle = getSteeringWithLane(vpe->disp, capt); // Hough transform 알고리즘 수행  */
+// -------------------- image process by capt ----------------------------------
+        data->angle = getSteeringWithLane(vpe->disp, capt); 
 
 		data->speed = color_detection(vpe->disp, capt); 
 		passing_master(vpe->disp, capt);
 		if(passing_where != -1)
 			passing = 1;
-        /**  */
-        /** if (data->angle == 1234) { */
-        /**     data->angle = 0; */
-        /**     [> data->speed = 0; <] */
-		/**     real_speed = 0; */
-        /** } */
-        /** [> else { <] */
-        /**     [> data->speed = 120; <] */
-		/**     real_speed = 120; */
-        /** } */
-        /**  */
 
-        // fineLane(vpe->disp, capt);
+		if (data->angle == 1234) { //fail to detect lane
+			data->angle = 0;
+			data->speed = 0;
+			real_speed = 0;
+		}
+		else { //basic driving
+			data->speed = 120;
+		}
+
+// ----------------------- end of image process ----------------------------------
 
 
-
-// ----------------------- 이미지 처리 end ----------------------------------
-
-
-        // 영상 출력 버퍼에 영상 데이터 입력
+        // input video data to disp_buf
         if (disp_post_vid_buffer(vpe->disp, capt, 0, 0, vpe->dst.width, vpe->dst.height)) {
             ERROR("Post buffer failed");
             return NULL;
         }
-        update_overlay_disp(vpe->disp); // overay plane 출력                                       
+        update_overlay_disp(vpe->disp); // diplay overay plane                                       
 
-        // dump 키보드 입력 들어올 시 캡처 이미지 저장
+        // save image frame when input 'dump' 
         if(data->dump_state == DUMP_READY) {
             DumpMsg dumpmsg;
             unsigned char* pbuf[4];
@@ -677,17 +654,6 @@ void signal_handler(int sig)
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
 /**
   * @brief  Alloc vpe input buffer and a new buffer object
   * @param  data: pointer to parameter of thr_data
@@ -736,8 +702,6 @@ static void free_input_buffers(struct buffer **buffer, uint32_t n, bool bmultipl
     free(buffer);
 }
 
-
-
 /**
   * @brief  Draw operating time to overlay buffer.
   * @param  disp: pointer to parameter of struct display
@@ -763,18 +727,9 @@ static void draw_operatingtime(struct display *disp, uint32_t time)
     }
 }
 
-
-
-/**
-  * @brief  Handle houht transform with opencv api
-  * @param  disp: pointer to parameter of struct display
-                 cambuf: vpe output buffer that converted capture image
-  * @retval none
-  */
-double getSteeringWithLane(struct display *disp, struct buffer *cambuf)
+double getSteeringWithLane(struct display *disp, struct buffer *cambuf) //detect lane
 {
     double angle;
-    signed short speed;
     unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
     uint32_t optime;
     struct timeval st, et;
@@ -785,9 +740,7 @@ double getSteeringWithLane(struct display *disp, struct buffer *cambuf)
 
         gettimeofday(&st, NULL);
 
-        angle = laneDetection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
-		/** speed = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);  */
-	
+        angle = laneDetection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); //get angle value from laneDetection()
 
         gettimeofday(&et, NULL);
         optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
@@ -796,17 +749,14 @@ double getSteeringWithLane(struct display *disp, struct buffer *cambuf)
 	return angle;
 }
 
-//koo
-double distance_calculate(double data){
-	/** printf("fuck data = %lf\n", data); */
-    double middle = data / 22691;
+double distance_calculate(double data){ // make sensor input data to real distance data
+    double middle = data / 22691; //for the car of Alpha car team
 	/** printf("middle = %lf\n", middle); */
-    double distance = pow(middle, -(1/1.07));
-	/** printf("fuck dis = %lf\n", distance); */
+    double distance = pow(middle, -(1/1.07)); //for the car of Alpha car team
     return distance;
 }
 
-double distance_sensor(){
+double distance_sensor(){ //get sensor input data
 	int channel = 1;
 	double data;
     /** printf("distance sensor start!!!\n"); */
@@ -819,8 +769,6 @@ double distance_sensor(){
     }
 }
 
-
-
 static void passing_master(struct display *disp, struct buffer *cambuf){
     unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
     uint32_t optime;
@@ -828,35 +776,27 @@ static void passing_master(struct display *disp, struct buffer *cambuf){
     int decision; 
     signed short speed;
     double distance;
-	/** printf("Koo is Passing master!!!!!!! wow!!!!!!\n"); */
-
     unsigned char* cam_pbuf[4];
     if(get_framebuf(cambuf, cam_pbuf) == 0) {
         memcpy(srcbuf, cam_pbuf[0], VPE_OUTPUT_W*VPE_OUTPUT_H*3);
-
         gettimeofday(&st, NULL);
 
-
-
-
-//=================================================================================
         decision = histogram_backprojection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
 		decision = 2;//[TODO] delete this!!!
         
         distance = distance_sensor();
         /**  */
         /** if(distance > 15){  */
-        /**     printf("기본주행모드 입니다"); */
+        /**     printf("basic driving mode\n"); */
         /**     speed = 100; */
         /**     DesireSpeed_Write(speed); */
         /** } */
 		/** printf("decision= %d\n", decision); */
 
-        //거리가 15 미만이면 회피
+        //pass when the distance between mycar and other car below 15
         if(distance < 15){
-			//[TODO] move to main func
             /** if(decision == -1){ */
-            /** printf("기본주행모드 입니다");             */
+            /** printf("basic driving mode\n");             */
             /** speed = 100; */
             /** DesireSpeed_Write(speed); */
             /** } */
@@ -870,7 +810,6 @@ static void passing_master(struct display *disp, struct buffer *cambuf){
             }
         }
 		/** printf("passing_where = %d\n", passing_where); */
-//=======================================================================================
 
         gettimeofday(&et, NULL);
         optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);

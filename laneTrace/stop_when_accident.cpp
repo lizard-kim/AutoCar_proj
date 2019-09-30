@@ -1,6 +1,6 @@
 #include "stop_when_accident.h"
-void setLabel(Mat& image, string str, vector<Point> contour)
-{
+void setLabel(Mat& image, string str, vector<Point> contour) //for debugging...
+{//print text on the image frame
 	int fontface = FONT_HERSHEY_SIMPLEX;
 	double scale = 0.5;
 	int thickness = 1;
@@ -19,7 +19,7 @@ void Coloring(Mat &layer, Scalar color){
 	layer = rgb_color;
 }
 
-void MakeLimit(int& low_hue, int& low_hue1, int &low_hue2, int &high_hue, int &high_hue1, int &high_hue2, int &range_count){
+void MakeLimit(int& low_hue, int& low_hue1, int &low_hue2, int &high_hue, int &high_hue1, int &high_hue2, int &range_count){//make hue limitation
 	if (low_hue < 10) {
 		range_count = 2;
 

@@ -164,41 +164,37 @@ void OpenCV_canny_edge_image(char* file, unsigned char* outBuf, int nw, int nh)
              nh : height value of destination buffer
   * @retval none
   */
-signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
+signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh) // detect red stop sign
 {
 
 	int range_count = 0;
 	int stopornot = 1;
 	Mat img_input, img_gray;
-	signed short speed = 150;
+	signed short speed = 120; //[TODO]basic speed you can edit this value!
 	// Scalar blue(10, 200, 50);
-	Scalar red(0, 0, 255);
+	Scalar red(0, 0, 255); //red definition
 	Mat rgb_color, hsv_color;
     Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
-    Mat test(ih, iw, CV_8UC3, srcBuf);
     Mat dstRGB(nh, nw, CV_8UC3, outBuf);
 
     Mat img_result(ih, iw, CV_8UC3, srcBuf);
-	Coloring(rgb_color, red);
+	Coloring(rgb_color, red); //red coloring
 
 	cvtColor(rgb_color, hsv_color, COLOR_BGR2HSV);
 
-	int hue = (int)hsv_color.at<Vec3b>(0, 0)[0];
+	int hue = (int)hsv_color.at<Vec3b>(0, 0)[0]; //we will use only hue value
 	//int saturation = (int)hsv_color.at<Vec3b>(0, 0)[1];
 	//int value = (int)hsv_color.at<Vec3b>(0, 0)[2];
-	int low_hue = hue - 5;//¿¿¿ ¿¿
-	int high_hue = hue + 0.2;
+	int low_hue = hue - 5;//make limit
+	int high_hue = hue + 0.2;//make limit
 	int low_hue1 = 0, low_hue2 = 0;
 	int high_hue1 = 0, high_hue2 = 0;
 
-	MakeLimit(low_hue, low_hue1, low_hue2, high_hue, high_hue1, high_hue2, range_count);
+	MakeLimit(low_hue, low_hue1, low_hue2, high_hue, high_hue1, high_hue2, range_count);//make limit of hue value
 
-	// namedWindow("CAM", 0);
-	// resizeWindow("CAM", 1280, 720);
 	img_input = srcRGB;
 
 	cvtColor(img_input, img_gray, COLOR_BGR2HSV);
-	cvtColor(img_input, test, COLOR_BGR2GRAY);
 
 	Mat binary_image;
 	Mat img_mask1, img_mask2;
@@ -208,11 +204,10 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 		img_mask1 |= img_mask2;
 	}
 
-	//contour¿ ¿¿¿.
+	//make contour...
 	vector<vector<Point> > contours;
 	findContours(img_mask1, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
 	
-	//contour¿ ¿¿¿¿¿.
 	vector<Point> approx;
 	img_result = img_mask1;
 
@@ -220,11 +215,11 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
 		// approxPolyDP(Mat(contours[i]), approx, 1, true);
 
-		if (fabs(contourArea(Mat(approx))) > 1200)  //¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿. 
+		if (fabs(contourArea(Mat(approx))) > 1200)  // edit responsiveness...
 		{
 			int size = approx.size();
 
-			//Contour¿ ¿¿¿¿ ¿¿¿ ¿¿¿.
+			//drawing contour
 			if (size % 2 == 0) {
 				line(img_gray, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
 
@@ -241,33 +236,24 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 				for (int k = 0; k < size; k++)
 					circle(img_gray, approx[k], 3, Scalar(0, 0, 255));
 			}
+			//circle!! stop!!
 			if (size >= 7){
-				// setLabel(img_result, "circle!!", contours[i]); //¿
 				// cout << "red_circle" << endl;
 				speed = 0;
-				// stopornot = 0;
 			}
 			// resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 		}
 	}
 
 	return speed;
-	// srcRGB = img_result;
-	// unsigned char* data = img_result.data;
-	// srcBuf = data;
-	// srcRGB(iw, ih, CV_8UC3, data);
-	//imshow("input", img_input);
-	//imshow("result", img_result);
-	//waitKey(1);
 }
 
-int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
+int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh) // mechanism is similar with red_detection func...
 {
 
 	int range_count = 0;
 	Mat img_input, img_result, img_gray;
-	Scalar green(0, 200, 50);
-	// Scalar red(0, 0, 255);
+	Scalar green(0, 200, 50); //define green [TODO] we have to do fine tuning
 	Mat rgb_color, hsv_color;
 	Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
 	Mat dstRGB(nh, nw, CV_8UC3, outBuf);
@@ -290,11 +276,6 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 	img_input = srcRGB;
 
 	cvtColor(img_input, img_gray, COLOR_BGR2HSV);
-	// namedWindow("CAM", 0);
-	// resizeWindow("CAM", 1280, 720);
-	img_input = srcRGB;
-
-	cvtColor(img_input, img_gray, COLOR_BGR2HSV);
 
 	Mat binary_image;
 	Mat img_mask1, img_mask2;
@@ -304,23 +285,18 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 		img_mask1 |= img_mask2;
 	}
 
-	//contour¿ ¿¿¿.
 	vector<vector<Point> > contours;
 	findContours(img_mask1, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
 
-	//contour¿ ¿¿¿¿¿.
 	vector<Point> approx;
-	// img_result = img_mask1.clone();
 
 	for (size_t i = 0; i < contours.size(); i++){
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
-		// approxPolyDP(Mat(contours[i]), approx, 1, true);
 
 		if (fabs(contourArea(Mat(approx))) > 500)  //¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿. 
 		{
 			int size = approx.size();
 
-			//Contour¿ ¿¿¿¿ ¿¿¿ ¿¿¿.
 			if (size % 2 == 0) {
 				line(img_gray, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
 
@@ -352,16 +328,13 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 		}
 	}  
 	return is_Traffic_Light;
-	//imshow("input", img_input);
-	//imshow("result", img_result);
-	//waitKey(1);
 }
 
 bool pixel_detector(Mat image, char* order){
 	int count = 0;
 	if(order == "first") {
 		for(int j = (2*(image.rows))/3; j < image.rows; j++){
-			uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
+			uchar* pointer = image.ptr<uchar>(j); //access j row
 			for(int i = 0; i < (image.cols)/3; i++){
 				//cout << "(" << i << ", " << j << ") " << "pixel 값 : " << int(pointer[i]) << endl;
 				if(int(pointer[i]) == 255) count ++;
@@ -371,7 +344,7 @@ bool pixel_detector(Mat image, char* order){
 	}
 	else if(order == "second"){
 		for(int j = (2*(image.rows))/3; j < image.rows; j++){
-			uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
+			uchar* pointer = image.ptr<uchar>(j); //access j row
 			for(int i = image.cols/3; i < (2*image.cols)/3; i++){
 				//cout << "(" << i << ", " << j << ") " << "pixel 값 : " << int(pointer[i]) << endl;
 				if(int(pointer[i]) == 255) count ++;
@@ -381,7 +354,7 @@ bool pixel_detector(Mat image, char* order){
 	}
 	else if(order == "third"){
 		for(int j = (2*(image.rows))/3; j < image.rows; j++){
-			uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
+			uchar* pointer = image.ptr<uchar>(j); //access j row
 			for(int i = (2*image.cols)/3; i < image.cols; i++){
 				//cout << "(" << i << ", " << j << ") " << "pixel 값 : " << int(pointer[i]) << endl;
 				if(int(pointer[i]) == 255) count ++;
@@ -390,15 +363,15 @@ bool pixel_detector(Mat image, char* order){
 		}
 	}
 
-	cout << "count 값 : " << count << endl;
+	cout << "count : " << count << endl;
 	return count > 1000 ? true : false;
 }
 
 Mat pre_histogram_backprojection(){
-	Mat srcImage = imread("overroad2.jpg", IMREAD_COLOR); // 이게 기준값!
+	Mat srcImage = imread("overroad2.jpg", IMREAD_COLOR); // standard value
 	//if (srcImage.empty())
 	//	return ;
-	cout << "이미지의 크기는 : " << srcImage.cols << " " << srcImage.rows << endl;
+	cout << "image size : " << srcImage.cols << " " << srcImage.rows << endl;
 	resize(srcImage, srcImage, Size(srcImage.cols/5, srcImage.rows/5));
 	Mat hsvImage;
 	cvtColor(srcImage, hsvImage, COLOR_BGR2HSV);
@@ -412,10 +385,10 @@ Mat pre_histogram_backprojection(){
 	float vValue[] = { 0, 256 };
 	const float* ranges[] = { hValue, sValue, vValue };
 	int channels[] = {0, 1, 2};
-	int dims = 3; // dimenstion 차원
+	int dims = 3; // dimenstion 
 
 	Mat hist;
-	calcHist(&roiImage, 1, channels, Mat(), hist, dims, &histSize, ranges); //관심 영역을 히스토그램 계산
+	calcHist(&roiImage, 1, channels, Mat(), hist, dims, &histSize, ranges); //histogram calculate my area 
 
 	return hist;
 }
@@ -434,9 +407,9 @@ int histogram_backprojection(unsigned char* srcBuf, int iw, int ih, unsigned cha
 	int channels[] = {0, 1, 2};
 
 	if (srcImage.empty())
-		cout << "이미지 인식 실패\n" << endl;
+		cout << "Image access fail...\n" << endl;
 		return -1;//fail
-	cout << "이미지의 크기는 : " << srcImage.cols << " " << srcImage.rows << endl;
+	cout << "image size : " << srcImage.cols << " " << srcImage.rows << endl;
 	resize(srcImage, srcImage, Size(srcImage.cols/5, srcImage.rows/5));
 
 	cvtColor(srcImage, hsvImage, COLOR_BGR2HSV); //히스토그램은 밝기값을 통해 계산하기 때문에
