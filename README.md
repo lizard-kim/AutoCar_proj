@@ -60,7 +60,7 @@ sudo apt-get install vim
 ## Team Info
 
 ### members
-1. 최도연
+1. 최도연(Leader)
 2. 구관형
 3. 김태영
 4. 박규열
