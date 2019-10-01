@@ -65,5 +65,3 @@ sudo apt-get install vim
 3. 김태영
 4. 박규열
 5. 정준호
-
-
