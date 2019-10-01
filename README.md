@@ -3,9 +3,8 @@ Alpha-car DGIST AUTOCAR TEAM
 제 17회 임베디드 소프트웨어 경진대회
 ---------------
 
-# 임베디드 소프트웨어 자율주행 모형자동차 부문
-
 Using embeded software, Make the car drive automatically.
+
 
 ## Development Environment
 
