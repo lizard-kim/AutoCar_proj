@@ -10,9 +10,12 @@ Using embeded software, Make the car drive automatically.
 
 OS : PC -Linux(Ubuntu 16.04 version is recommended), target board-embeded linux(32 bit)
 
+
 Serial(mini USB cable): Access target board terminal
 
+
 Ethernet: Send data(executive file, image etc)
+
 
 ## Setting Environment
 ```sh
