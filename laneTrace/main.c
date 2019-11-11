@@ -224,7 +224,8 @@ int main(int argc, char **argv)
 			break;
 
         angle = 1500-(tdata.angle/90)*500; //get angle from data structure
-		printf("speed = %d\n", tdata.speed);
+		/** printf("speed = %d, is_Traffic_Light = %d\n", tdata.speed, is_Traffic_Light); */
+		printf("tdata.speed = %d\n", tdata.speed);
 
 		SteeringServoControl_Write(angle); 
 		DesireSpeed_Write(tdata.speed);
@@ -234,6 +235,7 @@ int main(int argc, char **argv)
     }
 
 	if(is_Traffic_Light >= 1){ //traffic mission
+		printf("traffic mission!!!!\n");
 		if(is_Traffic_Light == 1){
 			//go left
 			SteeringServoControl_Write(1950);
@@ -400,8 +402,8 @@ signed short color_detection(struct display *disp, struct buffer *cambuf)
         gettimeofday(&st, NULL);
 
         speed = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
-        is_Traffic_Light = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
-		/** printf("speed : %d\n", speed); */
+        /** is_Traffic_Light = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); */
+		printf("speed : %d\n", speed);
 
         gettimeofday(&et, NULL);
         optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
@@ -459,10 +461,11 @@ void * capture_thread(void *arg)
 
 
 // -------------------- image process by capt ----------------------------------
-        data->angle = getSteeringWithLane(vpe->disp, capt); 
-
+        /** data->angle = getSteeringWithLane(vpe->disp, capt);  */
 		data->speed = color_detection(vpe->disp, capt); 
-		passing_master(vpe->disp, capt);
+		printf("sppppppppppppppppppppppppppppppppppppeedd: %d\n", data->speed);
+
+		//passing_master(vpe->disp, capt);
 		if(passing_where != -1)
 			passing = 1;
 
@@ -470,6 +473,7 @@ void * capture_thread(void *arg)
 			data->angle = 0;
 			data->speed = 0;
 			real_speed = 0;
+			//printf("fail to detect lane!!!!\n");
 		}
 		else { //basic driving
 			data->speed = 120;

@@ -169,15 +169,15 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 
 	int range_count = 0;
 	int stopornot = 1;
-	Mat img_input, img_gray;
+	Mat img_input, img_gray, img_hsv, img_result;
 	signed short speed = 120; //[TODO]basic speed you can edit this value!
 	// Scalar blue(10, 200, 50);
 	Scalar red(0, 0, 255); //red definition
+	Scalar black(0, 0, 0);
 	Mat rgb_color, hsv_color;
     Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
     Mat dstRGB(nh, nw, CV_8UC3, outBuf);
 
-    Mat img_result(ih, iw, CV_8UC3, srcBuf);
 	Coloring(rgb_color, red); //red coloring
 
 	cvtColor(rgb_color, hsv_color, COLOR_BGR2HSV);
@@ -186,7 +186,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	//int saturation = (int)hsv_color.at<Vec3b>(0, 0)[1];
 	//int value = (int)hsv_color.at<Vec3b>(0, 0)[2];
 	int low_hue = hue - 5;//make limit
-	int high_hue = hue + 0.2;//make limit
+	int high_hue = hue + 2;//make limit
 	int low_hue1 = 0, low_hue2 = 0;
 	int high_hue1 = 0, high_hue2 = 0;
 
@@ -194,15 +194,15 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 
 	img_input = srcRGB;
 
-	cvtColor(img_input, img_gray, COLOR_BGR2HSV);
+	cvtColor(img_input, img_hsv, COLOR_BGR2HSV);
 
 	Mat binary_image;
 	Mat img_mask1, img_mask2;
 
 	//accept red filter for detect red stop sign
-	inRange(img_gray, Scalar(low_hue1, 50, 50), Scalar(high_hue1, 255, 255), img_mask1);
+	inRange(img_hsv, Scalar(low_hue1, 50, 50), Scalar(high_hue1, 255, 255), img_mask1);
 	if (range_count == 2) {
-		inRange(img_gray, Scalar(low_hue2, 50, 50), Scalar(high_hue2, 255, 255), img_mask2);
+		inRange(img_hsv, Scalar(low_hue2, 50, 50), Scalar(high_hue2, 255, 255), img_mask2);
 		img_mask1 |= img_mask2;
 	}
 
@@ -211,9 +211,13 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	findContours(img_mask1, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
 	
 	vector<Point> approx;
-	img_result = img_mask1;
+	
+	// for disp test
+	// Mat test(ih, iw, CV_8UC3, black);
+	// srcRGB = test;
+	cvtColor(img_mask1, img_result, COLOR_GRAY2BGR);
 
-	//
+
 	for (size_t i = 0; i < contours.size(); i++){
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
 		// approxPolyDP(Mat(contours[i]), approx, 1, true);
@@ -224,20 +228,20 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 
 			//drawing contour
 			if (size % 2 == 0) {
-				line(img_gray, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+				line(img_result, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
 
 				for (int k = 0; k < size - 1; k++)
-					line(img_gray, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+					line(img_result, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
 				for (int k = 0; k < size; k++)
-					circle(img_gray, approx[k], 3, Scalar(0, 0, 255));
+					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
 			}
 			else {
-				line(img_gray, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+				line(img_result, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
 
 				for (int k = 0; k < size - 1; k++)
-					line(img_gray, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+					line(img_result, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
 				for (int k = 0; k < size; k++)
-					circle(img_gray, approx[k], 3, Scalar(0, 0, 255));
+					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
 			}
 			//circle!! stop!!
 			if (size >= 7){
@@ -248,6 +252,9 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 			// resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 		}
 	}
+	// cvtColor(img_result, srcRGB, COLOR_GRAY2BGR);
+	srcRGB = img_result;
+	resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
 	return speed;
 }
@@ -270,8 +277,8 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 	int hue = (int)hsv_color.at<Vec3b>(0, 0)[0];
 	//int saturation = (int)hsv_color.at<Vec3b>(0, 0)[1];
 	//int value = (int)hsv_color.at<Vec3b>(0, 0)[2];
-	int low_hue = hue - 10;//¿¿¿ ¿¿
-	int high_hue = hue + 10;
+	int low_hue = hue - 30;//¿¿¿ ¿¿
+	int high_hue = hue + 20;
 	int low_hue1 = 0, low_hue2 = 0;
 	int high_hue1 = 0, high_hue2 = 0;
 
@@ -299,7 +306,7 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 	for (size_t i = 0; i < contours.size(); i++){
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
 
-		if (fabs(contourArea(Mat(approx))) > 500) //[TODO]we have to do fine tuning 
+		if (fabs(contourArea(Mat(approx))) > 300) //[TODO]we have to do fine tuning 
 		{
 			int size = approx.size();
 
