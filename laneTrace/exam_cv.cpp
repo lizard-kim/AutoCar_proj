@@ -185,10 +185,11 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	int hue = (int)hsv_color.at<Vec3b>(0, 0)[0]; //we will use only hue value
 	//int saturation = (int)hsv_color.at<Vec3b>(0, 0)[1];
 	//int value = (int)hsv_color.at<Vec3b>(0, 0)[2];
-	int low_hue = hue - 5;//make limit
-	int high_hue = hue + 2;//make limit
+	int low_hue = hue;//make limit
+	int high_hue = hue + 210;//make limit
 	int low_hue1 = 0, low_hue2 = 0;
 	int high_hue1 = 0, high_hue2 = 0;
+	printf("hue = %d, low_hue = %d\n", hue, low_hue);
 
 	MakeLimit(low_hue, low_hue1, low_hue2, high_hue, high_hue1, high_hue2, range_count);//make limit of hue value
 
@@ -197,12 +198,13 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	cvtColor(img_input, img_hsv, COLOR_BGR2HSV);
 
 	Mat binary_image;
-	Mat img_mask1, img_mask2;
+	Mat img_mask1, img_mask2, test;
 
 	//accept red filter for detect red stop sign
-	inRange(img_hsv, Scalar(low_hue1, 50, 50), Scalar(high_hue1, 255, 255), img_mask1);
+	inRange(img_hsv, Scalar(low_hue1, 150, 150), Scalar(255, 255, 255), img_mask1);
+	// inRange(img_input, Scalar(low_hue1, 250, 250), Scalar(high_hue1, 255, 255), test);
 	if (range_count == 2) {
-		inRange(img_hsv, Scalar(low_hue2, 50, 50), Scalar(high_hue2, 255, 255), img_mask2);
+		inRange(img_hsv, Scalar(low_hue2, 150, 150), Scalar(255, 255, 255), img_mask2);
 		img_mask1 |= img_mask2;
 	}
 
@@ -248,11 +250,9 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 				// cout << "red_circle" << endl;
 				speed = 0;
 			}
-			// for display
-			// resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 		}
 	}
-	// cvtColor(img_result, srcRGB, COLOR_GRAY2BGR);
+	// cvtColor(test, srcRGB, COLOR_BGR2GRAY);
 	srcRGB = img_result;
 	resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
