@@ -73,14 +73,13 @@ typedef struct _DumpMsg{
     long type;
     int  state_msg;
 }DumpMsg;
-
 struct thr_data {
     struct display *disp;
     struct v4l2 *v4l2;
     struct vpe *vpe;
     struct buffer **input_bufs;
 
-    double angle;
+    double angle; /// 규열이만 이 변수 set 가능, 나머진 전부 이 변수 get 가능
 	signed short speed;
 
     DumpState dump_state;
@@ -90,6 +89,11 @@ struct thr_data {
     bool bfull_screen;
     bool bstream_start;
     pthread_t threads[3];
+
+    int mission_id = 0; /// by dy
+    bool driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
+    double speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
+    bool stop_line_detect = false; /// by dy: true 면 정지선 인식된거임
 };
 signed short real_speed = 0;
 int is_Traffic_Light = 0; //1 is traffic light mission 1 is left, 2 is right
@@ -205,7 +209,30 @@ int main(int argc, char **argv)
 
 	CarControlInit();
     SpeedControlOnOff_Write(UNCONTROL);
+    ////////////////////////////////////////////////////////// DY added /////////////////////////////////////////////////////////
+//[TODO]일단은 주석처리 해둠... 실전에서 사용하기
+    /** while (true) { */
+    /**     if (data->mission_id == 1) {        } /// start */
+    /**     else if (data->mission_id == 2) {   } /// highway */
+    /**     else if (data->mission_id == 3) {   } ///  */
+    /**     else if (data->mission_id == 4) {   } */
+    /**     else if (data->mission_id == 5) {   } */
+    /**     else if (data->mission_id == 6) {   } */
+    /**     else {  } /// basic mission with GY */
+    /**  */
+    /**     if (data->driving_flag_onoff == false) /// mission end, the car will be stopped. */
+    /**     { */
+    /**         /// 추후에 이 코드 종료 미션에 맞게 바꿀 것 */
+    /**         DesireSpeed_Write(0); */
+    /**         Alarm_Write(ON); */
+    /**         usleep(1000000); */
+    /**         Alarm_Write(OFF); */
+    /**         break; */
+    /**     }  */
+    /** } */
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+ 
      //camera y servo set
     camera_angle = CameraYServoControl_Read();
     printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500
