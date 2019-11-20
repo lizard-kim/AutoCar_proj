@@ -81,6 +81,7 @@ struct thr_data {
 
     double angle; /// 규열이만 이 변수 set 가능, 나머진 전부 이 변수 get 가능
 	signed short speed;
+	signed short speed_ratio;//태영 edit this var 0 or 1
 
     DumpState dump_state;
     unsigned char dump_img_data[VPE_OUTPUT_IMG_SIZE];
@@ -90,11 +91,12 @@ struct thr_data {
     bool bstream_start;
     pthread_t threads[3];
 
-    int mission_id = 0; /// by dy
-    bool driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
-    double speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
-    bool stop_line_detect = false; /// by dy: true 면 정지선 인식된거임
+    int mission_id; /// by dy
+    bool driving_flag_onoff; /// by dy: true면 주행중, false면 주행종료
+    //double speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
+    bool stop_line_detect; /// by dy: true 면 정지선 인식된거임
 };
+
 signed short real_speed = 0;
 int is_Traffic_Light = 0; //1 is traffic light mission 1 is left, 2 is right
 int passing_where = -1; // 1 is left 2 is right
@@ -128,6 +130,11 @@ int main(int argc, char **argv)
 
     tdata.dump_state = DUMP_NONE;
     memset(tdata.dump_img_data, 0, sizeof(tdata.dump_img_data)); // dump data를 0으로 채워서 초기화
+	//init data struct
+	tdata.mission_id = 0;
+    tdata.driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
+    tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
+    tdata.stop_line_detect = false; /// by dy: true 면 정지선 인식된거임
 
     // init for using VPE hardware
     vpe = vpe_open(); if(!vpe) return 1;
@@ -422,7 +429,7 @@ signed short color_detection(struct display *disp, struct buffer *cambuf)
     unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
     uint32_t optime;
     struct timeval st, et;
-	signed short speed = 0;
+	signed short speed_ratio = 0;
 
     unsigned char* cam_pbuf[4];
     if(get_framebuf(cambuf, cam_pbuf) == 0) {
@@ -430,7 +437,7 @@ signed short color_detection(struct display *disp, struct buffer *cambuf)
 
         gettimeofday(&st, NULL);
 
-        speed = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+        speed_ratio = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
         /** is_Traffic_Light = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); */
 		/** printf("speed : %d\n", speed); *///ok
 
@@ -439,7 +446,7 @@ signed short color_detection(struct display *disp, struct buffer *cambuf)
         draw_operatingtime(disp, optime);
     }
 
-	return speed;
+	return speed_ratio;
 }
 
 
@@ -505,7 +512,8 @@ void * capture_thread(void *arg)
 		/** else { //basic driving */
 		/**     data->speed = 120; */
 		/** } */
-		data->speed = color_detection(vpe->disp, capt); 
+		data->speed_ratio = color_detection(vpe->disp, capt); 
+		data->speed = data->speed * data->speed_ratio;
 		printf("sppppppppppppppppppppppppppppppppppppeedd: %d\n", data->speed);//ok
 
 // ----------------------- end of image process ----------------------------------

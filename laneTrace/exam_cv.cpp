@@ -170,7 +170,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	int range_count = 0;
 	int stopornot = 1;
 	Mat img_input, img_gray, img_hsv, img_result;
-	signed short speed = 120; //[TODO]basic speed you can edit this value!
+	signed short speed_ratio = 1; //[TODO]basic speed you can edit this value!
 	// Scalar blue(10, 200, 50);
 	Scalar red(0, 0, 255); //red definition
 	Scalar black(0, 0, 0);
@@ -248,7 +248,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 			//circle!! stop!!
 			if (size >= 7){
 				// cout << "red_circle" << endl;
-				speed = 0;
+				speed_ratio = 0;
 			}
 		}
 	}
@@ -256,7 +256,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	srcRGB = img_result;
 	resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
-	return speed;
+	return speed_ratio;
 }
 
 int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh) // mechanism is similar with red_detection func...
