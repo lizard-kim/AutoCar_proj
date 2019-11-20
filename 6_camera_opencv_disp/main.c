@@ -154,7 +154,11 @@ static void draw_operatingtime(struct display *disp, uint32_t time)
                  cambuf: vpe output buffer that converted capture image
   * @retval none
   */
+<<<<<<< HEAD
 static void color_detection(struct display *disp, struct buffer *cambuf)
+=======
+static void hough_transform(struct display *disp, struct buffer *cambuf)
+>>>>>>> handsomejun
 {
     unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
     uint32_t optime;
@@ -166,10 +170,15 @@ static void color_detection(struct display *disp, struct buffer *cambuf)
 
         gettimeofday(&st, NULL);
 
+<<<<<<< HEAD
         OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
         /** OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); */
 
         //¿¿¿¿ ¿¿¿
+=======
+        OpenCV_hough_transform(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+
+>>>>>>> handsomejun
         gettimeofday(&et, NULL);
         optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
         draw_operatingtime(disp, optime);
@@ -234,12 +243,17 @@ void * capture_thread(void *arg)
 
         index = vpe_output_dqbuf(vpe);
         capt = vpe->disp_bufs[index];
+<<<<<<< HEAD
        //[TODO] my function
        // gogo!
 
         /** hough_transform(vpe->disp, capt); */
 		
 		color_detection(vpe->disp, capt);
+=======
+
+        hough_transform(vpe->disp, capt);
+>>>>>>> handsomejun
 
         if (disp_post_vid_buffer(vpe->disp, capt, 0, 0, vpe->dst.width, vpe->dst.height)) {
             ERROR("Post buffer failed");
@@ -468,7 +482,11 @@ int main(int argc, char **argv)
         ERROR("Invalid parameters\n");
     }
    
+<<<<<<< HEAD
     v4l2 = v4l2_open(vpe->src.fourcc, vpe->src.width, vpe->src.height);//camera open!! start here!
+=======
+    v4l2 = v4l2_open(vpe->src.fourcc, vpe->src.width, vpe->src.height);
+>>>>>>> handsomejun
     if (!v4l2) {
         ERROR("v4l2 open error!");
         disp_close(vpe->disp);
