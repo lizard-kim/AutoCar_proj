@@ -22,7 +22,8 @@
 #include "input_cmd.h"
 #include "exam_cv.h"
 #include "laneDetection.h"
-#include "controlSensor.h"
+#include "DynamicObs.h"
+/** #include "controlSensor.h" */
 /** #include "passing_master.h" */
 
 /////////////////////////////////////////////////////////////////////////
@@ -244,7 +245,9 @@ int main(int argc, char **argv)
 	while (true){
 		if (data->mission_id == 1) {        } /// start
 		else if (data->mission_id == 2) {   } /// highway
-		else if (data->mission_id == 3) {   } /// 회전
+		else if (data->mission_id == 3) {
+			dynamic_obs_ver2(data->angle, data->speed, data->speed_ratio);
+		} /// 회전
 		else if (data->mission_id == 4) {
 			tunnel_adv();
 			data->mission_id = 0;//example

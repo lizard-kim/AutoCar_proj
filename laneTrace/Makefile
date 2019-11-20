@@ -26,8 +26,8 @@ all: $(TARGET)
 clean:
 	rm -f *.a *.o $(TARGET) *.lo
 
-$(TARGET): main.c v4l2.lo display-kms.lo util.lo vpe-common.lo input_cmd.lo drawing.lo exam_cv.lo car_lib.lo laneDetection.lo stop_when_accident.lo controlSensor.lo
-	$(CC) $(CFLAGS) -o $@ main.c v4l2.lo display-kms.lo util.lo vpe-common.lo input_cmd.lo drawing.lo exam_cv.lo car_lib.lo laneDetection.lo stop_when_accident.lo controlSensor.lo $(LDFLAGS)
+$(TARGET): main.c v4l2.lo display-kms.lo util.lo vpe-common.lo input_cmd.lo drawing.lo exam_cv.lo car_lib.lo laneDetection.lo stop_when_accident.lo controlSensor.lo DynamicObs.lo
+	$(CC) $(CFLAGS) -o $@ main.c v4l2.lo display-kms.lo util.lo vpe-common.lo input_cmd.lo drawing.lo exam_cv.lo car_lib.lo laneDetection.lo stop_when_accident.lo controlSensor.lo DynamicObs.lo $(LDFLAGS)
 
 v4l2.lo: v4l2.c v4l2.h
 	$(CC) -c $(CFLAGS) -o $@ v4l2.c
@@ -61,5 +61,8 @@ stop_when_accident.lo: stop_when_accident.h
 
 controlSensor.lo: controlSensor.h
 	$(CC) -c $(CFLAGS) -o $@ controlSensor.c 
+
+DynamicObs.lo: DynamicObs.h
+	$(CC) -c $(CFLAGS) -o $@ DynamicObs.c 
 #edit
 
