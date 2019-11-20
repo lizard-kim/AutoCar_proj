@@ -11,7 +11,7 @@ int channel;
 char sensor;
 int i, j;
 int tol;
-char byte = 0x80;
+// char byte = 0x80;
 double I_Dist;
 double O_Dist;
 double doubledata;

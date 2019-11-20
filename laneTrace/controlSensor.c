@@ -1,3 +1,4 @@
+#include "controlSensor.h"
 /** #include <stdio.h> */
 /** #include "car_lib.h" */
 /** #include <math.h> */
@@ -38,59 +39,6 @@
 /** void tunnel_adv();                    */
 /** void parparking();                                           // */
 ///////////////////////////////////////////////////////////////////////////////////////
-
-
-void main(void)
-{
-    double data;
-    CarControlInit();
-    PositionControlOnOff_Write(UNCONTROL);
-    // 5. distance sensor --------------------------------------------------------
-    printf("INPUT Number\n");
-    scanf("%d", &channel);
-    while(1)
-    {
-        //DesireSpeed_Write(300);
-        data = DistanceSensor(channel);
-        if(channel == 1)
-        {
-            /** tunnel(); */
-           tunnel_adv();
-        }
-        else if(channel == 2)
-        {
-            /** tunnel_real(); */
-        }
-        else if(channel == 3)
-        {
-            /** tunnel(); */
-        }
-        else if(channel==4)
-        {
-            parking();
-        }
-        else if(channel == 5)
-        {
-            parparking();
-        }
-        else if(channel == 6)
-        {
-            I_data_1 = DistanceSensor(3);
-            O_data_1 = DistFunc(I_data_1);
-            usleep(50000);
-        }
-        //printf("channel = %d, distance = %.0lf\n", channel, data);
-        //DistFunc(data);
-        //tunnel(); // Mission trigger needed. basic tunnel code without front sensor
-        //tunnel_adv(); // Mission trigger needed. advanced tunnel algorithm with front sensor
-        //tunnel_real();
-        //CarLight_Write(ALL_OFF);
-        //parking();
-        //parparking();
-        //usleep(100000);
-    }
-}
-
 
 
 double DistFunc(double data)
