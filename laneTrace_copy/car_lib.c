@@ -31,6 +31,7 @@
 static int uart_fd;
 static int i2c_fd;
 
+
 /*******************************************************************************
  *  Functions
  *******************************************************************************
@@ -461,8 +462,17 @@ signed int EncoderCounter_Read(void)
 //  printf("Read Encoder Counter\n");
     write(uart_fd, &buf[0], 4);
     read(uart_fd, &read_buf[0], 7);
-    
-    return ((signed int)(read_buf[5]<<24) + (signed int)(read_buf[4]<<16) + (signed int)(read_buf[3]<<8) + (signed int)(read_buf[2]));
+	
+//	printf("CHECKSUMVALUE = %x\n", read_buf[6]);
+	
+	if(read_buf[6] != ((read_buf[0]+read_buf[1]+read_buf[2]+read_buf[3]+read_buf[4]+read_buf[5])%256))
+	{
+		return CHECKSUMERROR;
+	}
+    else
+	{
+		return ((signed int)(read_buf[5]<<24) + (signed int)(read_buf[4]<<16) + (signed int)(read_buf[3]<<8) + (signed int)(read_buf[2]));
+	}    
 }
 
 void EncoderCounter_Write(signed int position)

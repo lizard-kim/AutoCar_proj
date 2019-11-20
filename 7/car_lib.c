@@ -46,8 +46,10 @@ void CarControlInit(void)
   
   // UART configuration
   strcpy(fd_serial, SERIAL_DEVICE); //FFUART
-  
+  printf("wtf1\n");
   uart_fd = open(fd_serial, O_RDWR | O_NOCTTY );
+  printf("wtf2\n");
+
   if (uart_fd <0) {
     printf("Serial %s  Device Err\n", fd_serial );
     exit(1);
