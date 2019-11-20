@@ -98,7 +98,7 @@ struct thr_data {
 signed short real_speed = 0;
 int is_Traffic_Light = 0; //1 is traffic light mission 1 is left, 2 is right
 int passing_where = -1; // 1 is left 2 is right
-int passing = 0; // decide the time to passing other car 
+int passing = 0; // decide the time to passing other car
 
 static int allocate_input_buffers(struct thr_data *data);
 static void free_input_buffers(struct buffer **buffer, uint32_t n, bool bmultiplanar);
