@@ -218,25 +218,75 @@ int main(int argc, char **argv)
     SpeedControlOnOff_Write(UNCONTROL);
     ////////////////////////////////////////////////////////// DY added /////////////////////////////////////////////////////////
 //[TODO]일단은 주석처리 해둠... 실전에서 사용하기
-    /** while (true) { */
-    /**     if (data->mission_id == 1) {        } /// start */
-    /**     else if (data->mission_id == 2) {   } /// highway */
-    /**     else if (data->mission_id == 3) {   } ///  */
-    /**     else if (data->mission_id == 4) {   } */
-    /**     else if (data->mission_id == 5) {   } */
-    /**     else if (data->mission_id == 6) {   } */
-    /**     else {  } /// basic mission with GY */
-    /**  */
-    /**     if (data->driving_flag_onoff == false) /// mission end, the car will be stopped. */
-    /**     { */
-    /**         /// 추후에 이 코드 종료 미션에 맞게 바꿀 것 */
-    /**         DesireSpeed_Write(0); */
-    /**         Alarm_Write(ON); */
-    /**         usleep(1000000); */
-    /**         Alarm_Write(OFF); */
-    /**         break; */
-    /**     }  */
-    /** } */
+	while (true) {
+		if (data->mission_id == 1) {        } /// start
+		else if (data->mission_id == 2) {   } /// highway
+		else if (data->mission_id == 3) {   } ///
+		else if (data->mission_id == 4) {   }
+		else if (data->mission_id == 5) {   }
+		else if (data->mission_id == 6) {   }
+		else if (data->mission_id == 7) {   }
+		else if (data->mission_id == 8) {//traffic mission
+			if(is_Traffic_Light >= 1){ //traffic mission
+				printf("traffic mission!!!!\n");
+				if(is_Traffic_Light == 1){
+					//go left
+					SteeringServoControl_Write(1950);
+					DesireSpeed_Write(200);
+					usleep(1700000);
+					printf("step 1...\n");
+
+					SteeringServoControl_Write(1500);
+					usleep(100000);
+					printf("step 2...\n");
+
+					printf("traffic light finished..!!!\n");
+					DesireSpeed_Write(0); //E-Stop;
+				}
+				else if(is_Traffic_Light == 2){
+					//right
+					SteeringServoControl_Write(1050);
+					DesireSpeed_Write(100);
+					usleep(1700000);
+					printf("step 1...\n");
+
+					SteeringServoControl_Write(1500);
+					usleep(1000000);
+					printf("step 2...\n");
+
+					printf("traffic light finished..!!!\n");
+					DesireSpeed_Write(0); //E-Stop;
+				}
+				else{
+					printf("ERROR!!!!\n");
+				}
+			}
+
+		}
+		else { 
+			angle = 1500-(tdata.angle/90)*500; //get angle from data structure
+			/** printf("speed = %d, is_Traffic_Light = %d\n", tdata.speed, is_Traffic_Light); */
+			printf("tdata.speed = %d\n", tdata.speed);//error
+
+			SteeringServoControl_Write(angle); 
+			DesireSpeed_Write(tdata.speed);
+			if(tdata.speed == 0){
+				printf("stop!!\n");
+				usleep(500000); //calibrate IO delay
+			}
+			usleep(50000); //calibrate IO delay
+		} /// basic mission with GY
+
+		if (data->driving_flag_onoff == false) /// mission end, the car will be stopped.
+		{
+			/// 추후에 이 코드 종료 미션에 맞게 바꿀 것
+			DesireSpeed_Write(0);
+			Alarm_Write(ON);
+			usleep(1000000);
+			Alarm_Write(OFF);
+			break;
+		}
+	}
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
  
