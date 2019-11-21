@@ -3,8 +3,7 @@
 /////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
-#include "car_lib.h"
-
+/** #include "car_lib.h" */
 #include <signal.h>
 #include <pthread.h>
 #include <sys/ipc.h>
@@ -23,6 +22,8 @@
 #include "input_cmd.h"
 #include "exam_cv.h"
 #include "laneDetection.h"
+#include "DynamicObs.h"
+/** #include "controlSensor.h" */
 /** #include "passing_master.h" */
 
 /////////////////////////////////////////////////////////////////////////
@@ -83,6 +84,13 @@ struct thr_data {
 	signed short speed;
 	signed short speed_ratio;//태영 edit this var 0 or 1
 
+	double sensor1;//front
+	double sensor2;//right1
+	double sensor3;//right2
+	double sensor4;//back
+	double sensor5;//left1
+	double sensor6;//left2
+
     DumpState dump_state;
     unsigned char dump_img_data[VPE_OUTPUT_IMG_SIZE];
 
@@ -92,6 +100,7 @@ struct thr_data {
     pthread_t threads[3];
 
     int mission_id; /// by dy
+	int park;//jh for parking
     bool driving_flag_onoff; /// by dy: true면 주행중, false면 주행종료
     //double speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
     bool stop_line_detect; /// by dy: true 면 정지선 인식된거임
@@ -122,6 +131,7 @@ int main(int argc, char **argv)
     struct v4l2 *v4l2;
     struct vpe *vpe;
     struct thr_data tdata;
+    struct thr_data* data;
     int disp_argc = 3;
     char* disp_argv[] = {"dummy", "-s", "4:480x272", "\0"};
     int ret = 0;
@@ -131,10 +141,11 @@ int main(int argc, char **argv)
     tdata.dump_state = DUMP_NONE;
     memset(tdata.dump_img_data, 0, sizeof(tdata.dump_img_data)); // dump data를 0으로 채워서 초기화
 	//init data struct
-	tdata.mission_id = 0;
+	tdata.mission_id = 1; // 0 is basic driving
     tdata.driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
     tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
     tdata.stop_line_detect = false; /// by dy: true 면 정지선 인식된거임
+	tdata.park = 0;//non
 
     // init for using VPE hardware
     vpe = vpe_open(); if(!vpe) return 1;
@@ -216,56 +227,76 @@ int main(int argc, char **argv)
 
 	CarControlInit();
     SpeedControlOnOff_Write(UNCONTROL);
+ 
+     //camera y servo set
+    camera_angle = CameraYServoControl_Read();
+    printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500
+
+	//camera setting
+    camera_angle = 1650;
+    CameraYServoControl_Write(camera_angle);    
+
+    //speed set
+    check_speed = DesireSpeed_Read();  
+    printf("DesireSpeed_Read() = %d \n", check_speed); 
+
     ////////////////////////////////////////////////////////// DY added /////////////////////////////////////////////////////////
 //[TODO]일단은 주석처리 해둠... 실전에서 사용하기
-	while (true) {
-		if (data->mission_id == 1) {        } /// start
-		else if (data->mission_id == 2) {   } /// highway
-		else if (data->mission_id == 3) {   } ///
-		else if (data->mission_id == 4) {   }
-		else if (data->mission_id == 5) {   }
-		else if (data->mission_id == 6) {   }
-		else if (data->mission_id == 7) {   }
-		else if (data->mission_id == 8) {//traffic mission
-			if(is_Traffic_Light >= 1){ //traffic mission
-				printf("traffic mission!!!!\n");
-				if(is_Traffic_Light == 1){
-					//go left
-					SteeringServoControl_Write(1950);
-					DesireSpeed_Write(200);
-					usleep(1700000);
-					printf("step 1...\n");
+	while (true){
+		if (data->mission_id == 1) {        } /// start & highway
+		else if (data->mission_id == 2) {   } ///
+		else if (data->mission_id == 3) {
+			dynamic_obs_ver2(data->angle, data->speed, data->speed_ratio);
+		} /// 회전
+		else if (data->mission_id == 4) {
+			tunnel_adv();
+			data->mission_id = 0;//example
+		} /// 터널 
+		else if (data->mission_id == 5) {
+			parking();
+			data->mission_id = 0;//example
+		} /// 수직주차
+		else if (data->mission_id == 6) {
+			parparking();
+			data->mission_id = 0;//example
+		} /// 수평주차
+		else if (data->mission_id == 7) {   } /// 추월
+		else if (data->mission_id == 8) {//[TODO] 판교가서 튜닝
+			printf("traffic mission!!!!\n");
+			if(is_Traffic_Light == 1){
+				//go left
+				SteeringServoControl_Write(1950);
+				DesireSpeed_Write(200);
+				usleep(1700000);
+				printf("step 1...\n");
 
-					SteeringServoControl_Write(1500);
-					usleep(100000);
-					printf("step 2...\n");
+				SteeringServoControl_Write(1500);
+				usleep(100000);
+				printf("step 2...\n");
 
-					printf("traffic light finished..!!!\n");
-					DesireSpeed_Write(0); //E-Stop;
-				}
-				else if(is_Traffic_Light == 2){
-					//right
-					SteeringServoControl_Write(1050);
-					DesireSpeed_Write(100);
-					usleep(1700000);
-					printf("step 1...\n");
-
-					SteeringServoControl_Write(1500);
-					usleep(1000000);
-					printf("step 2...\n");
-
-					printf("traffic light finished..!!!\n");
-					DesireSpeed_Write(0); //E-Stop;
-				}
-				else{
-					printf("ERROR!!!!\n");
-				}
+				printf("traffic light finished..!!!\n");
+				DesireSpeed_Write(0); //E-Stop;
 			}
+			else if(is_Traffic_Light == 2){
+				//right
+				SteeringServoControl_Write(1050);
+				DesireSpeed_Write(100);
+				usleep(1700000);
+				printf("step 1...\n");
 
-		}
-		else { 
+				SteeringServoControl_Write(1500);
+				usleep(1000000);
+				printf("step 2...\n");
+
+				printf("traffic light finished..!!!\n");
+				DesireSpeed_Write(0); //E-Stop;
+			}
+			else{
+				printf("ERROR!!!!\n");
+			}
+		}	/// 신호등
+		else { //basic driving 
 			angle = 1500-(tdata.angle/90)*500; //get angle from data structure
-			/** printf("speed = %d, is_Traffic_Light = %d\n", tdata.speed, is_Traffic_Light); */
 			printf("tdata.speed = %d\n", tdata.speed);//error
 
 			SteeringServoControl_Write(angle); 
@@ -275,192 +306,183 @@ int main(int argc, char **argv)
 				usleep(500000); //calibrate IO delay
 			}
 			usleep(50000); //calibrate IO delay
-		} /// basic mission with GY
+
+		} 
+
 
 		if (data->driving_flag_onoff == false) /// mission end, the car will be stopped.
-		{
+		{//신호등 이후에 하자
 			/// 추후에 이 코드 종료 미션에 맞게 바꿀 것
 			DesireSpeed_Write(0);
 			Alarm_Write(ON);
 			usleep(1000000);
 			Alarm_Write(OFF);
 			break;
-		}
-	}
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
- 
-     //camera y servo set
-    camera_angle = CameraYServoControl_Read();
-    printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500
-
-    camera_angle = 1650;
-    CameraYServoControl_Write(camera_angle);    
-
-    //speed set     */
-    check_speed = DesireSpeed_Read();  
-    printf("DesireSpeed_Read() = %d \n", check_speed); 
-
-    while(1){
-		if(is_Traffic_Light >= 1) //Traffic light mission
-			break;
-		if(passing == 1) //passing other car mission
-			break;
-
-        angle = 1500-(tdata.angle/90)*500; //get angle from data structure
-		/** printf("speed = %d, is_Traffic_Light = %d\n", tdata.speed, is_Traffic_Light); */
-		printf("tdata.speed = %d\n", tdata.speed);//error
-
-		SteeringServoControl_Write(angle); 
-		DesireSpeed_Write(tdata.speed);
-		if(tdata.speed == 0){
-			printf("stop!!\n");
-			usleep(500000); //calibrate IO delay
-		}
-		usleep(50000); //calibrate IO delay
-    }
-
-	if(is_Traffic_Light >= 1){ //traffic mission
-		printf("traffic mission!!!!\n");
-		if(is_Traffic_Light == 1){
-			//go left
-			SteeringServoControl_Write(1950);
-			DesireSpeed_Write(200);
-			usleep(1700000);
-			printf("step 1...\n");
-
-			SteeringServoControl_Write(1500);
-			usleep(100000);
-			printf("step 2...\n");
-
-			printf("traffic light finished..!!!\n");
-			DesireSpeed_Write(0); //E-Stop;
-		}
-		else if(is_Traffic_Light == 2){
-			//right
-			SteeringServoControl_Write(1050);
-			DesireSpeed_Write(100);
-			usleep(1700000);
-			printf("step 1...\n");
-
-			SteeringServoControl_Write(1500);
-			usleep(1000000);
-			printf("step 2...\n");
-
-			printf("traffic light finished..!!!\n");
-			DesireSpeed_Write(0); //E-Stop;
-		}
-		else{
-			printf("ERROR!!!!\n");
-		}
-	}
-	printf("main passing_where = %d\n", passing_where);
-	printf("main passing = %d\n", passing);
-
-	if(passing_where != -1){//passing other car mission
-		printf("Go back!\n");
-		SpeedControlOnOff_Write(CONTROL);
-		speed = -200;
-
-		//control on/off
-		PositionControlOnOff_Write(CONTROL);
-
-		//position controller gain set
-		gain = 30;
-		PositionProportionPoint_Write(gain);
-
-		//position write
-		posInit = 0;  //initialize
-		EncoderCounter_Write(posInit);
-
-		//position set
-		posDes = -800;
-		position = posInit+posDes;
-		DesireEncoderCount_Write(position);
-
-		position=DesireEncoderCount_Read();
-		printf("DesireEncoderCount_Read() = %d\n", position);
-
-		sleep(1);
-		speed = 0;
-		DesireSpeed_Write(speed);
-		//mission_count ++;
-
-		CarLight_Write(ALL_ON);
-		Alarm_Write(ON);
-		usleep(100000);
-		Alarm_Write(OFF);
-		CarLight_Write(ALL_OFF);
-
-		if(passing_where == 1){
-			printf("Go left!\n");
-			//[TODO]To be continue...
-			//However, mechanism is similar with go right!
-		}
-		else if(passing_where == 2){
-			printf("GO right!\n");
-
-			SpeedControlOnOff_Write(CONTROL);
-
-			speed = 70;
-			DesireSpeed_Write(speed);
-
-			angle = 1150;
-			SteeringServoControl_Write(angle);
-
-			//control on/off
-			PositionControlOnOff_Write(CONTROL);
-
-			//position controller gain set
-			gain = 30;
-			PositionProportionPoint_Write(gain);
-
-			//position write
-			posInit = 0;  //initialize
-			EncoderCounter_Write(posInit);
-
-			//position set
-			posDes = 1000;
-			position = posInit+posDes;
-			DesireEncoderCount_Write(position);
-
-			position=DesireEncoderCount_Read();
-			printf("DesireEncoderCount_Read() = %d\n", position);
-            /**  */
-			/** tol = 100;    // tolerance */
-			/** while(abs(posRead-position)>tol) */
-			/** { */
-			/**     posRead=EncoderCounter_Read(); */
-			/**     printf("EncoderCounter_Read() = %d\n", posRead); */
-			/**     speed = DesireSpeed_Read(); */
-			/**     printf("DesireSpeed_Read() = %d \n", speed); */
-			/** } */
-			/** sleep(1); */
-
-			PositionControlOnOff_Write(UNCONTROL); // position controller must be OFF !!!
-			SpeedControlOnOff_Write(CONTROL);   // speed controller must be also ON !!!
-
-			speed = 70;
-			DesireSpeed_Write(speed);
 			
-			// basic driving
-			angle = 1850;
-			SteeringServoControl_Write(angle);
-			usleep(1500000);
-
-			angle = 1500;
-			SteeringServoControl_Write(angle);
-
-			speed = 70;
-			DesireSpeed_Write(speed);
-
-			//stop
-			usleep(150000);
-			speed = 0;
-			DesireSpeed_Write(speed);
-
 		}
 	}
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**  */
+    /** while(1){ */
+	/**     if(is_Traffic_Light >= 1) //Traffic light mission */
+	/**         break; */
+	/**     if(passing == 1) //passing other car mission */
+	/**         break; */
+    /**  */
+    /**     angle = 1500-(tdata.angle/90)*500; //get angle from data structure */
+	/**     printf("tdata.speed = %d\n", tdata.speed);//error */
+    /**  */
+	/**     SteeringServoControl_Write(angle);  */
+	/**     DesireSpeed_Write(tdata.speed); */
+	/**     if(tdata.speed == 0){ */
+	/**         printf("stop!!\n"); */
+	/**         usleep(500000); //calibrate IO delay */
+	/**     } */
+	/**     usleep(50000); //calibrate IO delay */
+    /** } */
+    /**  */
+	/** if(is_Traffic_Light >= 1){ //traffic mission */
+	/**     printf("traffic mission!!!!\n"); */
+	/**     if(is_Traffic_Light == 1){ */
+	/**         //go left */
+	/**         SteeringServoControl_Write(1950); */
+	/**         DesireSpeed_Write(200); */
+	/**         usleep(1700000); */
+	/**         printf("step 1...\n"); */
+    /**  */
+	/**         SteeringServoControl_Write(1500); */
+	/**         usleep(100000); */
+	/**         printf("step 2...\n"); */
+    /**  */
+	/**         printf("traffic light finished..!!!\n"); */
+	/**         DesireSpeed_Write(0); //E-Stop; */
+	/**     } */
+	/**     else if(is_Traffic_Light == 2){ */
+	/**         //right */
+	/**         SteeringServoControl_Write(1050); */
+	/**         DesireSpeed_Write(100); */
+	/**         usleep(1700000); */
+	/**         printf("step 1...\n"); */
+    /**  */
+	/**         SteeringServoControl_Write(1500); */
+	/**         usleep(1000000); */
+	/**         printf("step 2...\n"); */
+    /**  */
+	/**         printf("traffic light finished..!!!\n"); */
+	/**         DesireSpeed_Write(0); //E-Stop; */
+	/**     } */
+	/**     else{ */
+	/**         printf("ERROR!!!!\n"); */
+	/**     } */
+	/** } */
+	/** printf("main passing_where = %d\n", passing_where); */
+	/** printf("main passing = %d\n", passing); */
+    /**  */
+	/** if(passing_where != -1){//passing other car mission */
+	/**     printf("Go back!\n"); */
+	/**     SpeedControlOnOff_Write(CONTROL); */
+	/**     speed = -200; */
+    /**  */
+	/**     //control on/off */
+	/**     PositionControlOnOff_Write(CONTROL); */
+    /**  */
+	/**     //position controller gain set */
+	/**     gain = 30; */
+	/**     PositionProportionPoint_Write(gain); */
+    /**  */
+	/**     //position write */
+	/**     posInit = 0;  //initialize */
+	/**     EncoderCounter_Write(posInit); */
+    /**  */
+	/**     //position set */
+	/**     posDes = -800; */
+	/**     position = posInit+posDes; */
+	/**     DesireEncoderCount_Write(position); */
+    /**  */
+	/**     position=DesireEncoderCount_Read(); */
+	/**     printf("DesireEncoderCount_Read() = %d\n", position); */
+    /**  */
+	/**     sleep(1); */
+	/**     speed = 0; */
+	/**     DesireSpeed_Write(speed); */
+	/**     //mission_count ++; */
+    /**  */
+	/**     CarLight_Write(ALL_ON); */
+	/**     Alarm_Write(ON); */
+	/**     usleep(100000); */
+	/**     Alarm_Write(OFF); */
+	/**     CarLight_Write(ALL_OFF); */
+    /**  */
+	/**     if(passing_where == 1){ */
+	/**         printf("Go left!\n"); */
+	/**         //[TODO]To be continue... */
+	/**         //However, mechanism is similar with go right! */
+	/**     } */
+	/**     else if(passing_where == 2){ */
+	/**         printf("GO right!\n"); */
+    /**  */
+	/**         SpeedControlOnOff_Write(CONTROL); */
+    /**  */
+	/**         speed = 70; */
+	/**         DesireSpeed_Write(speed); */
+    /**  */
+	/**         angle = 1150; */
+	/**         SteeringServoControl_Write(angle); */
+    /**  */
+	/**         //control on/off */
+	/**         PositionControlOnOff_Write(CONTROL); */
+    /**  */
+	/**         //position controller gain set */
+	/**         gain = 30; */
+	/**         PositionProportionPoint_Write(gain); */
+    /**  */
+	/**         //position write */
+	/**         posInit = 0;  //initialize */
+	/**         EncoderCounter_Write(posInit); */
+    /**  */
+	/**         //position set */
+	/**         posDes = 1000; */
+	/**         position = posInit+posDes; */
+	/**         DesireEncoderCount_Write(position); */
+    /**  */
+	/**         position=DesireEncoderCount_Read(); */
+	/**         printf("DesireEncoderCount_Read() = %d\n", position); */
+    /**         [>  <] */
+	/**         [> tol = 100;    // tolerance <] */
+	/**         [> while(abs(posRead-position)>tol) <] */
+	/**         [> { <] */
+	/**         [>     posRead=EncoderCounter_Read(); <] */
+	/**         [>     printf("EncoderCounter_Read() = %d\n", posRead); <] */
+	/**         [>     speed = DesireSpeed_Read(); <] */
+	/**         [>     printf("DesireSpeed_Read() = %d \n", speed); <] */
+	/**         [> } <] */
+	/**         [> sleep(1); <] */
+    /**  */
+	/**         PositionControlOnOff_Write(UNCONTROL); // position controller must be OFF !!! */
+	/**         SpeedControlOnOff_Write(CONTROL);   // speed controller must be also ON !!! */
+    /**  */
+	/**         speed = 70; */
+	/**         DesireSpeed_Write(speed); */
+	/**          */
+	/**         // basic driving */
+	/**         angle = 1850; */
+	/**         SteeringServoControl_Write(angle); */
+	/**         usleep(1500000); */
+    /**  */
+	/**         angle = 1500; */
+	/**         SteeringServoControl_Write(angle); */
+    /**  */
+	/**         speed = 70; */
+	/**         DesireSpeed_Write(speed); */
+    /**  */
+	/**         //stop */
+	/**         usleep(150000); */
+	/**         speed = 0; */
+	/**         DesireSpeed_Write(speed); */
+    /**  */
+	/**     } */
+	/** } */
 	pause();
 
 	return ret;
@@ -488,7 +510,7 @@ signed short color_detection(struct display *disp, struct buffer *cambuf)
         gettimeofday(&st, NULL);
 
         speed_ratio = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
-        /** is_Traffic_Light = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); */
+		is_Traffic_Light = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
 		/** printf("speed : %d\n", speed); *///ok
 
         gettimeofday(&et, NULL);
@@ -549,22 +571,15 @@ void * capture_thread(void *arg)
 // -------------------- image process by capt ----------------------------------
         /** data->angle = getSteeringWithLane(vpe->disp, capt);  */
 
-		//passing_master(vpe->disp, capt);
-		if(passing_where != -1)
-			passing = 1;
-
 		if (data->angle == 1234) { //fail to detect lane
 			data->angle = 0;
 			data->speed = 0;
 			real_speed = 0;
 			//printf("fail to detect lane!!!!\n");
 		}
-		/** else { //basic driving */
-		/**     data->speed = 120; */
-		/** } */
 		data->speed_ratio = color_detection(vpe->disp, capt); 
 		data->speed = data->speed * data->speed_ratio;
-		printf("sppppppppppppppppppppppppppppppppppppeedd: %d\n", data->speed);//ok
+		/** printf("sppppppppppppppppppppppppppppppppppppeedd: %d\n", data->speed);//ok */
 
 // ----------------------- end of image process ----------------------------------
 

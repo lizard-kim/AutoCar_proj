@@ -1,7 +1,7 @@
-#include <stdio.h>
-#include "car_lib.h"
-#include <math.h>
-#include <time.h>
+/** #include <stdio.h> */
+/** #include "car_lib.h" */
+/** #include <math.h> */
+/**  */
 /*******************************************************************************
  *  Defines
  * 1 = front
@@ -14,32 +14,29 @@
  */
 
 /********************************HEADERS*********************************************/
-unsigned char status;
-short speed;
-unsigned char gain;
-int position, posInit, posDes, posRead;
-short angle;
-int channel;
-char sensor;
-int i, j;
-int tol;
-char byte = 0x80;
-double I_Dist;
-double O_Dist;
-double doubledata;
-int I_data_1, I_data_2, I_data_3, I_data_4, I_data_5, I_data_6;
-int O_data_1, O_data_2, O_data_3, O_data_4, O_data_5, O_data_6;
-///////////////////////////////////////////////////////////////////////////////////////
-
-
-/*********************************Functions*******************************************/
-double DistFunc(double data);                                                        //
-void tunnel();                                                                       //
-void parking();                                                                      //
-void tunnel_adv();                   
-void tunnel_real();     
-void parparking();      
-void warmSensorTrigger();                                     //
+/** unsigned char status; */
+/** short speed; */
+/** unsigned char gain; */
+/** int position, posInit, posDes, posRead; */
+/** short angle; */
+/** int channel; */
+/** char sensor; */
+/** int i, j; */
+/** int tol; */
+/** char byte = 0x80; */
+/** double I_Dist; */
+/** double O_Dist; */
+/** double doubledata; */
+/** int I_data_1, I_data_2, I_data_3, I_data_4, I_data_5, I_data_6; */
+/** int O_data_1, O_data_2, O_data_3, O_data_4, O_data_5, O_data_6; */
+/** /////////////////////////////////////////////////////////////////////////////////////// */
+/**  */
+/**  */
+/** [>*******************************Functions******************************************<] */
+/** double DistFunc(double data);                                                        // */
+/** void parking();                                                                      // */
+/** void tunnel_adv();                    */
+/** void parparking();                                           // */
 ///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -55,7 +52,44 @@ void main(void)
     scanf("%d", &channel);
     while(1)
     {
-        warmSensorTrigger();
+        //DesireSpeed_Write(300);
+        data = DistanceSensor(channel);
+        if(channel == 1)
+        {
+            /** tunnel(); */
+           tunnel_adv();
+        }
+        else if(channel == 2)
+        {
+            /** tunnel_real(); */
+        }
+        else if(channel == 3)
+        {
+            /** tunnel(); */
+        }
+        else if(channel==4)
+        {
+            parking();
+        }
+        else if(channel == 5)
+        {
+            parparking();
+        }
+        else if(channel == 6)
+        {
+            I_data_1 = DistanceSensor(3);
+            O_data_1 = DistFunc(I_data_1);
+            usleep(50000);
+        }
+        //printf("channel = %d, distance = %.0lf\n", channel, data);
+        //DistFunc(data);
+        //tunnel(); // Mission trigger needed. basic tunnel code without front sensor
+        //tunnel_adv(); // Mission trigger needed. advanced tunnel algorithm with front sensor
+        //tunnel_real();
+        //CarLight_Write(ALL_OFF);
+        //parking();
+        //parparking();
+        //usleep(100000);
     }
 }
 
@@ -67,7 +101,6 @@ double DistFunc(double data)
     printf("%.0lf\n", O_Dist);
     return O_Dist;
 }
-
 
 void DistanceTest()
 {
@@ -259,17 +292,16 @@ void tunnel_adv()
             SteeringServoControl_Write(angle);
         }
     }
-
-    else if(O_data_2 > 60)
-    {
-        return;
-    }
 }
 
+//1. if sensor 4 distance & sensor 5 distance is the same. (left == right)
+//2. if sensor 2 and sensor 3 is the same (two right same)
+//3. time control
+//4. Position(Encoder) control
 
 
 void parking()
-{
+{//수직
     DesireSpeed_Write(100);
     if(ParkingSignal_2 == 1)
     {
@@ -355,7 +387,7 @@ void parking()
 
 
 void parparking()
-{
+{//수평
     DesireSpeed_Write(100);
     /*  After parking(), trgging parparking()...
     if(parParkingSignal_2 != 1)
