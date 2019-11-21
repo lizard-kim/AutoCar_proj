@@ -141,7 +141,7 @@ int main(int argc, char **argv)
     tdata.dump_state = DUMP_NONE;
     memset(tdata.dump_img_data, 0, sizeof(tdata.dump_img_data)); // dump data를 0으로 채워서 초기화
 	//init data struct
-	tdata.mission_id = 0;
+	tdata.mission_id = 1; // 0 is basic driving
     tdata.driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
     tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
     tdata.stop_line_detect = false; /// by dy: true 면 정지선 인식된거임
@@ -243,8 +243,8 @@ int main(int argc, char **argv)
     ////////////////////////////////////////////////////////// DY added /////////////////////////////////////////////////////////
 //[TODO]일단은 주석처리 해둠... 실전에서 사용하기
 	while (true){
-		if (data->mission_id == 1) {        } /// start
-		else if (data->mission_id == 2) {   } /// highway
+		if (data->mission_id == 1) {        } /// start & highway
+		else if (data->mission_id == 2) {   } ///
 		else if (data->mission_id == 3) {
 			dynamic_obs_ver2(data->angle, data->speed, data->speed_ratio);
 		} /// 회전
