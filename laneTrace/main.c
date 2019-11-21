@@ -74,7 +74,7 @@ typedef struct _DumpMsg{
     long type;
     int  state_msg;
 }DumpMsg;
-struct thr_data {
+struct thr_data {//[TODO] add Odata(junho)
     struct display *disp;
     struct v4l2 *v4l2;
     struct vpe *vpe;
@@ -83,6 +83,14 @@ struct thr_data {
     double angle; /// 규열이만 이 변수 set 가능, 나머진 전부 이 변수 get 가능
 	signed short speed;
 	signed short speed_ratio;//태영 edit this var 0 or 1
+
+	//region of junho[TODO]init
+	int ParkingSignal_1;
+	int ParkingSignal_2;//after 수직주차 1
+	int parParkingSignal_1;
+	int parParkingSignal_2;
+	int tunnelSignal;
+	//end
 
 	double sensor1;//front
 	double sensor2;//right1
@@ -121,9 +129,10 @@ void * input_thread(void *arg);
 double distance_calculate(double data); // make sensor input data to real distance data
 double distance_sensor(); //get sensor input data
 static void passing_master(struct display *disp, struct buffer *cambuf); // passing other car 차선변경 미션
-
+void warmSensorTrigger(); 
 static struct thr_data* pexam_data = NULL;
 void signal_handler(int sig);
+void lanetrace();//정지선sensor
 
 
 int main(int argc, char **argv)
@@ -135,7 +144,18 @@ int main(int argc, char **argv)
     int disp_argc = 3;
     char* disp_argv[] = {"dummy", "-s", "4:480x272", "\0"};
     int ret = 0;
-
+	//junho region------------------------
+    I_data_1 = DistanceSensor(1);
+    O_data_1 = DistFunc(I_data_1);
+    I_data_2 = DistanceSensor(2);
+    O_data_2 = DistFunc(I_data_2);
+    I_data_3 = DistanceSensor(3);
+    O_data_3 = DistFunc(I_data_3);
+    I_data_4 = DistanceSensor(4);
+    O_data_4 = DistFunc(I_data_4);
+    clock_t start_1=0, start_2=0, start_3=0;
+    float endtime_1=0, endtime_2=0, endtime_3=0;
+	//------------------------
     printf("laneTrace Start ~~~ pky\n");
 
     tdata.dump_state = DUMP_NONE;
@@ -253,12 +273,63 @@ int main(int argc, char **argv)
 			data->mission_id = 0;//example
 		} /// 터널 
 		else if (data->mission_id == 5) {
-			parking();
-			data->mission_id = 0;//example
+			if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && O_data_2 < 30 && O_data_3 > 30)
+			{
+				start_1 = clock();
+				data->ParkingSignal_1 = 1;
+				printf("Parking Point Detected...\n");
+				// continue;
+			}
+			if(data->ParkingSignal_1 == 1 && O_data_2 > 30 && O_data_3 < 30)
+			{
+				data->ParkingSignal_1 = 2;
+				printf("Parking Area here\n");
+				float endtime_1 = (clock() - start_1)/(CLOCKS_PER_SEC);
+				if(endtime_1 > 10)
+				{
+					data->ParkingSignal_1 = 0;
+				}
+				//continue;
+			}
+			if(data->ParkingSignal_1 == 2 && O_data_2 > 30 && O_data_3 > 30)
+			{
+				data->ParkingSignal_1 = 3;
+			}
+			if(data->ParkingSignal_1 == 3 && O_data_3 < 30)
+			{
+				parking();
+				data->ParkingSignal_2 = 1;
+				data->parParkingSignal_2 = 1;
+			}
+
+
 		} /// 수직주차
 		else if (data->mission_id == 6) {
-			parparking();
-			data->mission_id = 0;//example
+			if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && O_data_2 < 30 && O_data_3 > 30)
+			{
+				start_2 = clock();
+				data->parParkingSignal_1 = 1;
+			}
+			if(data->parParkingSignal_1 == 1 && O_data_2 > 30 && O_data_3 < 30)    
+			{
+				data->parParkingSignal_1 = 2;  
+				float endtime_2 = (clock() - start_2)/(CLOCKS_PER_SEC);
+				if(endtime_2 > 10)
+				{
+					data->parParkingSignal_1 = 0;
+				}
+			}
+			if(data->parParkingSignal_1 == 2 && O_data_2 > 30 && O_data_3 > 30)
+			{
+				data->parParkingSignal_1 = 3;         
+			}
+			if(data->parParkingSignal_1 == 3 && O_data_3 < 30)
+			{
+				parparking();
+				data->parParkingSignal_2 = 2;
+				data->tunnelSignal = 1;
+			}
+
 		} /// 수평주차
 		else if (data->mission_id == 7) {   } /// 추월
 		else if (data->mission_id == 8) {//[TODO] 판교가서 튜닝
@@ -577,6 +648,7 @@ void * capture_thread(void *arg)
 			real_speed = 0;
 			//printf("fail to detect lane!!!!\n");
 		}
+        //[TODO] pky function
 		data->speed_ratio = color_detection(vpe->disp, capt); 
 		data->speed = data->speed * data->speed_ratio;
 		/** printf("sppppppppppppppppppppppppppppppppppppeedd: %d\n", data->speed);//ok */
@@ -925,3 +997,112 @@ static void passing_master(struct display *disp, struct buffer *cambuf){
 
 }
 
+void warmSensorTrigger() // must be included ParkingSignal_1, ParkingSignal_2, parParkingSignal_1, parParkingSignal_2 at global variance
+{
+   
+    //printf("FUCKFUCK\n");
+
+    //DesireSpeed_Write(100);
+    //SteeringServoControl_Write(1500);
+
+    I_data_1 = DistanceSensor(1);
+    O_data_1 = DistFunc(I_data_1);
+
+    I_data_2 = DistanceSensor(2);
+    O_data_2 = DistFunc(I_data_2);
+
+    I_data_3 = DistanceSensor(3);
+    O_data_3 = DistFunc(I_data_3);
+
+    I_data_4 = DistanceSensor(4);
+    O_data_4 = DistFunc(I_data_4);
+
+    clock_t start_1=0, start_2=0, start_3=0;
+    float endtime_1=0, endtime_2=0, endtime_3=0;
+    
+    //parking mission 수직	
+    /** if(ParkingSignal_2 == 0 && ParkingSignal_1 == 0 && O_data_2 < 30 && O_data_3 > 30) */
+    /** { */
+    /**     start_1 = clock(); */
+    /**     ParkingSignal_1 = 1; */
+    /**     printf("Parking Point Detected...\n"); */
+    /**    // continue; */
+    /** } */
+    /** if(ParkingSignal_1 == 1 && O_data_2 > 30 && O_data_3 < 30) */
+    /** { */
+    /**     ParkingSignal_1 = 2; */
+    /**     printf("Parking Area here\n"); */
+    /**     float endtime_1 = (clock() - start_1)/(CLOCKS_PER_SEC); */
+    /**     if(endtime_1 > 10) */
+    /**     { */
+    /**         ParkingSignal_1 = 0; */
+    /**     } */
+    /**     //continue; */
+    /** } */
+    /** if(ParkingSignal_1 == 2 && O_data_2 > 30 && O_data_3 > 30) */
+    /** { */
+    /**     ParkingSignal_1 = 3; */
+    /** } */
+    /** if(ParkingSignal_1 == 3 && O_data_3 < 30) */
+    /** { */
+    /**     parking(); */
+    /**     ParkingSignal_2 = 1; */
+    /**     parParkingSignal_2 = 1; */
+    /** } */
+    /**  */
+	/** //parking mission 수평 */
+    /** if(parParkingSignal_2 == 1 && parParkingSignal_1 == 0 && O_data_2 < 30 && O_data_3 > 30) */
+    /** { */
+    /**     start_2 = clock(); */
+    /**     parParkingSignal_1 = 1; */
+    /** } */
+    /** if(parParkingSignal_1 == 1 && O_data_2 > 30 && O_data_3 < 30)     */
+    /** { */
+    /**     parParkingSignal_1 = 2;   */
+    /**     float endtime_2 = (clock() - start_2)/(CLOCKS_PER_SEC); */
+    /**     if(endtime_2 > 10) */
+    /**     { */
+    /**         parParkingSignal_1 = 0; */
+    /**     } */
+    /** } */
+    /** if(parParkingSignal_1 == 2 && O_data_2 > 30 && O_data_3 > 30) */
+    /** { */
+    /**     parParkingSignal_1 = 3;          */
+    /** } */
+    /** if(parParkingSignal_1 == 3 && O_data_3 < 30) */
+    /** { */
+    /**     parparking(); */
+    /**     parParkingSignal_2 = 2; */
+    /**     tunnelSignal = 1; */
+    /** } */
+	/**  */
+	/** //tunnel_mission */
+    /**  */
+    /** if(tunnelSignal == 1 && O_data_2 < 30) */
+    /** { */
+    /**     start_3 = clock(); */
+    /** } */
+    /** if(O_data_2 < 30 && O_data_3 < 30) */
+    /** { */
+    /**     float endtime_3 = (clock()- start_3)/(CLOCKS_PER_SEC); */
+    /**     if(endtime_3 < 3) */
+    /**     { */
+    /**         tunnel_adv(); */
+    /**     } */
+    /** } */
+}
+
+void lanetrace(){
+    sensor = LineSensor_Read();        // black:1, white:0
+	printf("LineSensor_Read() = ");
+	char byte = 0x80;
+	for(i=0; i<8; i++)
+    {
+        if((i % 4) ==0) printf(" ");
+        if((sensor & byte)) printf("1");
+        else printf("0");
+        sensor = sensor << 1;
+    }
+    printf("\n");
+    printf("LineSensor_Read() = %d \n", sensor);
+}

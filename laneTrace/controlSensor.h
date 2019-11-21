@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "car_lib.h"
 #include <math.h>
+#include <time.h>
 
 unsigned char status;
 short speed;
@@ -25,3 +26,4 @@ double DistFunc(double data);                                                   
 void parking();                                                                      //
 void tunnel_adv();                   
 void parparking(); 
+// void warmSensorTrigger();
