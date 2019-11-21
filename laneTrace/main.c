@@ -90,6 +90,9 @@ struct thr_data {//[TODO] add Odata(junho)
 	int parParkingSignal_1;
 	int parParkingSignal_2;
 	int tunnelSignal;
+
+	int I_data_1, I_data_2, I_data_3, I_data_4, I_data_5, I_data_6;
+	int O_data_1, O_data_2, O_data_3, O_data_4, O_data_5, O_data_6;
 	//end
 
 	double sensor1;//front
@@ -114,7 +117,7 @@ struct thr_data {//[TODO] add Odata(junho)
     bool stop_line_detect; /// by dy: true 면 정지선 인식된거임
 };
 
-signed short real_speed = 0;
+/** signed short real_speed = 0; */
 int is_Traffic_Light = 0; //1 is traffic light mission 1 is left, 2 is right
 int passing_where = -1; // 1 is left 2 is right
 int passing = 0; // decide the time to passing other car
@@ -141,18 +144,25 @@ int main(int argc, char **argv)
     struct vpe *vpe;
     struct thr_data tdata;
     struct thr_data* data;
+	data = &tdata;
     int disp_argc = 3;
     char* disp_argv[] = {"dummy", "-s", "4:480x272", "\0"};
     int ret = 0;
+
+	/*[TODO PLAN]
+	 * Insert I_data var and O_data var into data structure
+	 * and Initialize thr_data structure in upside of main function
+	 */
+
 	//junho region------------------------
-    I_data_1 = DistanceSensor(1);
-    O_data_1 = DistFunc(I_data_1);
-    I_data_2 = DistanceSensor(2);
-    O_data_2 = DistFunc(I_data_2);
-    I_data_3 = DistanceSensor(3);
-    O_data_3 = DistFunc(I_data_3);
-    I_data_4 = DistanceSensor(4);
-    O_data_4 = DistFunc(I_data_4);
+    /** data->I_data_1 = DistanceSensor(1); */
+    /** data->O_data_1 = DistFunc(I_data_1); */
+    /** data->I_data_2 = DistanceSensor(2); */
+    /** data->O_data_2 = DistFunc(I_data_2); */
+    /** data->I_data_3 = DistanceSensor(3); */
+    /** data->O_data_3 = DistFunc(I_data_3); */
+    /** data->I_data_4 = DistanceSensor(4); */
+    /** data->O_data_4 = DistFunc(I_data_4); */
     clock_t start_1=0, start_2=0, start_3=0;
     float endtime_1=0, endtime_2=0, endtime_3=0;
 	//------------------------
@@ -166,6 +176,19 @@ int main(int argc, char **argv)
     tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
     tdata.stop_line_detect = false; /// by dy: true 면 정지선 인식된거임
 	tdata.park = 0;//non
+	tdata.ParkingSignal_1 = 0;
+	tdata.ParkingSignal_2 = 0;
+	tdata.parParkingSignal_1 = 0;
+	tdata.parParkingSignal_2 = 0;
+	tdata.tunnelSignal = 0;
+	tdata.I_data_1 = 0;
+	tdata.I_data_2 = 0;
+	tdata.I_data_3 = 0;
+	tdata.I_data_4 = 0;
+	tdata.O_data_1 = 0;
+	tdata.O_data_2 = 0;
+	tdata.O_data_3 = 0;
+	tdata.O_data_4 = 0;
 
     // init for using VPE hardware
     vpe = vpe_open(); if(!vpe) return 1;
@@ -263,7 +286,10 @@ int main(int argc, char **argv)
     ////////////////////////////////////////////////////////// DY added /////////////////////////////////////////////////////////
 //[TODO]일단은 주석처리 해둠... 실전에서 사용하기
 	while (true){
-		if (data->mission_id == 1) {        } /// start & highway
+		printf("mission_id = %d\n", data->mission_id);
+		if (data->mission_id == 1) {//test driving
+			DesireSpeed_Write(100);
+		} /// start & highway
 		else if (data->mission_id == 2) {   } ///
 		else if (data->mission_id == 3) {
 			dynamic_obs_ver2(data->angle, data->speed, data->speed_ratio);
@@ -272,15 +298,15 @@ int main(int argc, char **argv)
 			tunnel_adv();
 			data->mission_id = 0;//example
 		} /// 터널 
-		else if (data->mission_id == 5) {
-			if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && O_data_2 < 30 && O_data_3 > 30)
+		else if (data->mission_id == 5) {//수직
+			if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30)
 			{
 				start_1 = clock();
 				data->ParkingSignal_1 = 1;
 				printf("Parking Point Detected...\n");
 				// continue;
 			}
-			if(data->ParkingSignal_1 == 1 && O_data_2 > 30 && O_data_3 < 30)
+			if(data->ParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30)
 			{
 				data->ParkingSignal_1 = 2;
 				printf("Parking Area here\n");
@@ -291,11 +317,11 @@ int main(int argc, char **argv)
 				}
 				//continue;
 			}
-			if(data->ParkingSignal_1 == 2 && O_data_2 > 30 && O_data_3 > 30)
+			if(data->ParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30)
 			{
 				data->ParkingSignal_1 = 3;
 			}
-			if(data->ParkingSignal_1 == 3 && O_data_3 < 30)
+			if(data->ParkingSignal_1 == 3 && data->O_data_3 < 30)
 			{
 				parking();
 				data->ParkingSignal_2 = 1;
@@ -303,14 +329,14 @@ int main(int argc, char **argv)
 			}
 
 
-		} /// 수직주차
-		else if (data->mission_id == 6) {
-			if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && O_data_2 < 30 && O_data_3 > 30)
+		} 
+		else if (data->mission_id == 6) {//수평주차
+			if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30)
 			{
 				start_2 = clock();
 				data->parParkingSignal_1 = 1;
 			}
-			if(data->parParkingSignal_1 == 1 && O_data_2 > 30 && O_data_3 < 30)    
+			if(data->parParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30)    
 			{
 				data->parParkingSignal_1 = 2;  
 				float endtime_2 = (clock() - start_2)/(CLOCKS_PER_SEC);
@@ -319,11 +345,11 @@ int main(int argc, char **argv)
 					data->parParkingSignal_1 = 0;
 				}
 			}
-			if(data->parParkingSignal_1 == 2 && O_data_2 > 30 && O_data_3 > 30)
+			if(data->parParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30)
 			{
 				data->parParkingSignal_1 = 3;         
 			}
-			if(data->parParkingSignal_1 == 3 && O_data_3 < 30)
+			if(data->parParkingSignal_1 == 3 && data->O_data_3 < 30)
 			{
 				parparking();
 				data->parParkingSignal_2 = 2;
@@ -380,7 +406,7 @@ int main(int argc, char **argv)
 
 		} 
 
-
+		/** printf("data_driving_onoff = %d\n", data->driving_flag_onoff); */
 		if (data->driving_flag_onoff == false) /// mission end, the car will be stopped.
 		{//신호등 이후에 하자
 			/// 추후에 이 코드 종료 미션에 맞게 바꿀 것
@@ -640,14 +666,24 @@ void * capture_thread(void *arg)
 
 
 // -------------------- image process by capt ----------------------------------
-        /** data->angle = getSteeringWithLane(vpe->disp, capt);  */
+		/** data->angle = getSteeringWithLane(vpe->disp, capt);  */
+		
+		data->I_data_1 = DistanceSensor(1);
+		data->O_data_1 = DistFunc(data->I_data_1);
+		data->I_data_2 = DistanceSensor(2);
+		data->O_data_2 = DistFunc(data->I_data_2);
+		data->I_data_3 = DistanceSensor(3);
+		data->O_data_3 = DistFunc(data->I_data_3);
+		data->I_data_4 = DistanceSensor(4);
+		data->O_data_4 = DistFunc(data->I_data_4);
+		if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;
 
-		if (data->angle == 1234) { //fail to detect lane
-			data->angle = 0;
-			data->speed = 0;
-			real_speed = 0;
-			//printf("fail to detect lane!!!!\n");
-		}
+		/** if (data->angle == 1234) { //fail to detect lane */
+		/**     data->angle = 0; */
+		/**     data->speed = 0; */
+		/**     real_speed = 0; */
+		/**     //printf("fail to detect lane!!!!\n"); */
+		/** } */
         //[TODO] pky function
 		data->speed_ratio = color_detection(vpe->disp, capt); 
 		data->speed = data->speed * data->speed_ratio;
@@ -1004,19 +1040,19 @@ void warmSensorTrigger() // must be included ParkingSignal_1, ParkingSignal_2, p
 
     //DesireSpeed_Write(100);
     //SteeringServoControl_Write(1500);
-
-    I_data_1 = DistanceSensor(1);
-    O_data_1 = DistFunc(I_data_1);
-
-    I_data_2 = DistanceSensor(2);
-    O_data_2 = DistFunc(I_data_2);
-
-    I_data_3 = DistanceSensor(3);
-    O_data_3 = DistFunc(I_data_3);
-
-    I_data_4 = DistanceSensor(4);
-    O_data_4 = DistFunc(I_data_4);
-
+    /**  */
+    /** I_data_1 = DistanceSensor(1); */
+    /** O_data_1 = DistFunc(I_data_1); */
+    /**  */
+    /** I_data_2 = DistanceSensor(2); */
+    /** O_data_2 = DistFunc(I_data_2); */
+    /**  */
+    /** I_data_3 = DistanceSensor(3); */
+    /** O_data_3 = DistFunc(I_data_3); */
+    /**  */
+    /** I_data_4 = DistanceSensor(4); */
+    /** O_data_4 = DistFunc(I_data_4); */
+    /**  */
     clock_t start_1=0, start_2=0, start_3=0;
     float endtime_1=0, endtime_2=0, endtime_3=0;
     
