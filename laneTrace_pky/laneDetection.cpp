@@ -233,13 +233,13 @@ void filterColors(Mat &input) {
 
 
 
-double laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh) {
+void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh, double *output_angle, double *output_ratio) {
     Mat dstRGB(nh, nw, CV_8UC3, outBuf);
     Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
     Mat resRGB(ih, iw, CV_8UC3);
 
     Mat frame = srcRGB;
-    //cvtColor(srcRGB, frame, CV_BGR2GRAY);    
+    //cvtColor(srcRGB, frame, CV_BGR2GRAY);
 
     filterColors(frame);
 
@@ -286,7 +286,8 @@ double laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBu
     warpPerspective(frame, warpframe, trans, warpSize);
 
 
-    double steer;
+    double steer = 0;
+    double ratio = 1;
     double lane_width = (double)new_width * width_ratio * 0.5;
     vector<Point2d> line_points;
     vector<double> ans;
@@ -341,6 +342,7 @@ double laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBu
     // 차선이 인식되지 않은 경우
     if (lane_idx == -1) {
         cout << "lane not detected !!!!!" << endl;
+        ratio = 0;
     }
     // 차선이 인식된 경우
     else {
@@ -389,8 +391,10 @@ double laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBu
         // 최대 조향을 벗어날 경우 조향 제한
         if (abs(steer) >= 45) {
             cout << "steer out of range !!!" << endl;
-            if (steer < 0) steer = -45;
-            else steer = 45;
+            steer = 0;
+            ratio = -1;
+            // if (steer < 0) steer = -45;
+            // else steer = 45;
         }
     }
     ostringstream temp;
@@ -403,7 +407,9 @@ double laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBu
     cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
 
-    return steer;
+    *output_angle = steer;
+    if (ratio > 0) ratio = cos(steer*180/CV_PI);
+    *output_ratio = ratio;
 }
 
 

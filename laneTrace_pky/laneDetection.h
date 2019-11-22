@@ -30,7 +30,7 @@
 extern "C" {
 #endif
 
-double laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh);
+void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh, double *output_angle, double *output_ratio);
 
 #ifdef __cplusplus
 }

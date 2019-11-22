@@ -105,7 +105,9 @@ int passing = 0; // decide the time to passing other car
 static int allocate_input_buffers(struct thr_data *data);
 static void free_input_buffers(struct buffer **buffer, uint32_t n, bool bmultiplanar);
 static void draw_operatingtime(struct display *disp, uint32_t time);
-double getSteeringWithLane(struct display *disp, struct buffer *cambuf); //detect yellow lane
+
+void getSteeringWithLane(struct display *disp, struct buffer *cambuf, double *steer, double *speed);
+
 void * capture_thread(void *arg);
 void * capture_dump_thread(void *arg);
 void * input_thread(void *arg);
@@ -130,24 +132,34 @@ int main(int argc, char **argv)
 
     tdata.dump_state = DUMP_NONE;
     memset(tdata.dump_img_data, 0, sizeof(tdata.dump_img_data)); // dump data를 0으로 채워서 초기화
-	//init data struct
-	tdata.mission_id = 0;
-    tdata.driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
-    tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
-    tdata.stop_line_detect = false; /// by dy: true 면 정지선 인식된거임
 
-    // init for using VPE hardware
+
+    /////////////////////////////////////////////////////
+    //////////////////tdata init/////////////////////////
+    //////////////////////////////////////////////////////
+
+	tdata.mission_id = 0;
+    tdata.driving_flag_onoff = true; // 주행 상황 여부
+    tdata.speed_ratio = 1; // 속도 비율
+    tdata.stop_line_detect = false; // 정지선 인식 여부
+
+    //////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////
+
+    // VPE 하드웨어 사용을 위한 초기화
     vpe = vpe_open(); if(!vpe) return 1;
-    // image input
+    // 이미지 입력 속성
     vpe->src.width  = CAPTURE_IMG_W;
     vpe->src.height = CAPTURE_IMG_H;
     describeFormat(CAPTURE_IMG_FORMAT, &vpe->src);
-    // image output
+    // 이미지 출력 속성
     vpe->dst.width  = VPE_OUTPUT_W;
     vpe->dst.height = VPE_OUTPUT_H;
     describeFormat (VPE_OUTPUT_FORMAT, &vpe->dst);
 
-    // init for display 
+    
+    // display 영상 출력을 위한 초기화
     vpe->disp = disp_open(disp_argc, disp_argv);
     if (!vpe->disp) {
         ERROR("disp open error!");
@@ -155,7 +167,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // basic setting
+    // 기본 설정 세팅
     set_z_order(vpe->disp, vpe->disp->overlay_p.id);
     set_global_alpha(vpe->disp, vpe->disp->overlay_p.id);
     set_pre_multiplied_alpha(vpe->disp, vpe->disp->overlay_p.id);
@@ -165,7 +177,7 @@ int main(int argc, char **argv)
         ERROR("Invalid parameters\n");
     }
 
-    // init for capture the video
+    // 영상 캡쳐를 위한 초기화
     v4l2 = v4l2_open(vpe->src.fourcc, vpe->src.width, vpe->src.height);
     if (!v4l2) {
         ERROR("v4l2 open error!");
@@ -206,214 +218,73 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    printf("\n\n 2. speed control\n");
+    //////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////
 
+
+    // 2. speed control ----------------------------------------------------------
+    printf("\n\n 2. speed control\n");
+    unsigned char status;
     unsigned char gain;
     signed short speed, check_speed;
     double angle = 1500;
     int camera_angle;
 	int position, posInit, posDes, posRead;
+    CarControlInit();
 
-	CarControlInit();
-    SpeedControlOnOff_Write(UNCONTROL);
-    ////////////////////////////////////////////////////////// DY added /////////////////////////////////////////////////////////
-//[TODO]일단은 주석처리 해둠... 실전에서 사용하기
-    /** while (true) { */
-    /**     if (data->mission_id == 1) {        } /// start */
-    /**     else if (data->mission_id == 2) {   } /// highway */
-    /**     else if (data->mission_id == 3) {   } ///  */
-    /**     else if (data->mission_id == 4) {   } */
-    /**     else if (data->mission_id == 5) {   } */
-    /**     else if (data->mission_id == 6) {   } */
-    /**     else {  } /// basic mission with GY */
-    /**  */
-    /**     if (data->driving_flag_onoff == false) /// mission end, the car will be stopped. */
-    /**     { */
-    /**         /// 추후에 이 코드 종료 미션에 맞게 바꿀 것 */
-    /**         DesireSpeed_Write(0); */
-    /**         Alarm_Write(ON); */
-    /**         usleep(1000000); */
-    /**         Alarm_Write(OFF); */
-    /**         break; */
-    /**     }  */
-    /** } */
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //jobs to be done beforehand;
+    PositionControlOnOff_Write(UNCONTROL); // position controller must be OFF !!!
+    //control on/off
+    status=SpeedControlOnOff_Read();
+    printf("SpeedControlOnOff_Read() = %d\n", status);
+    SpeedControlOnOff_Write(CONTROL);
 
- 
-     //camera y servo set
-    camera_angle = CameraYServoControl_Read();
-    printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500
+    //speed controller gain set
+    //P-gain
+    gain = SpeedPIDProportional_Read();        // default value = 10, range : 1~50
+    printf("SpeedPIDProportional_Read() = %d \n", gain);
+    gain = 10;
+    SpeedPIDProportional_Write(gain);
 
+    //I-gain
+    gain = SpeedPIDIntegral_Read();        // default value = 10, range : 1~50
+    printf("SpeedPIDIntegral_Read() = %d \n", gain);
+    gain = 10;
+    SpeedPIDIntegral_Write(gain);
+    
+    //D-gain
+    gain = SpeedPIDDifferential_Read();        // default value = 10, range : 1~50
+    printf("SpeedPIDDefferential_Read() = %d \n", gain);
+    gain = 10;
+    SpeedPIDDifferential_Write(gain);
+
+    //speed set    
+    speed = DesireSpeed_Read();
+    printf("DesireSpeed_Read() = %d \n", speed);
+    speed = 0;
+    DesireSpeed_Write(speed);
+    sleep(2);
+
+    //camera y servo set
     camera_angle = 1650;
     CameraYServoControl_Write(camera_angle);    
 
-    //speed set     */
-    check_speed = DesireSpeed_Read();  
-    printf("DesireSpeed_Read() = %d \n", check_speed); 
-
     while(1){
-		if(is_Traffic_Light >= 1) //Traffic light mission
-			break;
-		if(passing == 1) //passing other car mission
-			break;
+        angle = 1500-(tdata.angle/90)*500;
+        SteeringServoControl_Write(angle);
 
-        angle = 1500-(tdata.angle/90)*500; //get angle from data structure
-		/** printf("speed = %d, is_Traffic_Light = %d\n", tdata.speed, is_Traffic_Light); */
-		printf("tdata.speed = %d\n", tdata.speed);//error
+        speed = DesireSpeed_Read();
+        printf("DesireSpeed_Read() = %d \n", speed);
+        speed = tdata.speed;
+        DesireSpeed_Write(speed);
 
-		SteeringServoControl_Write(angle); 
-		DesireSpeed_Write(tdata.speed);
-		if(tdata.speed == 0){
-			printf("stop!!\n");
-			usleep(500000); //calibrate IO delay
-		}
-		usleep(50000); //calibrate IO delay
+        usleep(100000);
     }
 
-	if(is_Traffic_Light >= 1){ //traffic mission
-		printf("traffic mission!!!!\n");
-		if(is_Traffic_Light == 1){
-			//go left
-			SteeringServoControl_Write(1950);
-			DesireSpeed_Write(200);
-			usleep(1700000);
-			printf("step 1...\n");
+    pause();
 
-			SteeringServoControl_Write(1500);
-			usleep(100000);
-			printf("step 2...\n");
-
-			printf("traffic light finished..!!!\n");
-			DesireSpeed_Write(0); //E-Stop;
-		}
-		else if(is_Traffic_Light == 2){
-			//right
-			SteeringServoControl_Write(1050);
-			DesireSpeed_Write(100);
-			usleep(1700000);
-			printf("step 1...\n");
-
-			SteeringServoControl_Write(1500);
-			usleep(1000000);
-			printf("step 2...\n");
-
-			printf("traffic light finished..!!!\n");
-			DesireSpeed_Write(0); //E-Stop;
-		}
-		else{
-			printf("ERROR!!!!\n");
-		}
-	}
-	printf("main passing_where = %d\n", passing_where);
-	printf("main passing = %d\n", passing);
-
-	if(passing_where != -1){//passing other car mission
-		printf("Go back!\n");
-		SpeedControlOnOff_Write(CONTROL);
-		speed = -200;
-
-		//control on/off
-		PositionControlOnOff_Write(CONTROL);
-
-		//position controller gain set
-		gain = 30;
-		PositionProportionPoint_Write(gain);
-
-		//position write
-		posInit = 0;  //initialize
-		EncoderCounter_Write(posInit);
-
-		//position set
-		posDes = -800;
-		position = posInit+posDes;
-		DesireEncoderCount_Write(position);
-
-		position=DesireEncoderCount_Read();
-		printf("DesireEncoderCount_Read() = %d\n", position);
-
-		sleep(1);
-		speed = 0;
-		DesireSpeed_Write(speed);
-		//mission_count ++;
-
-		CarLight_Write(ALL_ON);
-		Alarm_Write(ON);
-		usleep(100000);
-		Alarm_Write(OFF);
-		CarLight_Write(ALL_OFF);
-
-		if(passing_where == 1){
-			printf("Go left!\n");
-			//[TODO]To be continue...
-			//However, mechanism is similar with go right!
-		}
-		else if(passing_where == 2){
-			printf("GO right!\n");
-
-			SpeedControlOnOff_Write(CONTROL);
-
-			speed = 70;
-			DesireSpeed_Write(speed);
-
-			angle = 1150;
-			SteeringServoControl_Write(angle);
-
-			//control on/off
-			PositionControlOnOff_Write(CONTROL);
-
-			//position controller gain set
-			gain = 30;
-			PositionProportionPoint_Write(gain);
-
-			//position write
-			posInit = 0;  //initialize
-			EncoderCounter_Write(posInit);
-
-			//position set
-			posDes = 1000;
-			position = posInit+posDes;
-			DesireEncoderCount_Write(position);
-
-			position=DesireEncoderCount_Read();
-			printf("DesireEncoderCount_Read() = %d\n", position);
-            /**  */
-			/** tol = 100;    // tolerance */
-			/** while(abs(posRead-position)>tol) */
-			/** { */
-			/**     posRead=EncoderCounter_Read(); */
-			/**     printf("EncoderCounter_Read() = %d\n", posRead); */
-			/**     speed = DesireSpeed_Read(); */
-			/**     printf("DesireSpeed_Read() = %d \n", speed); */
-			/** } */
-			/** sleep(1); */
-
-			PositionControlOnOff_Write(UNCONTROL); // position controller must be OFF !!!
-			SpeedControlOnOff_Write(CONTROL);   // speed controller must be also ON !!!
-
-			speed = 70;
-			DesireSpeed_Write(speed);
-			
-			// basic driving
-			angle = 1850;
-			SteeringServoControl_Write(angle);
-			usleep(1500000);
-
-			angle = 1500;
-			SteeringServoControl_Write(angle);
-
-			speed = 70;
-			DesireSpeed_Write(speed);
-
-			//stop
-			usleep(150000);
-			speed = 0;
-			DesireSpeed_Write(speed);
-
-		}
-	}
-	pause();
-
-	return ret;
+    return ret;
 }
 
 
@@ -499,22 +370,18 @@ void * capture_thread(void *arg)
 // -------------------- image process by capt ----------------------------------
         /** data->angle = getSteeringWithLane(vpe->disp, capt);  */
 
-		//passing_master(vpe->disp, capt);
-		if(passing_where != -1)
-			passing = 1;
+		// //passing_master(vpe->disp, capt);
+		// if(passing_where != -1)
+		// 	passing = 1;
+		// data->speed_ratio = color_detection(vpe->disp, capt); 
+		// data->speed = data->speed * data->speed_ratio;
 
-		if (data->angle == 1234) { //fail to detect lane
-			data->angle = 0;
-			data->speed = 0;
-			real_speed = 0;
-			//printf("fail to detect lane!!!!\n");
-		}
-		/** else { //basic driving */
-		/**     data->speed = 120; */
-		/** } */
-		data->speed_ratio = color_detection(vpe->disp, capt); 
-		data->speed = data->speed * data->speed_ratio;
-		printf("sppppppppppppppppppppppppppppppppppppeedd: %d\n", data->speed);//ok
+        double a, v;
+        getSteeringWithLane(vpe->disp, capt, &a, &v);
+        data->angle = a;
+        data->speed = v;
+
+
 
 // ----------------------- end of image process ----------------------------------
 
@@ -768,9 +635,9 @@ static void draw_operatingtime(struct display *disp, uint32_t time)
     }
 }
 
-double getSteeringWithLane(struct display *disp, struct buffer *cambuf) //detect lane
+void getSteeringWithLane(struct display *disp, struct buffer *cambuf, double *steer, double *speed) //detect lane
 {
-    double angle;
+    double angle, ratio;
     unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
     uint32_t optime;
     struct timeval st, et;
@@ -780,14 +647,16 @@ double getSteeringWithLane(struct display *disp, struct buffer *cambuf) //detect
         memcpy(srcbuf, cam_pbuf[0], VPE_OUTPUT_W*VPE_OUTPUT_H*3);
 
         gettimeofday(&st, NULL);
+        
+        laneDetection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H, &angle, &ratio); //get angle value from laneDetection()
 
-        angle = laneDetection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); //get angle value from laneDetection()
 
         gettimeofday(&et, NULL);
         optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
         draw_operatingtime(disp, optime);
     }
-	return angle;
+	*steer = angle;
+    *speed = 500 *ratio;
 }
 
 double distance_calculate(double data){ // make sensor input data to real distance data
