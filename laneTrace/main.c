@@ -183,7 +183,7 @@ int main(int argc, char **argv)
     tdata.dump_state = DUMP_NONE;
     memset(tdata.dump_img_data, 0, sizeof(tdata.dump_img_data)); // dump data를 0으로 채워서 초기화
 	//init data struct
-	tdata.mission_id = 1; // 0 is basic driving
+	tdata.mission_id = 1; // 0 is basic driving 1 is for testing
     tdata.driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
     tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
     tdata.stop_line_detect = false; /// by dy: true 면 정지선 인식된거임
@@ -313,8 +313,22 @@ int main(int argc, char **argv)
 			dynamic_obs_ver2(data->angle, data->speed, data->speed_ratio);
 		} /// 회전
 		else if (data->mission_id == 4) {
-			tunnel_adv();
-			data->mission_id = 0;//example
+			/** tunnel_adv(); */
+			/** data->mission_id = 0;//example */
+			//tunnel_mission
+			if(tunnelSignal == 1 && O_data_2 < 30)
+			{
+				start_3 = clock();
+			}
+			if(O_data_2 < 30 && O_data_3 < 30)
+			{
+				float endtime_3 = (clock()- start_3)/(CLOCKS_PER_SEC);
+				if(endtime_3 < 3)
+				{
+					tunnel_adv();
+				}
+			}
+			
 		} /// 터널 
 		else if (data->mission_id == 5) {//수직
 			if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30)
@@ -470,12 +484,12 @@ int main(int argc, char **argv)
 			}
 		}	/// 신호등
 		else { //basic driving 
-			angle = 1500-(tdata.angle/90)*500; //get angle from data structure
-			printf("tdata.speed = %d\n", tdata.speed);//error
+			angle = 1500-(data->angle/90)*500; //get angle from data structure
+			printf("tdata.speed = %d\n", data->speed);//error
 
 			SteeringServoControl_Write(angle); 
-			DesireSpeed_Write(tdata.speed);
-			if(tdata.speed == 0){
+			DesireSpeed_Write(data->speed);
+			if(data->speed == 0){
 				printf("stop!!\n");
 				usleep(500000); //calibrate IO delay
 			}
@@ -593,9 +607,11 @@ void * capture_thread(void *arg)
 		// ---- end
 
 		// ---- mission trigger
-		if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;
-		if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 6;		
-        
+		if(data->tunnelSignal == 1 && data->O_data_2 < 30) data->mission_id = 4;//tunnel
+		if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;//parking
+		if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 6;//parparking	
+		/** if(??) data->mission_id = 7;//passing master	 */
+        if(is_Traffic_Light != 0) data->mission_id = 8; //traffic light
 
 
 // -------------------- image process by capt ----------------------------------
