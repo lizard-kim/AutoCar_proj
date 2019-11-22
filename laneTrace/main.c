@@ -2,8 +2,9 @@
 //////////////////////// INCLUDE FILES //////////////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
+#include "koo_driving.h"
 #include <stdio.h>
-/** #include "car_lib.h" */
+#include "car_lib.h"
 #include <signal.h>
 #include <pthread.h>
 #include <sys/ipc.h>
@@ -23,6 +24,7 @@
 #include "exam_cv.h"
 #include "laneDetection.h"
 #include "DynamicObs.h"
+
 /** #include "controlSensor.h" */
 /** #include "passing_master.h" */
 
@@ -151,8 +153,9 @@ void * capture_thread(void *arg);
 void * capture_dump_thread(void *arg);
 void * input_thread(void *arg);
 double distance_calculate(double data); // make sensor input data to real distance data
-double distance_sensor(); //get sensor input data
-static void passing_master(struct display *disp, struct buffer *cambuf); // passing other car 차선변경 미션
+int distance_sensor(); //get sensor input data
+/** static void passing_master(struct display *disp, struct buffer *cambuf); // passing other car 차선변경 미션 */
+static char* passing_master(struct display *disp, struct buffer *cambuf, void *arg); // 2019.11.16 관형 변경
 void warmSensorTrigger(); 
 static struct thr_data* pexam_data = NULL;
 void signal_handler(int sig);
@@ -391,8 +394,8 @@ int main(int argc, char **argv)
 				// 기본주행 모드
 				case AUTO_DRIVE : 
 					while(distance_sensor > 8){
-						DesireSpeed_Wirte(data->speed);
-						DesireSpeed_Wirte(data->angle);
+						/** DesireSpeed_Wirte(data->speed); */
+						/** DesireSpeed_Wirte(data->angle); */
 						printf("Speed : %d", DesireSpeed_Read());
 						usleep(50000);
 					}
@@ -409,8 +412,8 @@ int main(int argc, char **argv)
 
 				case WAIT : 
 					// 규열이의 차선주행
-					DesireSpeed_Wirte(tdata->speed);
-					DesireSpeed_Wirte(tdata->angle);
+					/** DesireSpeed_Wirte(data->speed); */
+					/** DesireSpeed_Wirte(data->angle); */
 					printf("Speed : %d", DesireSpeed_Read());
 					usleep(50000); // 이게 없으면 속력을 계속해서 주기 때문에 매우 낮은 속도로 감
 
@@ -1085,73 +1088,66 @@ double getSteeringWithLane(struct display *disp, struct buffer *cambuf) //detect
 	return angle;
 }
 
-double distance_calculate(double data){ // make sensor input data to real distance data
-    double middle = data / 22691; //for the car of Alpha car team
-	/** printf("middle = %lf\n", middle); */
-    double distance = pow(middle, -(1/1.07)); //for the car of Alpha car team
-    return distance;
-}
-
-double distance_sensor(){ //get sensor input data
-	int channel = 1;
-	double data;
-    /** printf("distance sensor start!!!\n"); */
-    double distance = 1;
-    while(1){
-        data = DistanceSensor(channel);
-        distance = distance_calculate(data);
-        /** printf("channel = %d, distance = %d\n", channel, distance); */
-        return distance;
-    }
-}
-
-static void passing_master(struct display *disp, struct buffer *cambuf){
+/** double distance_calculate(double data){ // make sensor input data to real distance data */
+/**     double middle = data / 22691; //for the car of Alpha car team */
+/**     [> printf("middle = %lf\n", middle); <] */
+/**     double distance = pow(middle, -(1/1.07)); //for the car of Alpha car team */
+/**     return distance; */
+/** } */
+/**  */
+/** int distance_sensor(){ //get sensor input data */
+/**     int channel = 1; */
+/**     double data; */
+/**     [> printf("distance sensor start!!!\n"); <] */
+/**     double distance = 1; */
+/**     while(1){ */
+/**         data = DistanceSensor(channel); */
+/**         distance = distance_calculate(data); */
+/**         [> printf("channel = %d, distance = %d\n", channel, distance); <] */
+/**         return distance; */
+/**     } */
+/** } */
+static char* passing_master(struct display *disp, struct buffer *cambuf, void *arg){
+    struct thr_data *data = (struct thr_data *)arg;
     unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
     uint32_t optime;
-    struct timeval st, et;
-    int decision; 
+    struct timeval st, et; 
     signed short speed;
     double distance;
+    char* direction; // 갈 방향, left of right!
+	/** printf("Koo is Passing master!!!!!!! wow!!!!!!\n"); */
+
     unsigned char* cam_pbuf[4];
     if(get_framebuf(cambuf, cam_pbuf) == 0) {
         memcpy(srcbuf, cam_pbuf[0], VPE_OUTPUT_W*VPE_OUTPUT_H*3);
+
         gettimeofday(&st, NULL);
-
-        decision = histogram_backprojection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
-		decision = 2;//[TODO] delete this!!!
-        
-        distance = distance_sensor();
-        /**  */
-        /** if(distance > 15){  */
-        /**     printf("basic driving mode\n"); */
-        /**     speed = 100; */
-        /**     DesireSpeed_Write(speed); */
-        /** } */
-		/** printf("decision= %d\n", decision); */
-
-        //pass when the distance between mycar and other car below 15
-        if(distance < 15){
-            /** if(decision == -1){ */
-            /** printf("basic driving mode\n");             */
-            /** speed = 100; */
-            /** DesireSpeed_Write(speed); */
-            /** } */
-            if(decision == 1){
-                //passing_left();
-				passing_where = 1;
-            } 
-            else if(decision == 2){
-                //passing_right();
-				passing_where = 2;
-            }
-        }
+    
+//=================================================================================
+        // switch(data->mission_state) {
+        //     case PRE_PASSING_OVER : //그림자 히스토그램을 구하고 hist에 저장
+        //         data->passing.hist = pre_histogram_backprojection(srcBuf, iw, ih);
+        //         if (data->passing.hist_check == 1) {
+        //             data->mission_state = WAIT;
+        //         }
+            
+        //     case PASSING_OVER : //뒤로 간 후에 전체 이미지에 대해 그림자 히스토그램을 검색 -> 방향 결정
+        //         decision = histogram_backprojection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H, data->passing.hist);
+        //         passing_where = decision;
+        //         data->mission_state = WAIT;
+        // }
+    
+        direction = histogram_backprojection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+       
 		/** printf("passing_where = %d\n", passing_where); */
+//=======================================================================================
 
         gettimeofday(&et, NULL);
         optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
         draw_operatingtime(disp, optime);
     }
 
+    return direction;
 
 }
 

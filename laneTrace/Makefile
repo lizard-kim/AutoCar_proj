@@ -26,8 +26,8 @@ all: $(TARGET)
 clean:
 	rm -f *.a *.o $(TARGET) *.lo
 
-$(TARGET): main.c v4l2.lo display-kms.lo util.lo vpe-common.lo input_cmd.lo drawing.lo exam_cv.lo car_lib.lo laneDetection.lo stop_when_accident.lo controlSensor.lo DynamicObs.lo
-	$(CC) $(CFLAGS) -o $@ main.c v4l2.lo display-kms.lo util.lo vpe-common.lo input_cmd.lo drawing.lo exam_cv.lo car_lib.lo laneDetection.lo stop_when_accident.lo controlSensor.lo DynamicObs.lo $(LDFLAGS)
+$(TARGET): main.c v4l2.lo display-kms.lo util.lo vpe-common.lo input_cmd.lo drawing.lo exam_cv.lo car_lib.lo laneDetection.lo stop_when_accident.lo controlSensor.lo DynamicObs.lo koo_driving.lo passing_master.lo
+	$(CC) $(CFLAGS) -o $@ main.c v4l2.lo display-kms.lo util.lo vpe-common.lo input_cmd.lo drawing.lo exam_cv.lo car_lib.lo laneDetection.lo stop_when_accident.lo controlSensor.lo DynamicObs.lo koo_driving.lo passing_master.lo $(LDFLAGS)
 
 v4l2.lo: v4l2.c v4l2.h
 	$(CC) -c $(CFLAGS) -o $@ v4l2.c
@@ -64,5 +64,11 @@ controlSensor.lo: controlSensor.h
 
 DynamicObs.lo: DynamicObs.h
 	$(CC) -c $(CFLAGS) -o $@ DynamicObs.c 
+
+koo_driving.lo: koo_driving.h
+	$(CC) -c $(CFLAGS) -o $@ koo_driving.c 
+
+passing_master.lo: passing_master.h
+	$(CXX) -c $(CXXFLAGS) -o $@ passing_master.cpp 
 #edit
 

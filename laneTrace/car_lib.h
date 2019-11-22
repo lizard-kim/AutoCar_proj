@@ -63,7 +63,7 @@ int DistanceSensor(int channel);
 
 #ifdef __cplusplus
 }
-#endif /* __cplusplus */
+#endif [> __cplusplus <]
 
 #endif
 
