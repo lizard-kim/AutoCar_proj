@@ -90,19 +90,19 @@ void curveFitting(Mat &input, Mat &output, vector<Point2d> &route, vector<double
         cerr << "Lack of Points to fitting !" << endl;
         return;
     }
-
+    cout << "a" << endl;
     vector<pair<double, double> > v;
 
-    for (int i = 0; i < (int)route.size(); i++) {
+    for (size_t i = 0; i < route.size(); i++) {
         v.push_back(make_pair(route[i].x, route[i].y));
     }
     int n = v.size();
     Mat A;
 
-
+    cout << "aa" << endl;
     // A를 완성시키는 이중 for문
     // 3 차 방정식으로 근사한다. 이 숫자 바꿔 주면 n-1 차 방정식까지 근사 가능.
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < v.size(); i++) {
         vector<double> tmp;
         for (int j = 3; j >= 0; j--) {
             double x = v[i].second; // x 하고 y 를 바꾸기로 함. 그래야 함수가 만들어지니까
@@ -111,6 +111,7 @@ void curveFitting(Mat &input, Mat &output, vector<Point2d> &route, vector<double
         A.push_back(Mat(tmp).t());
     }
 
+    cout << "aaa" << endl;
     Mat B; // B 에는 y 좌표들을 저장한다.
     vector<double> tmp;
     for (int i = 0; i < n; i++) {
@@ -121,7 +122,7 @@ void curveFitting(Mat &input, Mat &output, vector<Point2d> &route, vector<double
 
     // X = invA * B; // X = A(-1)B
     Mat X = ((A.t() * A).inv()) * A.t() * B;
-
+    cout << "aaaa" << endl;
     // X 에서 차례대로 뽑아내서 ans 에 담는다.
     // 몇차 방정식으로 근사할껀지 정할때 건드려줘야 되는부분, 3차 방정식으로 근사할꺼면 4 ㅇㅇ.
     for (int i = 0; i < 4; i++) {
@@ -140,7 +141,7 @@ void curveFitting(Mat &input, Mat &output, vector<Point2d> &route, vector<double
     for (int i = 0; i < ans_size; i++) {
         coef[i] = ans.at(i);
     }
-
+    cout << "aaaaa" << endl;
     // 계산된 곡선 그리기
     output = input.clone();
     for (int i = end; i >= start; i -= 1) {
@@ -151,6 +152,7 @@ void curveFitting(Mat &input, Mat &output, vector<Point2d> &route, vector<double
         }
         line(output, Point(x1, i), Point(x2, i - 1), Scalar(0, 0, 255), 2);
     }
+    cout << "aaaaaa" << endl;
 }
 
 
@@ -346,13 +348,13 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
     }
     // 차선이 인식된 경우
     else {
-
+        cout << "fuck1" << endl;
         // 1) 차선 타입 정의
         if (bot_dx >= 0) lane_type = 1; // 오른쪽 차선
         else lane_type = -1; // 왼쪽 차선
-
+        cout << "fuck2" << endl;
         curveFitting(frame_show, frame_show, line_points, ans, lane_top.y, lane_bot.y);
-
+        cout << "fuck3" << endl;
         // 3) 목적지 방향 및 조향 계산
         // *무게중심 좌표
         Point2i cen = Point2i((lane_top.x + lane_bot.x)/2, (lane_top.y + lane_bot.y)/2);
@@ -361,6 +363,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
         // **무게중심에 해당하는 곡선 위 좌표
         getCurvePoint(ans, cen.y, cp);
         angle = getSteerwithCurve(ans, cen.y);
+            cout << "fuck4" << endl;
         // ***곡선 차선에 대한 차선 타입 보정
         if (angle >= 45) lane_type = -1;
         else if (angle <= -45) lane_type = 1;
@@ -376,7 +379,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
             des.y = cp.y;
         }
         circle(frame_show, des, 5, Scalar(250, 150, 100), -1);
-
+    cout << "fuck5" << endl;
         // *****조향각 계산
         // 방향벡터 계산
         Point2d direction(des.x - (double)new_width/2, des.y - new_height);
@@ -397,6 +400,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
             // else steer = 45;
         }
     }
+    cout << "fuck6" << endl;
     ostringstream temp;
     temp << steer;
     string str = temp.str();
@@ -405,11 +409,12 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
 
     srcRGB = frame_show;
     cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
-
+    cout << "fuck7" << endl;
 
     *output_angle = steer;
     if (ratio > 0) ratio = cos(steer*180/CV_PI);
     *output_ratio = ratio;
+        cout << "fuck8" << endl;
 }
 
 
