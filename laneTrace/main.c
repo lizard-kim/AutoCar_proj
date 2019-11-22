@@ -105,8 +105,11 @@ struct thr_data {
     char* yellow_stop_line; // 정지선 인식 변수, 관형 추가
     int white_stop_line; // 정지선 인식 변수, 관형 추가
     MissionState mission_state;
-	//end 
-
+	//end
+	
+	// ----dY
+	bool stop_line_detect;
+	// ---- end
 	double sensor1;//front
 	double sensor2;//right1
 	double sensor3;//right2
@@ -126,7 +129,7 @@ struct thr_data {
 	int park;//jh for parking
     bool driving_flag_onoff; /// by dy: true면 주행중, false면 주행종료
     //double speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
-    bool stop_line_detect; /// by dy: true 면 정지선 인식된거임
+    bool stop_line; /// by dy: true 면 정지선 인식된거임
 };
 
 /** signed short real_speed = 0; */
@@ -148,7 +151,7 @@ static char* passing_master(struct display *disp, struct buffer *cambuf, void *a
 void warmSensorTrigger(); 
 static struct thr_data* pexam_data = NULL;
 void signal_handler(int sig);
-void lanetrace();//정지선sensor
+int stopLine_detect(void); // 정지선 인식하는 함수 1이면 정지선 위, 0이면 아님 by Doyeon
 
 
 int main(int argc, char **argv)
@@ -316,11 +319,11 @@ int main(int argc, char **argv)
 			/** tunnel_adv(); */
 			/** data->mission_id = 0;//example */
 			//tunnel_mission
-			if(tunnelSignal == 1 && O_data_2 < 30)
+			if(data->tunnelSignal == 1 && data->O_data_2 < 30)
 			{
 				start_3 = clock();
 			}
-			if(O_data_2 < 30 && O_data_3 < 30)
+			if(data->O_data_2 < 30 && data->O_data_3 < 30)
 			{
 				float endtime_3 = (clock()- start_3)/(CLOCKS_PER_SEC);
 				if(endtime_3 < 3)
@@ -593,6 +596,7 @@ void * capture_thread(void *arg)
         index = vpe_output_dqbuf(vpe); // VPE 출력 큐 처리 권한을 어플리케이션이 가지고 옴
         capt = vpe->disp_bufs[index];
 
+        
 
 
 		// ---- sensor data input
@@ -634,6 +638,8 @@ void * capture_thread(void *arg)
 		printf("distance = 0x%04X(%d) \n", data->distance);
 
 		// -------------------- capt로 이미지 처리 ----------------------------------
+        /** if (stopLine_detect() == 1) data->stop_line = true; */
+        /** else data->stop_line = false; /// 여기서 트루 되었다가 바로 false로 바뀌면 chot됨   */
 
 		// 여기서 data->mission_state로 던져줍니다
 
@@ -1131,17 +1137,15 @@ static char* passing_master(struct display *disp, struct buffer *cambuf, void *a
 /**     } */
 /** } */
 
-void lanetrace(){
-    sensor = LineSensor_Read();        // black:1, white:0
-	printf("LineSensor_Read() = ");
-	char byte = 0x80;
-	for(i=0; i<8; i++)
-    {
-        if((i % 4) ==0) printf(" ");
-        if((sensor & byte)) printf("1");
-        else printf("0");
+int stopLine_detect(void) { /// 1 if stopline detected: the car is on white line
+    sensor = LineSensor_Read();
+    int whitecount = 0;
+    for(i=0; i<8; i++){
+        if (!sensor) whitecount++;
         sensor = sensor << 1;
     }
     printf("\n");
-    printf("LineSensor_Read() = %d \n", sensor);
+    printf("whitecount: %d\n", whitecount);
+    if (whitecount > 3) return 1; /// white
+    else return 0; /// black
 }
