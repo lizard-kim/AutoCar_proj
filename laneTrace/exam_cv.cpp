@@ -224,7 +224,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
 		// approxPolyDP(Mat(contours[i]), approx, 1, true);
 
-		if (fabs(contourArea(Mat(approx))) > 1200)  // edit responsiveness...
+		if (fabs(contourArea(Mat(approx))) > 1500)  // edit responsiveness...
 		{
 			int size = approx.size();
 
@@ -263,7 +263,7 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 {
 
 	int range_count = 0;
-	Mat img_input, img_result, img_gray;
+	Mat img_input, img_gray, img_hsv, img_result;
 	Scalar green(0, 200, 50); //define green [TODO] we have to do fine tuning
 	Mat rgb_color, hsv_color;
 	Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
@@ -277,7 +277,7 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 	int hue = (int)hsv_color.at<Vec3b>(0, 0)[0];
 	//int saturation = (int)hsv_color.at<Vec3b>(0, 0)[1];
 	//int value = (int)hsv_color.at<Vec3b>(0, 0)[2];
-	int low_hue = hue - 30;//¿¿¿ ¿¿
+	int low_hue = hue;//¿¿¿ ¿¿
 	int high_hue = hue + 20;
 	int low_hue1 = 0, low_hue2 = 0;
 	int high_hue1 = 0, high_hue2 = 0;
@@ -286,15 +286,16 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 
 	img_input = srcRGB;
 
-	cvtColor(img_input, img_gray, COLOR_BGR2HSV);
+	cvtColor(img_input, img_hsv, COLOR_BGR2HSV);
+	// cvtColor(img_input, img_gray, COLOR_BGR2HSV);
 
 	Mat binary_image;
 	Mat img_mask1, img_mask2;
 
 	//accept green filter for detect Traffic light
-	inRange(img_gray, Scalar(low_hue1, 50, 50), Scalar(high_hue1, 255, 255), img_mask1);
+	inRange(img_hsv, Scalar(low_hue1, 50, 50), Scalar(high_hue1, 255, 255), img_mask1);
 	if (range_count == 2) {
-		inRange(img_gray, Scalar(low_hue2, 50, 50), Scalar(high_hue2, 255, 255), img_mask2);
+		inRange(img_hsv, Scalar(low_hue2, 50, 50), Scalar(high_hue2, 255, 255), img_mask2);
 		img_mask1 |= img_mask2;
 	}
 
@@ -302,6 +303,7 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 	findContours(img_mask1, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
 
 	vector<Point> approx;
+	cvtColor(img_mask1, img_result, COLOR_GRAY2BGR);
 
 	for (size_t i = 0; i < contours.size(); i++){
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
@@ -311,20 +313,20 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 			int size = approx.size();
 
 			if (size % 2 == 0) {
-				line(img_gray, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+				line(img_result, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
 
 				for (int k = 0; k < size - 1; k++)
-					line(img_gray, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+					line(img_result, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
 				for (int k = 0; k < size; k++)
-					circle(img_gray, approx[k], 3, Scalar(0, 0, 255));
+					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
 			}
 			else {
-				line(img_gray, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+				line(img_result, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
 
 				for (int k = 0; k < size - 1; k++)
-					line(img_gray, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+					line(img_result, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
 				for (int k = 0; k < size; k++)
-					circle(img_gray, approx[k], 3, Scalar(0, 0, 255));
+					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
 			}
 
 			if (size == 7){//go left!
@@ -341,6 +343,9 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 			// resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 		}
 	}  
+	srcRGB = img_result;
+	resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+
 	return is_Traffic_Light;
 }
 
