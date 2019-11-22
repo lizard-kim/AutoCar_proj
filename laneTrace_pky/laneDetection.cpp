@@ -104,21 +104,40 @@ void curveFitting(Mat &input, Mat &output, vector<Point2d> &route, vector<double
     // 3 차 방정식으로 근사한다. 이 숫자 바꿔 주면 n-1 차 방정식까지 근사 가능.
     for (size_t i = 0; i < v.size(); i++) {
         vector<double> tmp;
+        cout << "0.5" << endl;
         for (int j = 3; j >= 0; j--) {
             double x = v[i].second; // x 하고 y 를 바꾸기로 함. 그래야 함수가 만들어지니까
+            cout << "0.1" << endl;
             tmp.push_back(pow(x,j));
+            cout << "0.2" << endl;
         }
-        A.push_back(Mat(tmp).t());
+        cout << "1" << endl;
+        // A.push_back(Mat(tmp).t());
+        if (i == 0) {
+            A = Mat(tmp).clone();
+            A = A.t();
+        }
+        else {
+            vconcat(A, tmp, A);
+        }
+        cout << "2" << endl;
+        cout << "A.size() : " << A.size() << endl;
     }
 
     cout << "aaa" << endl;
     Mat B; // B 에는 y 좌표들을 저장한다.
     vector<double> tmp;
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < v.size(); i++) {
+        cout << "1.1" << endl;
         double y = v[i].first; // x 하고 y 바꾸기로 함. 그래야 함수가 만들어지니까
+        cout << "1.2" << endl;
         tmp.push_back(y);
+        cout << "1.3" << endl;
     }
-    B.push_back(Mat(tmp));
+    cout << "1.4" << endl;
+    B = Mat(tmp).clone();
+    cout << "1.5" << endl;
+    // B.push_back(Mat(tmp));
 
     // X = invA * B; // X = A(-1)B
     Mat X = ((A.t() * A).inv()) * A.t() * B;
@@ -214,9 +233,9 @@ void filterColors(Mat &input) {
         img_mask1 |= img_mask2;
     }
 
-//    //morphological opening 작은 점들을 제거
-//    erode(img_mask1, img_mask1, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-//    dilate(img_mask1, img_mask1, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+   //morphological opening 작은 점들을 제거
+   erode(img_mask1, img_mask1, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+   dilate(img_mask1, img_mask1, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
 //
 //    //morphological closing 영역의 구멍 메우기
 //    dilate(img_mask1, img_mask1, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
@@ -290,7 +309,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
 
     double steer = 0;
     double ratio = 1;
-    double lane_width = (double)new_width * width_ratio * 0.5;
+    double lane_width = (double)new_width * width_ratio * 0.8;
     vector<Point2d> line_points;
     vector<double> ans;
     int lane_type = 0;
@@ -363,7 +382,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
         // **무게중심에 해당하는 곡선 위 좌표
         getCurvePoint(ans, cen.y, cp);
         angle = getSteerwithCurve(ans, cen.y);
-            cout << "fuck4" << endl;
+        cout << "fuck4" << endl;
         // ***곡선 차선에 대한 차선 타입 보정
         if (angle >= 45) lane_type = -1;
         else if (angle <= -45) lane_type = 1;
@@ -379,7 +398,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
             des.y = cp.y;
         }
         circle(frame_show, des, 5, Scalar(250, 150, 100), -1);
-    cout << "fuck5" << endl;
+        cout << "fuck5" << endl;
         // *****조향각 계산
         // 방향벡터 계산
         Point2d direction(des.x - (double)new_width/2, des.y - new_height);
@@ -395,7 +414,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
         if (abs(steer) >= 45) {
             cout << "steer out of range !!!" << endl;
             steer = 0;
-            ratio = -1;
+            ratio = -0.4;
             // if (steer < 0) steer = -45;
             // else steer = 45;
         }
@@ -404,17 +423,17 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
     ostringstream temp;
     temp << steer;
     string str = temp.str();
-    putText(frame_show, "steer : " + str, Point(10, 15), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 255));
-    
+    putText(frame_show, "steer : " + str, Point(10, 15), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 0, 255));
+     
 
     srcRGB = frame_show;
     cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
     cout << "fuck7" << endl;
 
     *output_angle = steer;
-    if (ratio > 0) ratio = cos(steer*180/CV_PI);
+    if (ratio > 0) ratio = pow(cos(steer*CV_PI/180), 2);
     *output_ratio = ratio;
-        cout << "fuck8" << endl;
+    cout << "fuck8" << endl;
 }
 
 
