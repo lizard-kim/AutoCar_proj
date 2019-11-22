@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <string.h>
+#include <cstring>
 //#include <sys/time.h>
 
 #include <opencv2/opencv.hpp>
@@ -301,7 +302,7 @@ double laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBu
     int bot_dx = 10000; // 차선 후보 시작점 좌표 차이
     for (size_t i = 0; i < contours.size(); i++) {
 //        stats.push_back(make_pair(Point2d(0, height), Point2d(0, 0)));
-        if (contours[i].size() <= 400) continue;
+        if (contours[i].size() <= 200) continue;
 
         vector<Point2d> line_temp; line_temp.clear();
         for (size_t j = 0; j < contours[i].size(); j++) {
@@ -329,7 +330,7 @@ double laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBu
     // 외곽선 그리기
     Mat frame_show = Mat::zeros(new_height, new_width, CV_8UC3);
     drawContours(frame_show, contours, -1, Scalar(255, 255, 255), -1);
-    drawContours(frame_show, contours, lane_idx, Scalar(50, 50, 200), -1);
+    if (lane_idx != -1) drawContours(frame_show, contours, lane_idx, Scalar(50, 200, 50), -1);
 
     cout << "contours.size() : " << contours.size() << endl;
     cout << "line_points.size() : " << line_points.size() << endl;
@@ -348,12 +349,6 @@ double laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBu
         if (bot_dx >= 0) lane_type = 1; // 오른쪽 차선
         else lane_type = -1; // 왼쪽 차선
 
-        for (int i = 0; i < (int)contours[lane_idx].size(); i++) {
-            line_points.push_back(Point2d(contours[lane_idx][i].x, contours[lane_idx][i].y));
-        }
-
-        // 2) 차선 점들에 대한 커브 피팅
-        drawContours(frame_show, contours, lane_idx, Scalar(50, 0, 255), 10);
         curveFitting(frame_show, frame_show, line_points, ans, lane_top.y, lane_bot.y);
 
         // 3) 목적지 방향 및 조향 계산
@@ -398,11 +393,11 @@ double laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBu
             else steer = 45;
         }
     }
-
-    // imshow("line check", frame_show);
-    // waitKey();
-
-
+    ostringstream temp;
+    temp << steer;
+    string str = temp.str();
+    putText(frame_show, "steer : " + str, Point(10, 15), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 255));
+    
 
     srcRGB = frame_show;
     cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
