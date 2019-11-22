@@ -23,15 +23,6 @@ using namespace cv;
 #ifdef __cplusplus
 extern "C" {
 #endif
-/*
-struct passing {
-    Mat hist;
-    int hist_check = 0;
-};
-*/
-
-passing *pass = new passing;
-//pass* passi;
 
 bool pixel_detector(Mat image, char* order){
 	int count = 0;
@@ -70,10 +61,10 @@ bool pixel_detector(Mat image, char* order){
 	return count > 1000 ? true : false;
 }
 
-void pre_histogram_backprojection(unsigned char* srcBuf, int iw, int ih){
+Mat pre_histogram_backprojection(unsigned char* srcBuf, int iw, int ih){
     
-    Mat srcImage(ih, iw, CV_8UC3, srcBuf);
-    //Mat srcImage = imread("overroad2.jpg", IMREAD_COLOR); // 이게 기준값!
+    //Mat srcImage(ih, iw, CV_8UC3, srcBuf);
+    Mat srcImage = imread("overroad2.jpg", IMREAD_COLOR); // 이게 기준값!
     //if (srcImage.empty())
 	//	return ; 
     cout << "이미지 높이 ih : \n" << ih << endl; 
@@ -97,15 +88,13 @@ void pre_histogram_backprojection(unsigned char* srcBuf, int iw, int ih){
 
 	Mat hist;
 	calcHist(&roiImage, 1, channels, Mat(), hist, dims, &histSize, ranges); //관심 영역을 히스토그램 계산
-
+    return hist;
     //passing->hist
     //passing pre;
     //struct pass pre;
-    passi->hist = hist;
-    passi->hist_check = 1;
 }
 
-int histogram_backprojection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh, Mat hist)
+char* histogram_backprojection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh, Mat hist)
 {  
     Mat dstRGB(nh, nw, CV_8UC3, outBuf); // 나중에 
     //Mat srcRGB(ih, iw, CV_8UC3, srcBuf); // 이미지 받아오기
@@ -122,14 +111,14 @@ int histogram_backprojection(unsigned char* srcBuf, int iw, int ih, unsigned cha
 
     if (srcImage.empty())
 		cout << "이미지 인식 실패\n" << endl;
-        return -1;//fail
+        return;//fail
     cout << "이미지의 크기는 : " << srcImage.cols << " " << srcImage.rows << endl;
     resize(srcImage, srcImage, Size(srcImage.cols/5, srcImage.rows/5));
    
     cvtColor(srcImage, hsvImage, COLOR_BGR2HSV); //히스토그램은 밝기값을 통해 계산하기 때문에
 												 //RGB 영상을 HSV 영상으로 바꾼 후 H 채널만 분리하도록 한다.
 
-    //Mat hist = pre_histogram_backprojection(srcBuf, iw, ih); // 여기서 pre_histogram 함수 사용
+    Mat hist = pre_histogram_backprojection(srcBuf, iw, ih); // 여기서 pre_histogram 함수 사용
     Mat backProject;
 	calcBackProject(&hsvImage, 1, channels, hist, backProject, ranges);
 
@@ -158,14 +147,150 @@ int histogram_backprojection(unsigned char* srcBuf, int iw, int ih, unsigned cha
 	else cout << "감지되지 않았습니다" << endl;
 
     if(answer == 0 && answer2 == 1 && answer3 == 1){
-        return 1; //left
+        return "left"; //left
     }
     else if(answer == 1 && answer2 == 1 && answer3 == 0){
-        return 2; //right
+        return "right"; //right
     }
-    else return -1; //fail
+    else return "fail"; //fail
 }
 
+char* stop_line_detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
+{  
+    //Mat image_ori = imread("stop_line.jpg"); // 7개
+    Mat image_ori(ih, iw, CV_8UC3, srcBuf);
+    //Mat image_ori = imread("stop_line_2.jpg"); // 7개
+    //Mat image_ori = imread("stop_line_3.jpg"); // 24개 - 가까워지면
+    Mat image(ih, iw, CV_8UC3);
+
+    resize(image_ori, image_ori, Size(320, 180), 0, 0, CV_INTER_LINEAR);
+
+    // 1. grayscale로 바꾸어 줍니다
+    cvtColor(image_ori, image, CV_RGB2GRAY);
+
+    // 2. local averaging을 실행합니다. 이것은 gaussian blur와는 다릅니다
+    Mat image_blur;
+    blur(image, image_blur, Size(5,5));
+
+    // 3. canny edge 함수를 사용해서 외곽선을 추출합니다
+    Mat image_canny;
+    Canny(image_blur, image_canny, 50, 150);
+
+    // 3-2. sobel filter 함수를 사용해서 외곽선을 추출합니다
+    Mat image_sobel;
+    Sobel(image_blur, image_sobel, CV_8U, 0, 1);
+
+    // 4. ROI를 설정합니다
+    //Rect rect(image_canny.rows, image_canny.cols*3/4, image_canny.rows, image_canny.cols/2);
+    //Rect rect(0, image_canny.cols*1/2, image_canny.rows, image_canny.cols);
+    //Rect rc(x,y,w,h);
+
+    Rect rect(45, image_canny.rows/2 + 10, image_canny.cols-45, image_canny.rows/2 - 20); // 형식은 (x,y,w,h)을 따른다
+    //Mat rectangle_test(Size(320, 180), CV_8UC3, Scalar(0,0,0));
+    //rectangle(rectangle_test, rect, Scalar(0,255,0), 3);
+    //imshow("test", rectangle_test);
+    //image_canny = image_canny(rect);
+    image_canny = image_canny(rect);
+
+    // 5. 허프변환을 통해 외곽선 중 직선을 검출합니다
+    Mat image_empty(Size(image_ori.cols, image_ori.rows/2), CV_8UC3, Scalar(0,0,0));
+    Mat image_empty_2(Size(image_ori.cols, image_ori.rows/2), CV_8UC3, Scalar(0,0,0));
+    vector<Vec4i> lines;
+    vector<Vec4i> lines_two;
+    double rho = 1;
+    double theta = CV_PI/180;
+    int hough_threshold = 15;
+    double minLineLength = 20; // 직선을 구성하는 픽셀의 최소 길이
+    double maxLineGap = 10; // 이걸 작게 설정하면 기울기가 0보다 큰 직선들이 검출된다.. 왜일까?
+
+    HoughLinesP(image_canny, lines, rho, theta, hough_threshold, minLineLength, maxLineGap);
+    for (int i=0; i<lines.size(); i++){
+        Vec4i L = lines[i];
+        line(image_empty, Point(L[0],L[1]), Point(L[2],L[3]), Scalar(0,0,255), 1, LINE_AA);
+    }
+    cout << "line.size() : " << lines.size() << endl;
+    
+
+    // 6. 침식, 팽창 연산을 통해 검출된 직선을 굵게 만든다
+    Mat eroded, dilated, dilated_gray; 
+    Mat mask = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3), cv::Point(1, 1));
+    //erode(image_empty, eroded, mask, cv::Point(-1, -1), 3);
+    dilate(image_canny, dilated, mask, cv::Point(-1, -1), 3);
+    //cvtColor(dilated, dilated_gray, COLOR_BGR2GRAY);
+
+
+    // 7. 다시 허프변환을 통해 외곽선 중 직선을 검출합니다
+    HoughLinesP(dilated, lines_two, rho, theta, hough_threshold, minLineLength, maxLineGap);
+    for (int i=0; i<lines_two.size(); i++){
+        Vec4i L_two = lines_two[i];
+        line(image_empty_2, Point(L_two[0],L_two[1]), Point(L_two[2],L_two[3]), Scalar(0,0,255), 1, LINE_AA);
+    }
+    cout << "line_two.size() : " << lines_two.size() << endl;
+
+    // HoughLinesP(image_sobel, lines_2, rho, theta, hough_threshold, minLineLength, maxLineGap);
+    // for (int i=0; i<lines.size(); i++){
+    //     Vec4i L2 = lines_2[i];
+    //     line(image_empty_2, Point(L2[0],L2[1]), Point(L2[2],L2[3]), Scalar(0,0,255), 1, LINE_AA);
+    // }
+
+    // 8. 검출한 line 의 기울기를 구하고, 기울기가 10도 이상 낮은 직선을 filtering 합니다
+    double slope_threshold = 0.005;
+    double slope;
+    vector<Vec4i> new_lines;
+    vector<double> slopes;
+
+    for(int i=0; i<lines_two.size(); i++){
+        Vec4i L_new = lines_two[i];
+        int x1 = L_new[0];
+        int y1 = L_new[1];
+        int x2 = L_new[2];
+        int y2 = L_new[3];
+
+        if (x2 - x1 == 0){
+            slope = 50;
+        }
+        else 
+            slope = (double)((y2 - y1) / (double)(x2 - x1));
+
+        if (fabs(slope) < slope_threshold){
+            slopes.push_back(slope);
+            new_lines.push_back(L_new); // 우리가 원하는 정지선은 new_lines에 담긴다
+            cout << "x1, y1, x2, y2 = " << x1 << " " << y1 << " " << x2 << " " << y2 << " " << endl;
+        }
+    }
+
+    // 9. 기울기가 0.2보다 직선을 검출한 그림을 imshow 합니다
+    Mat image_empty_3(Size(image_ori.cols, image_ori.rows/2), CV_8UC3, Scalar(0,0,0));
+    for (int i=0; i<new_lines.size(); i++){
+        Vec4i L_three = lines_two[i];
+        line(image_empty_3, Point(L_three[0],L_three[1]), Point(L_three[2],L_three[3]), Scalar(255,255,255), 1, LINE_AA);
+    }
+    cout << "line_slope.size() : " << new_lines.size() << endl;
+    
+    for (int i=0; i<slopes.size(); i++){
+        cout << "slopes : " << slopes[i] << " ";
+    }
+
+    if (new_lines.size()>10){
+        return "stop";
+    }
+
+    return "go";
+    
+    //namedWindow("image");
+    //imshow("image", image);
+    //imshow("image_blur", image_blur);
+    //imshow("image_canny", image_canny);
+    //imshow("image_sobel", image_sobel);
+    //imshow("image_hough", image_empty);
+    //imshow("image_eroded", dilated);
+    //imshow("image_hough_2", image_empty_2);
+    //imshow("image_slope", image_empty_3);
+    cout << "cols, rows : " << image_empty.cols << ", " << image_empty.rows << endl;
+    waitKey(0);
+    return 0;
+
+}
 
 #ifdef __cplusplus
 }

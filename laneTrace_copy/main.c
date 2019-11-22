@@ -73,11 +73,13 @@ typedef enum {
 // 2019.11.16 관형 추가
 typedef enum {
     AUTO_DRIVE,
-    PRE_PASSING_OVER,
+    BEFORE_PASSING_OVER, // 추월차로 미션 전의 임의의 미션
+    PASSING_OVER_LEFT,
+    PASSING_OVER_RIGHT,
     WAIT,
-    PASSING_OVER, 
-    AUTO_DRIVE_PASSING_OVER,
-    AFTER_PASSING_OVER
+    PASSING_OVER_RETURN_LEFT,
+    PASSING_OVER_RETURN_RIGHT,
+    STOP
 }MissionState;
 
 typedef struct _DumpMsg{
@@ -93,7 +95,11 @@ struct thr_data {
 
     double angle;
 	signed short speed;
-    struct passing *passing; // 2019.11.16 관형 추가
+    //struct passing *passing; // 2019.11.16 관형 추가
+    int distance; // 1번 적외선센서 거리값, 관형 추가
+    char* direction = "NONE"; // 추월 차로 진행 방향, left or right
+    char* yellow_stop_line = "NONE"; // 정지선 인식 변수, 관형 추가
+    int white_stop_line = -1; // 정지선 인식 변수, 관형 추가
 
     MissionState mission_state;
     DumpState dump_state;
@@ -105,9 +111,9 @@ struct thr_data {
     pthread_t threads[3];
 };
 signed short real_speed = 0;
-int is_Traffic_Light = 0; //1 is traffic light mission 1 is left, 2 is right
-int passing_where = -1; // 1 is left 2 is right
-int passing = 0;
+//int is_Traffic_Light = 0; //1 is traffic light mission 1 is left, 2 is right
+//int passing_where = -1; // 1 is left 2 is right
+//int passing = 0;
 
 static int allocate_input_buffers(struct thr_data *data);
 static void free_input_buffers(struct buffer **buffer, uint32_t n, bool bmultiplanar);
@@ -122,7 +128,6 @@ static void passing_master(struct display *disp, struct buffer *cambuf, void *ar
 
 static struct thr_data* pexam_data = NULL;
 void signal_handler(int sig);
-
 
 int main(int argc, char **argv)
 {
@@ -247,7 +252,9 @@ int main(int argc, char **argv)
 		// 	break;
 		// if(passing == 1)
 		// 	break;
+
         switch(tdata.mission_state){
+            // 기본주행 모드
             case AUTO_DRIVE : 
                 while(distance_sensor > 8){
                     DesireSpeed_Wirte(tdata.speed);
@@ -257,41 +264,33 @@ int main(int argc, char **argv)
                 }
                 tdata.mission_state = PRE_PASSING_OVER;
 
-            case PRE_PASSING_OVER : //맨 처음에 그림자의 hist를 저장하고, passing_master에서 WAIT로 바꿈  
-                passing_go_back(); // 뒤로 다 갔으면
-                tdata.mission_state = PASSING_OVER; // WAIT -> PASSING_OVER
+            // 추월 미션 진입
+            case PASSING_OVER_LEFT :
+                passing_go_back();
+                passing_left();
 
-            case PASSING_OVER :
-                if (passing_where == 1){ // 왼쪽으로
-                    passing_left();
-                    tdata.mission_state = AUTO_DRIVE_PASSING_OVER;
-                }
-                else if (passing_where == 2){ // 오른쪽으로
-                    passing_right();
-                    tdata.mission_state = AUTO_DRIVE_PASSING_OVER;
-                }
-                else if (passing_where == -1){ // 그냥 왼쪽으로 (예외상황)
-                    passing_left();
-                    tdata.mission_state = AUTO_DRIVE_PASSING_OVER;
-                }
-            case AUTO_DRIVE_PASSING_OVER : 
-                while(lin_trace_sensor() == 0) {
-                    DesireSpeed_Wirte(tdata.speed);
-                    DesireSpeed_Wirte(tdata.angle);
-                    printf("Speed : %d", DesireSpeed_Read());
-                    usleep(50000);
-                }
-                tdata.mission_state = AFTER_PASSING_OVER;
+            case PASSING_OVER_RIGHT :
+                passing_go_back();
+                passing_right();
 
-            case AFTER_PASSING_OVER : 
+            case WAIT : 
+                // 규열이의 차선주행
+                DesireSpeed_Wirte(tdata.speed);
+                DesireSpeed_Wirte(tdata.angle);
+                printf("Speed : %d", DesireSpeed_Read());
+                usleep(50000); // 이게 없으면 속력을 계속해서 주기 때문에 매우 낮은 속도로 감
+
+            case PASSING_OVER_RETURN_RIGHT :
                 passing_go_back_later();
-                while(line_trace_sensor == 1){
-                    if (passing_where == 1)  // 왼쪽으로 왔으면
-                        passing_right_later();
-                    else if (passing_where == 2) // 오른쪽으로 왔으면
-                        passing_left_later(); 
-                }
+                passing_right_later();
+
+            case PASSING_OVER_RETURN_LEFT :
+                passing_go_back_later();
+                passing_left_later();
+
+            case STOP :
                 stop();
+                // 미션 끝
         }
         //1 left 2 right -1 아무곳으로
 
@@ -399,6 +398,7 @@ void * capture_thread(void *arg)
     int index;
     int count = 0;
     int i, k;
+    int distance; // 적외선 센서로부터 받아오는 거리값
 
     v4l2_reqbufs(v4l2, NUMBUF); // 영상 저장할 큐 버퍼 메모리 할당
     vpe_input_init(vpe); // VPE 입력 초기화
@@ -433,20 +433,52 @@ void * capture_thread(void *arg)
         index = vpe_output_dqbuf(vpe); // VPE 출력 큐 처리 권한을 어플리케이션이 가지고 옴
         capt = vpe->disp_bufs[index];
 
+// ---- 적외선 센서 ---- 
+        data->distance = distance_sensor();
+        printf("distance = 0x%04X(%d) \n", data->distance);
 
 // -------------------- capt로 이미지 처리 ----------------------------------
 
+        // 여기서 data->mission_state로 던져줍니다
+
         if (data->mission_state == AUTO_DRIVE){
-            data->angle = getSteeringWithLane(vpe->disp, capt); // Hough transform 알고리즘 수행  */
+            data->angle = getSteeringWithLane(vpe->disp, capt); // 차선인식
 		    data->speed = color_detection(vpe->disp, capt); 
         }
 
-        else if (data->mission_state == PRE_PASSING_OVER){
-            passing_master(vpe->disp, capt, &data);
+        // 맨 처음에 PASSING_OVER 미션의 전 미션이라고 생각하자
+        data->mission_state = BEFORE_PASSING_OVER;
+        
+        // 추월 미션 진입 트리거
+        else if (data->mission_state == BEFORE_PASSING_OVER && data->distance < 20){
+            data->direction = passing_master(vpe->disp, capt, &data);
+            if (data->direction == "left")
+                data->mission_state = PASSING_OVER_LEFT;
+            else if (data->direction == "right")
+                data->mission_state = PASSING_OVER_RIGHT;
+            else if (data->direction == "fail")
+                data->mission_state = PASSING_OVER_LEFT; // 만일 역히스토그램 투영으로 방향을 도출해내지 못하면 왼쪽으로 간다고 설정
         }
 
-        else if (data->mission_state == PASSING_OVER){
-            passing_master(vpe->disp, capt, &data);
+        // 추월 이후 정지선을 인식할 때까지 차선 인식
+        else if (data->mission_state == WAIT){ // WAIT은 불가피하게 main에서 바꾸어준다
+            data->angle = getSteeringWithLane(vpe->disp, capt); // 차선인식 
+		    data->speed = color_detection(vpe->disp, capt); 
+            data->yellow_stop_line = stop_line(vpe->disp, capt, &data); // 정지선 인식하면 stop_line_recognition을 1로 return
+        }
+
+        // 정지선을 인식하면 다시 차로로 return
+        else if (data->mission_state == WAIT && data->yellow_stop_line == "stop"){
+            if (data->direction == "left" || data->direction == "fail")
+                data->mission_state = PASSING_OVER_RETURN_RIGHT; 
+            else if (data->direction == "right")
+                data->mission_state = PASSING_OVER_RETURN_LEFT;
+        }
+
+        else if (data->mission_state == PASSING_OVER_RETURN_RIGHT || data->mission_state == PASSING_OVER_RETURN_LEFT){
+            data->white_stop_line = line_trace_sensor();
+            if (data->white_stop_line == 0) // 0이면 흰색, 1이면 검은색 -> 흰색인 정지선을 만날 때 멈추어야 한다
+                data->mission_state = STOP;
         }
 
         /**  */
@@ -517,14 +549,14 @@ void * capture_thread(void *arg)
 }
 
 
-static void passing_master(struct display *disp, struct buffer *cambuf, void *arg){
+static char* passing_master(struct display *disp, struct buffer *cambuf, void *arg){
     struct thr_data *data = (struct thr_data *)arg;
     unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
     uint32_t optime;
-    struct timeval st, et;
-    int decision; 
+    struct timeval st, et; 
     signed short speed;
     double distance;
+    char* direction; // 갈 방향, left of right!
 	/** printf("Koo is Passing master!!!!!!! wow!!!!!!\n"); */
 
     unsigned char* cam_pbuf[4];
@@ -534,44 +566,21 @@ static void passing_master(struct display *disp, struct buffer *cambuf, void *ar
         gettimeofday(&st, NULL);
     
 //=================================================================================
-        switch(data->mission_state) {
-            case PRE_PASSING_OVER : //그림자 히스토그램을 구하고 hist에 저장
-                data->passing.hist = pre_histogram_backprojection(srcBuf, iw, ih);
-                if (data->passing.hist_check == 1) {
-                    data->mission_state = WAIT;
-                }
+        // switch(data->mission_state) {
+        //     case PRE_PASSING_OVER : //그림자 히스토그램을 구하고 hist에 저장
+        //         data->passing.hist = pre_histogram_backprojection(srcBuf, iw, ih);
+        //         if (data->passing.hist_check == 1) {
+        //             data->mission_state = WAIT;
+        //         }
             
-            case PASSING_OVER : //뒤로 간 후에 전체 이미지에 대해 그림자 히스토그램을 검색 -> 방향 결정
-                decision = histogram_backprojection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H, data->passing.hist);
-                passing_where = decision;
-                data->mission_state = WAIT;
-        }
+        //     case PASSING_OVER : //뒤로 간 후에 전체 이미지에 대해 그림자 히스토그램을 검색 -> 방향 결정
+        //         decision = histogram_backprojection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H, data->passing.hist);
+        //         passing_where = decision;
+        //         data->mission_state = WAIT;
+        // }
     
-        /**  */
-        /** if(distance > 15){  */
-        /**     printf("기본주행모드 입니다"); */
-        /**     speed = 100; */
-        /**     DesireSpeed_Write(speed); */
-        /** } */
-		/** printf("decision= %d\n", decision); */
-
-        //거리가 15 미만이면 회피
-        if(distance < 15){
-			//[TODO] move to main func
-            /** if(decision == -1){ */
-            /** printf("기본주행모드 입니다");             */
-            /** speed = 100; */
-            /** DesireSpeed_Write(speed); */
-            /** } */
-            if(decision == 1){
-                //passing_left();
-				passing_where = 1;
-            } 
-            else if(decision == 2){
-                //passing_right();
-				passing_where = 2;
-            }
-        }
+        direction = histogram_backprojection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+       
 		/** printf("passing_where = %d\n", passing_where); */
 //=======================================================================================
 
@@ -580,9 +589,41 @@ static void passing_master(struct display *disp, struct buffer *cambuf, void *ar
         draw_operatingtime(disp, optime);
     }
 
+    return direction;
 
 }
 
+
+static char* stop_line(struct display *disp, struct buffer *cambuf, void *arg){
+    struct thr_data *data = (struct thr_data *)arg;
+    unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
+    uint32_t optime;
+    struct timeval st, et; 
+    signed short speed;
+    double distance;
+    char* stop_line_recognition; // 갈 방향, left or right!
+	/** printf("Koo is Passing master!!!!!!! wow!!!!!!\n"); */
+
+    unsigned char* cam_pbuf[4];
+    if(get_framebuf(cambuf, cam_pbuf) == 0) {
+        memcpy(srcbuf, cam_pbuf[0], VPE_OUTPUT_W*VPE_OUTPUT_H*3);
+
+        gettimeofday(&st, NULL);
+    
+//================================================================================= 
+        stop_line_recognition = stop_line_detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+        
+		/** printf("passing_where = %d\n", passing_where); */
+//=======================================================================================
+
+        gettimeofday(&et, NULL);
+        optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
+        draw_operatingtime(disp, optime);
+    }
+
+    return stop_line_recognition;
+
+}
 
 
 /**
@@ -823,28 +864,4 @@ double getSteeringWithLane(struct display *disp, struct buffer *cambuf)
     }
 	return angle;
 }
-
-//koo
-double distance_calculate(double data){
-	/** printf("fuck data = %lf\n", data); */
-    double middle = data / 22691;
-	/** printf("middle = %lf\n", middle); */
-    double distance = pow(middle, -(1/1.07));
-	/** printf("fuck dis = %lf\n", distance); */
-    return distance;
-}
-
-int distance_sensor(){
-	int channel = 1;
-	double data;
-    /** printf("distance sensor start!!!\n"); */
-    double distance = 1;
-    while(1){
-        data = DistanceSensor(channel);
-        distance = distance_calculate(data);
-        /** printf("channel = %d, distance = %d\n", channel, distance); */
-        return distance;
-    }
-}
-
 
