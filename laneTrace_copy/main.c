@@ -262,7 +262,7 @@ int main(int argc, char **argv)
                     printf("Speed : %d", DesireSpeed_Read());
                     usleep(50000);
                 }
-                tdata.mission_state = PRE_PASSING_OVER;
+                //tdata.mission_state = PRE_PASSING_OVER;
 
             // 추월 미션 진입
             case PASSING_OVER_LEFT :
