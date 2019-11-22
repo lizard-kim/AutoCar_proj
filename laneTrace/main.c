@@ -286,9 +286,11 @@ int main(int argc, char **argv)
     ////////////////////////////////////////////////////////// DY added /////////////////////////////////////////////////////////
 //[TODO]일단은 주석처리 해둠... 실전에서 사용하기
 	while (true){
+		printf("speed = %d\n", data->speed);
 		printf("mission_id = %d\n", data->mission_id);
+		printf("O_data2 = %d, O_data_3 = %d\n", data->O_data_2, data->O_data_3);
 		if (data->mission_id == 1) {//test driving
-			DesireSpeed_Write(100);
+			DesireSpeed_Write(data->speed);
 		} /// start & highway
 		else if (data->mission_id == 2) {   } ///
 		else if (data->mission_id == 3) {
@@ -326,6 +328,7 @@ int main(int argc, char **argv)
 				parking();
 				data->ParkingSignal_2 = 1;
 				data->parParkingSignal_2 = 1;
+				data->mission_id = 1;// test driving edit it to 0
 			}
 
 
@@ -354,6 +357,7 @@ int main(int argc, char **argv)
 				parparking();
 				data->parParkingSignal_2 = 2;
 				data->tunnelSignal = 1;
+				data->mission_id = 1;// test driving edit it to 0
 			}
 
 		} /// 수평주차
@@ -606,7 +610,8 @@ signed short color_detection(struct display *disp, struct buffer *cambuf)
 
         gettimeofday(&st, NULL);
 
-        speed_ratio = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+        /** speed_ratio = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); */
+        speed_ratio = 1;
 		is_Traffic_Light = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
 		/** printf("speed : %d\n", speed); *///ok
 
@@ -677,7 +682,7 @@ void * capture_thread(void *arg)
 		data->I_data_4 = DistanceSensor(4);
 		data->O_data_4 = DistFunc(data->I_data_4);
 		if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;
-
+		if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 6;		
 		/** if (data->angle == 1234) { //fail to detect lane */
 		/**     data->angle = 0; */
 		/**     data->speed = 0; */
@@ -685,8 +690,9 @@ void * capture_thread(void *arg)
 		/**     //printf("fail to detect lane!!!!\n"); */
 		/** } */
         //[TODO] pky function
-		data->speed_ratio = color_detection(vpe->disp, capt); 
-		data->speed = data->speed * data->speed_ratio;
+		data->speed_ratio = color_detection(vpe->disp, capt);
+		/** data->speed = data->speed * data->speed_ratio; */
+		data->speed = 100;
 		/** printf("sppppppppppppppppppppppppppppppppppppeedd: %d\n", data->speed);//ok */
 
 // ----------------------- end of image process ----------------------------------

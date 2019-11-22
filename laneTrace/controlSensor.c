@@ -44,7 +44,7 @@ double DistFunc(double data)
 {
     I_Dist = data;
     O_Dist = pow(I_Dist/22691.0, -1/1.0706);
-    printf("%.0lf\n", O_Dist);
+	/** printf("%.0lf\n", O_Dist); */
     return O_Dist;
 }
 
@@ -59,7 +59,7 @@ void DistanceTest()
     //Distance between car and wall is each 10cm.
     // 10 --> 1500 , 20 --> 1230            y = -27x + 1770
 
-    printf("O_data_6 : %d\n", O_data_6 );
+	/** printf("O_data_6 : %d\n", O_data_6 ); */
     usleep(50000);
 }
 
