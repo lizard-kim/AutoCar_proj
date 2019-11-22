@@ -638,8 +638,8 @@ void * capture_thread(void *arg)
 		printf("distance = 0x%04X(%d) \n", data->distance);
 
 		// -------------------- capt로 이미지 처리 ----------------------------------
-        /** if (stopLine_detect() == 1) data->stop_line = true; */
-        /** else data->stop_line = false; /// 여기서 트루 되었다가 바로 false로 바뀌면 chot됨   */
+		if (stopLine_detect() == 1) data->stop_line = true;
+		else data->stop_line = false; /// 여기서 트루 되었다가 바로 false로 바뀌면 chot됨
 
 		// 여기서 data->mission_state로 던져줍니다
 
