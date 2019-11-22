@@ -656,7 +656,7 @@ void getSteeringWithLane(struct display *disp, struct buffer *cambuf, double *st
         draw_operatingtime(disp, optime);
     }
 	*steer = angle;
-    *speed = 500 *ratio;
+    *speed = 100 *ratio;
 }
 
 double distance_calculate(double data){ // make sensor input data to real distance data
