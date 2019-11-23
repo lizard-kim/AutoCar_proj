@@ -371,7 +371,7 @@ void parparking()
 
     printf("-600 reached\n");
     SteeringServoControl_Write(1500);
-    usleep(380000);
+    usleep(3800000);
 
     printf("-800 reached\n");
     SteeringServoControl_Write(2000);

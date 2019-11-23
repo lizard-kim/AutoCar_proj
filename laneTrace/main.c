@@ -207,6 +207,7 @@ int main(int argc, char **argv)
     tdata.direction = "NONE"; // 추월 차로 진행 방향, left or right
     tdata.yellow_stop_line = "NONE"; // 정지선 인식 변수, 관형 추가
     tdata.white_stop_line = -1; // 정지선 인식 변수, 관형 추가
+	tdata.mission_state = BEFORE_PASSING_OVER;
  
 	// ---------------- init data structure end -------------------
 
@@ -289,8 +290,8 @@ int main(int argc, char **argv)
 	/** int position, posInit, posDes, posRead; */
 
 	CarControlInit();
-    SpeedControlOnOff_Write(UNCONTROL);
- 
+    SpeedControlOnOff_Write(CONTROL);
+    PositionControlOnOff_Write(UNCONTROL);
      //camera y servo set
     camera_angle = CameraYServoControl_Read();
     printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500
@@ -305,12 +306,13 @@ int main(int argc, char **argv)
 
     ////////////////////////////////////////////////////////// DY added /////////////////////////////////////////////////////////
 	while (true){
-		check_speed = DesireSpeed_Read();  
-		printf("speed = %d\n", data->speed);
+		/** check_speed = DesireSpeed_Read();   */
+		/** printf("speed = %d\n", data->speed); */
 		printf("mission_id = %d\n", data->mission_id);
-		printf("O_data2 = %d, O_data_3 = %d\n", data->O_data_2, data->O_data_3);
+		/** printf("O_data2 = %d, O_data_3 = %d\n", data->O_data_2, data->O_data_3); */
 		if (data->mission_id == 1) {//test driving
-			DesireSpeed_Write(data->speed);
+			DesireSpeed_Write(100);
+			usleep(1000000);
 		} /// start & highway
 		else if (data->mission_id == 2) {   } ///
 		else if (data->mission_id == 3) {
@@ -401,8 +403,8 @@ int main(int argc, char **argv)
 				case AUTO_DRIVE : 
 					/** while(distance_sensor > 8){ */
 					while(data->distance > 8){
-						/** DesireSpeed_Wirte(data->speed); */
-						/** DesireSpeed_Wirte(data->angle); */
+						DesireSpeed_Write(data->speed);
+						SteeringServoControl_Write(data->angle);
 						printf("Speed : %d", DesireSpeed_Read());
 						usleep(50000);
 					}
@@ -419,10 +421,10 @@ int main(int argc, char **argv)
 
 				case WAIT : 
 					// 규열이의 차선주행
-					/** DesireSpeed_Wirte(data->speed); */
-					/** DesireSpeed_Wirte(data->angle); */
+					DesireSpeed_Write(100);
+					SteeringServoControl_Write(1500);
 					printf("Speed : %d", DesireSpeed_Read());
-					usleep(50000); // 이게 없으면 속력을 계속해서 주기 때문에 매우 낮은 속도로 감
+					usleep(1500000); // 이게 없으면 속력을 계속해서 주기 때문에 매우 낮은 속도로 감
 
 				case PASSING_OVER_RETURN_RIGHT :
 					passing_go_back_later();
@@ -612,11 +614,11 @@ void * capture_thread(void *arg)
 		// ---- end
 
 		// ---- mission trigger
-		if(data->tunnelSignal == 1 && data->O_data_2 < 30) data->mission_id = 4;//tunnel
+		/** if(data->tunnelSignal == 1 && data->O_data_2 < 30) data->mission_id = 4;//tunnel */
 		if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;//parking
-		if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 6;//parparking	
-		/** if(??) data->mission_id = 7;//passing master	 */
-        if(is_Traffic_Light != 0) data->mission_id = 8; //traffic light
+		if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 6;//parparking
+		if(data->mission_state == BEFORE_PASSING_OVER && data->distance < 20) data->mission_id = 7;//passing master
+        /** if(is_Traffic_Light != 0) data->mission_id = 8; //traffic light */
 
 
 // -------------------- image process by capt ----------------------------------
@@ -626,7 +628,8 @@ void * capture_thread(void *arg)
         data->angle = a;
         data->speed = v;
 		// ---- pky end
-		data->speed_ratio = color_detection(vpe->disp, capt);
+		/** data->speed_ratio = color_detection(vpe->disp, capt); */
+		data->speed_ratio = 1;
 		data->speed = data->speed * data->speed_ratio;
 		/** data->speed = 100; //test */
 		/** printf("sppppppppppppppppppppppppppppppppppppeedd: %d\n", data->speed);//ok */
@@ -649,11 +652,8 @@ void * capture_thread(void *arg)
 			/** data->speed = color_detection(vpe->disp, capt);  */
 		}
 
-		// 맨 처음에 PASSING_OVER 미션의 전 미션이라고 생각하자
-		data->mission_state = BEFORE_PASSING_OVER;
-
 		// 추월 미션 진입 트리거 원래 else if 라서 에러떴음
-		if (data->mission_state == BEFORE_PASSING_OVER && data->distance < 20){
+		else if (data->mission_state == BEFORE_PASSING_OVER && data->distance < 20){
 			data->direction = passing_master(vpe->disp, capt, &data);
 			if (data->direction == "left")
 				data->mission_state = PASSING_OVER_LEFT;
@@ -667,7 +667,7 @@ void * capture_thread(void *arg)
 		else if (data->mission_state == WAIT){ // WAIT은 불가피하게 main에서 바꾸어준다
 			/** data->angle = getSteeringWithLane(vpe->disp, capt); // 차선인식  */
 			/** data->speed = color_detection(vpe->disp, capt);  */
-			data->yellow_stop_line = stop_line(vpe->disp, capt, &data); // 정지선 인식하면 stop_line_recognition을 1로 return
+			data->yellow_stop_line = stop_line_detection(vpe->disp, capt, &data); // 정지선 인식하면 stop_line_recognition을 1로 return
 		}
 
 		// 정지선을 인식하면 다시 차로로 return
