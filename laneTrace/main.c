@@ -305,6 +305,7 @@ int main(int argc, char **argv)
 
     ////////////////////////////////////////////////////////// DY added /////////////////////////////////////////////////////////
 	while (true){
+		check_speed = DesireSpeed_Read();  
 		printf("speed = %d\n", data->speed);
 		printf("mission_id = %d\n", data->mission_id);
 		printf("O_data2 = %d, O_data_3 = %d\n", data->O_data_2, data->O_data_3);
