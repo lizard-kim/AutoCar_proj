@@ -84,6 +84,7 @@ struct thr_data {
     struct buffer **input_bufs;
 
     double angle; /// pky set this value
+    double pre_angle;
 	signed short speed;
 	signed short speed_ratio;// lizard edit this var 0 or 1
 
@@ -188,6 +189,7 @@ int main(int argc, char **argv)
 	//init data struct
 	tdata.mission_id = 1; // 0 is basic driving 1 is for testing
     tdata.driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
+    tdata.pre_angle = 0;
     tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
     tdata.stop_line_detect = false; /// by dy: true 면 정지선 인식된거임
 	tdata.park = 0;//non
@@ -297,7 +299,7 @@ int main(int argc, char **argv)
     printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500
 
 	//camera setting
-    camera_angle = 1500;//1650
+    camera_angle = 1720;//1650
     CameraYServoControl_Write(camera_angle);    
 
     //speed set
@@ -490,16 +492,18 @@ int main(int argc, char **argv)
 			}
 		}	/// 신호등
 		else { //basic driving 
-			angle = 1500-(data->angle/90)*500; //get angle from data structure
+			angle = 1500-(tdata.angle/50)*500;
+			angle = 0.5 * tdata.pre_angle + 0.5 * angle;
 			printf("tdata.speed = %d\n", data->speed);//error
 
 			SteeringServoControl_Write(angle); 
+			tdata.pre_angle = angle;
 			DesireSpeed_Write(data->speed);
 			if(data->speed == 0){
 				printf("stop!!\n");
 				usleep(500000); //calibrate IO delay
 			}
-			usleep(50000); //calibrate IO delay
+			usleep(100000); //calibrate IO delay
 
 		} 
 
@@ -955,7 +959,7 @@ void getSteeringWithLane(struct display *disp, struct buffer *cambuf, double *st
         draw_operatingtime(disp, optime);
     }
 	*steer = angle;
-    *speed = 100 *ratio;
+    *speed = 130 *ratio;
 }
 /** double getSteeringWithLane(struct display *disp, struct buffer *cambuf) //detect lane */
 /** { */

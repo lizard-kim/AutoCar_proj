@@ -284,7 +284,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
 //    dilate(frame, frame, getStructuringElement(MORPH_RECT, Size(5, 5)));
 
     // warping
-    float width_ratio = 0.35; // 사다리꼴의 상단과 하단 간의 비율
+    float width_ratio = 0.5; // 사다리꼴의 상단과 하단 간의 비율
     float height_ratio = 0.8; // 밑변과 높이 간의 비율
     // Warping 전의 이미지 상의 좌표
     vector<Point2f> corners(4);
@@ -367,22 +367,22 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
     }
     // 차선이 인식된 경우
     else {
-        cout << "fuck1" << endl;
+        // cout << "fuck1" << endl;
         // 1) 차선 타입 정의
         if (bot_dx >= 0) lane_type = 1; // 오른쪽 차선
         else lane_type = -1; // 왼쪽 차선
-        cout << "fuck2" << endl;
+        // cout << "fuck2" << endl;
         curveFitting(frame_show, frame_show, line_points, ans, lane_top.y, lane_bot.y);
-        cout << "fuck3" << endl;
+        // cout << "fuck3" << endl;
         // 3) 목적지 방향 및 조향 계산
         // *무게중심 좌표
-        Point2i cen = Point2i((lane_top.x + lane_bot.x)/2, (lane_top.y + lane_bot.y)/2);
+        Point2i cen = Point2i((lane_top.x + lane_bot.x) * 2/3, (lane_top.y + lane_bot.y) * 2/3);
         Point2i cp, des;
         double angle;
         // **무게중심에 해당하는 곡선 위 좌표
         getCurvePoint(ans, cen.y, cp);
         angle = getSteerwithCurve(ans, cen.y);
-        cout << "fuck4" << endl;
+        // cout << "fuck4" << endl;
         // ***곡선 차선에 대한 차선 타입 보정
         if (angle >= 45) lane_type = -1;
         else if (angle <= -45) lane_type = 1;
@@ -398,10 +398,11 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
             des.y = cp.y;
         }
         circle(frame_show, des, 5, Scalar(250, 150, 100), -1);
-        cout << "fuck5" << endl;
+        // cout << "fuck5" << endl;
         // *****조향각 계산
         // 방향벡터 계산
-        Point2d direction(des.x - (double)new_width/2, des.y - new_height);
+        // Point2d direction(des.x - (double)new_width/2, des.y - new_height);
+        Point2d direction(des.x - (double)new_width/2, des.y - lane_bot.y);
         double direction_norm = sqrt((pow(direction.x, 2) + pow(direction.y, 2)));
         // direction =  direction * 50 / direction_norm;
         direction.x = direction.x * 50 / direction_norm;
@@ -409,31 +410,36 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
         line(frame_show, Point2i(new_width/2, new_height), Point2i((int)direction.x + new_width/2, (int)direction.y + new_height), Scalar(150, 100, 200), 2);
         // 조향 계산
         steer = atan(direction.x / abs(direction.y)) * 180 / CV_PI;
+        steer *= 1.0;
+        // steer = angle;
         cout << "steer : " << steer << endl;
         // 최대 조향을 벗어날 경우 조향 제한
-        if (abs(steer) >= 45) {
-            cout << "steer out of range !!!" << endl;
-            steer = 0;
-            ratio = -0.4;
+        if (abs(steer) >= 50) {
+            // cout << "steer out of range !!!" << endl;
+            // steer = 0;
+            if (steer < 0) steer = -50;
+            else steer = 50;
+            ratio = 1.0;
+            // ratio = -0.4;
             // if (steer < 0) steer = -45;
             // else steer = 45;
         }
     }
-    cout << "fuck6" << endl;
+    // cout << "fuck6" << endl;
     ostringstream temp;
     temp << steer;
     string str = temp.str();
     putText(frame_show, "steer : " + str, Point(10, 15), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 0, 255));
-     
+    cout << "steer : " << steer << endl;
 
     srcRGB = frame_show;
     cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
-    cout << "fuck7" << endl;
+    // cout << "fuck7" << endl;
 
     *output_angle = steer;
-    if (ratio > 0) ratio = pow(cos(steer*CV_PI/180), 2);
+    if (ratio > 0) ratio = pow(cos(steer*CV_PI/180), 1);
     *output_ratio = ratio;
-    cout << "fuck8" << endl;
+    // cout << "fuck8" << endl;
 }
 
 
