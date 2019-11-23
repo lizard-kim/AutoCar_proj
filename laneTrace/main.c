@@ -311,7 +311,7 @@ int main(int argc, char **argv)
 		printf("mission_id = %d\n", data->mission_id);
 		/** printf("O_data2 = %d, O_data_3 = %d\n", data->O_data_2, data->O_data_3); */
 		if (data->mission_id == 1) {//test driving
-			DesireSpeed_Write(100);
+			DesireSpeed_Write(0);
 			usleep(1000000);
 		} /// start & highway
 		else if (data->mission_id == 2) {   } ///
@@ -540,8 +540,8 @@ signed short color_detection(struct display *disp, struct buffer *cambuf)
 
         gettimeofday(&st, NULL);
 
-		speed_ratio = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
-        /** speed_ratio = 1; */
+		/** speed_ratio = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); */
+		speed_ratio = 1;
 		is_Traffic_Light = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
 		/** printf("speed : %d\n", speed); *///ok
 
@@ -615,10 +615,10 @@ void * capture_thread(void *arg)
 
 		// ---- mission trigger
 		/** if(data->tunnelSignal == 1 && data->O_data_2 < 30) data->mission_id = 4;//tunnel */
-		if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;//parking
-		if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 6;//parparking
-		if(data->mission_state == BEFORE_PASSING_OVER && data->distance < 20) data->mission_id = 7;//passing master
-        /** if(is_Traffic_Light != 0) data->mission_id = 8; //traffic light */
+		/** if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;//parking */
+		/** if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 6;//parparking */
+		/** if(data->mission_state == BEFORE_PASSING_OVER && data->distance < 20) data->mission_id = 7;//passing master */
+		if(is_Traffic_Light != 0) data->mission_id = 8; //traffic light
 
 
 // -------------------- image process by capt ----------------------------------
@@ -628,8 +628,8 @@ void * capture_thread(void *arg)
         data->angle = a;
         data->speed = v;
 		// ---- pky end
-		/** data->speed_ratio = color_detection(vpe->disp, capt); */
-		data->speed_ratio = 1;
+		data->speed_ratio = color_detection(vpe->disp, capt);
+		/** data->speed_ratio = 1; */
 		data->speed = data->speed * data->speed_ratio;
 		/** data->speed = 100; //test */
 		/** printf("sppppppppppppppppppppppppppppppppppppeedd: %d\n", data->speed);//ok */

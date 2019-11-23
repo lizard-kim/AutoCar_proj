@@ -293,9 +293,9 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 	Mat img_mask1, img_mask2;
 
 	//accept green filter for detect Traffic light
-	inRange(img_hsv, Scalar(low_hue1, 50, 50), Scalar(high_hue1, 255, 255), img_mask1);
+	inRange(img_hsv, Scalar(90, 40, 40), Scalar(130, 200, 200), img_mask1);
 	if (range_count == 2) {
-		inRange(img_hsv, Scalar(low_hue2, 50, 50), Scalar(high_hue2, 255, 255), img_mask2);
+		inRange(img_hsv, Scalar(90, 40, 40), Scalar(130, 200, 200), img_mask2);
 		img_mask1 |= img_mask2;
 	}
 
