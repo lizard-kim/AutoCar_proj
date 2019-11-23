@@ -297,7 +297,7 @@ int main(int argc, char **argv)
     printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500
 
 	//camera setting
-    camera_angle = 1650;
+    camera_angle = 1500;//1650
     CameraYServoControl_Write(camera_angle);    
 
     //speed set
@@ -624,12 +624,12 @@ void * capture_thread(void *arg)
 // -------------------- image process by capt ----------------------------------
 		// ---- pky function
         double a, v;
-        getSteeringWithLane(vpe->disp, capt, &a, &v);
-        data->angle = a;
-        data->speed = v;
+        /** getSteeringWithLane(vpe->disp, capt, &a, &v); */
+        /** data->angle = a; */
+        /** data->speed = v; */
 		// ---- pky end
 		data->speed_ratio = color_detection(vpe->disp, capt);
-		/** data->speed_ratio = 1; */
+		data->speed_ratio = 1;
 		data->speed = data->speed * data->speed_ratio;
 		/** data->speed = 100; //test */
 		/** printf("sppppppppppppppppppppppppppppppppppppeedd: %d\n", data->speed);//ok */
