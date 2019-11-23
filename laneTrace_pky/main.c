@@ -80,6 +80,7 @@ struct thr_data {
     struct buffer **input_bufs;
 
     double angle; /// 규열이만 이 변수 set 가능, 나머진 전부 이 변수 get 가능
+    double pre_angle;
 	signed short speed;
 	signed short speed_ratio;//태영 edit this var 0 or 1
 
@@ -267,18 +268,20 @@ int main(int argc, char **argv)
     sleep(2);
 
     //camera y servo set
-    camera_angle = 1650;
+    // camera_angle = 1650;
+    camera_angle = 1720;
     CameraYServoControl_Write(camera_angle);    
-
+    tdata.pre_angle = 0;
     while(1){
-        angle = 1500-(tdata.angle/90)*500;
+        angle = 1500-(tdata.angle/50)*500;
+        angle = 0.5 * tdata.pre_angle + 0.5 * angle;
         SteeringServoControl_Write(angle);
+        tdata.pre_angle = angle;
 
         speed = DesireSpeed_Read();
         printf("DesireSpeed_Read() = %d \n", speed);
         speed = tdata.speed;
         DesireSpeed_Write(speed);
-
         usleep(100000);
     }
 
@@ -656,7 +659,7 @@ void getSteeringWithLane(struct display *disp, struct buffer *cambuf, double *st
         draw_operatingtime(disp, optime);
     }
 	*steer = angle;
-    *speed = 100 *ratio;
+    *speed = 130 *ratio;
 }
 
 double distance_calculate(double data){ // make sensor input data to real distance data
