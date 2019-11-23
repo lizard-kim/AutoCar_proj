@@ -175,13 +175,19 @@ void warmSensorTrigger() // must be included ParkingSignal_1, ParkingSignal_2, p
     if(tunnelSignal == 1 && O_data_2 < 30)
     {
         start_3 = clock();
+        tunnelSignal = 2;
     }
-    if(O_data_2 < 30 && O_data_3 < 30)
+    if(tunnelSignal == 2 && O_data_2 < 30 && O_data_3 < 30)
     {
         float endtime_3 = (clock()- start_3)/(CLOCKS_PER_SEC);
         if(endtime_3 < 3)
         {
+            tunnelSignal = 3;
             tunnel_adv();
+        }
+        else
+        {
+            tunnelSignal = 1;
         }
     }
 }
