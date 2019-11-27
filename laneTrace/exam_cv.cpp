@@ -164,13 +164,118 @@ void OpenCV_canny_edge_image(char* file, unsigned char* outBuf, int nw, int nh)
              nh : height value of destination buffer
   * @retval none
   */
+// signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh) // detect red stop sign
+// {
+//     printf("red_detection running\n");
+//     int range_count = 0;
+//     int stopornot = 1;
+//     Mat img_input, img_gray, img_hsv, img_result;
+//     signed short speed_ratio = 1; //[TODO]basic speed you can edit this value!
+//     // Scalar blue(10, 200, 50);
+//     Scalar red(0, 0, 255); //red definition
+//     Scalar black(0, 0, 0);
+//     Mat rgb_color, hsv_color;
+//     Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
+//     Mat dstRGB(nh, nw, CV_8UC3, outBuf);
+//
+//     Coloring(rgb_color, red); //red coloring
+//
+//     cvtColor(rgb_color, hsv_color, COLOR_BGR2HSV);
+//
+//     int hue = (int)hsv_color.at<Vec3b>(0, 0)[0]; //we will use only hue value
+//     //int saturation = (int)hsv_color.at<Vec3b>(0, 0)[1];
+//     //int value = (int)hsv_color.at<Vec3b>(0, 0)[2];
+//     int low_hue = hue;//make limit
+//     int high_hue = hue + 210;//make limit
+//     int low_hue1 = 0, low_hue2 = 0;
+//     int high_hue1 = 0, high_hue2 = 0;
+//
+//     MakeLimit(low_hue, low_hue1, low_hue2, high_hue, high_hue1, high_hue2, range_count);//make limit of hue value
+//
+//     img_input = srcRGB;
+//
+//     cvtColor(img_input, img_hsv, COLOR_BGR2HSV);
+//
+//     Mat binary_image;
+//     Mat img_mask1, img_mask2, test;
+//
+//     //accept red filter for detect red stop sign
+//     inRange(img_hsv, Scalar(low_hue1, 50, 50), Scalar(255, 255, 255), img_mask1);
+//     // inRange(img_input, Scalar(low_hue1, 250, 250), Scalar(high_hue1, 255, 255), test);
+//     if (range_count == 2) {
+//         inRange(img_hsv, Scalar(low_hue2, 50, 50), Scalar(255, 255, 255), img_mask2);
+//         img_mask1 |= img_mask2;
+//     }
+//
+//     //make contour...
+//     vector<vector<Point> > contours;
+//     findContours(img_mask1, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
+//
+//     vector<Point> approx;
+//
+//     // for disp test
+//     // Mat test(ih, iw, CV_8UC3, black);
+//     // srcRGB = test;
+//     cvtColor(img_mask1, img_result, COLOR_GRAY2BGR);
+//
+//
+//     for (size_t i = 0; i < contours.size(); i++){
+//         approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
+//         // approxPolyDP(Mat(contours[i]), approx, 1, true);
+//
+//         if (fabs(contourArea(Mat(approx))) > 1500)  // edit responsiveness...
+//         {
+//             int size = approx.size();
+//
+//             //drawing contour
+//             if (size % 2 == 0) {
+//                 line(img_result, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+//
+//                 for (int k = 0; k < size - 1; k++)
+//                     line(img_result, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+//                 for (int k = 0; k < size; k++)
+//                     circle(img_result, approx[k], 3, Scalar(0, 0, 255));
+//             }
+//             else {
+//                 line(img_result, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+//
+//                 for (int k = 0; k < size - 1; k++)
+//                     line(img_result, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+//                 for (int k = 0; k < size; k++)
+//                     circle(img_result, approx[k], 3, Scalar(0, 0, 255));
+//             }
+//             //circle!! stop!!
+//             if (size >= 7){
+//                 cout << "red_circle" << endl;
+//                 cout << "red_circle" << endl;
+//                 cout << "red_circle" << endl;
+//                 cout << "red_circle" << endl;
+//                 cout << "red_circle" << endl;
+//                 cout << "red_circle" << endl;
+//                 cout << "red_circle" << endl;
+//                 cout << "red_circle" << endl;
+//                 cout << "red_circle" << endl;
+//                 cout << "red_circle" << endl;
+//                 speed_ratio = 0;
+//             }
+//         }
+//     }
+//     cvtColor(img_result, srcRGB, COLOR_BGR2GRAY);
+//     // srcRGB = img_result;
+//     resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+//
+//     return speed_ratio;
+// }
+
+
 signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh) // detect red stop sign
 {
 
+	printf("reddddddddddddddddddddddddddddddddddddddddddddddddddddddd\n");
 	int range_count = 0;
 	int stopornot = 1;
 	Mat img_input, img_gray, img_hsv, img_result;
-	signed short speed_ratio = 1; //[TODO]basic speed you can edit this value!
+	signed short speed = 1; //[TODO]basic speed you can edit this value!
 	// Scalar blue(10, 200, 50);
 	Scalar red(0, 0, 255); //red definition
 	Scalar black(0, 0, 0);
@@ -201,10 +306,10 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	Mat img_mask1, img_mask2, test;
 
 	//accept red filter for detect red stop sign
-	inRange(img_hsv, Scalar(low_hue1, 150, 150), Scalar(255, 255, 255), img_mask1);
+	inRange(img_hsv, Scalar(low_hue1, 100, 100), Scalar(255, 255, 255), img_mask1);
 	// inRange(img_input, Scalar(low_hue1, 250, 250), Scalar(high_hue1, 255, 255), test);
 	if (range_count == 2) {
-		inRange(img_hsv, Scalar(low_hue2, 150, 150), Scalar(255, 255, 255), img_mask2);
+		inRange(img_hsv, Scalar(low_hue2, 100, 100), Scalar(255, 255, 255), img_mask2);
 		img_mask1 |= img_mask2;
 	}
 
@@ -224,7 +329,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
 		// approxPolyDP(Mat(contours[i]), approx, 1, true);
 
-		if (fabs(contourArea(Mat(approx))) > 1500)  // edit responsiveness...
+		if (fabs(contourArea(Mat(approx))) > 1200)  // edit responsiveness...
 		{
 			int size = approx.size();
 
@@ -248,7 +353,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 			//circle!! stop!!
 			if (size >= 7){
 				// cout << "red_circle" << endl;
-				speed_ratio = 0;
+				speed = 0;
 			}
 		}
 	}
@@ -256,8 +361,9 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	srcRGB = img_result;
 	resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
-	return speed_ratio;
+	return speed;
 }
+
 
 int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh) // mechanism is similar with red_detection func...
 {

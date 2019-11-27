@@ -433,7 +433,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
     cout << "steer : " << steer << endl;
 
     srcRGB = frame_show;
-    cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+    // cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
     // cout << "fuck7" << endl;
 
     *output_angle = steer;
