@@ -245,13 +245,13 @@ int main(int argc, char **argv)
     //P-gain
     gain = SpeedPIDProportional_Read();        // default value = 10, range : 1~50
     printf("SpeedPIDProportional_Read() = %d \n", gain);
-    gain = 10;
+    gain = 50;
     SpeedPIDProportional_Write(gain);
 
     //I-gain
     gain = SpeedPIDIntegral_Read();        // default value = 10, range : 1~50
     printf("SpeedPIDIntegral_Read() = %d \n", gain);
-    gain = 10;
+    gain = 50;
     SpeedPIDIntegral_Write(gain);
     
     //D-gain
@@ -268,8 +268,8 @@ int main(int argc, char **argv)
     sleep(2);
 
     //camera y servo set
-    // camera_angle = 1650;
-    camera_angle = 1720;
+    camera_angle = 1650;
+    // camera_angle = 1720;
     CameraYServoControl_Write(camera_angle);    
     tdata.pre_angle = 0;
     while(1){
@@ -334,7 +334,7 @@ void * capture_thread(void *arg)
     int index;
     int i;
 
-	//for understanding capture_thread...
+	//for understanding capture_thread... 
 
     v4l2_reqbufs(v4l2, NUMBUF); // 영상 저장할 큐 버퍼 메모리 할당
     vpe_input_init(vpe); // VPE 입력 초기화
@@ -659,7 +659,7 @@ void getSteeringWithLane(struct display *disp, struct buffer *cambuf, double *st
         draw_operatingtime(disp, optime);
     }
 	*steer = angle;
-    *speed = 130 *ratio;
+    *speed = 150 *ratio;
 }
 
 double distance_calculate(double data){ // make sensor input data to real distance data
