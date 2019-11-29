@@ -284,7 +284,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
 //    dilate(frame, frame, getStructuringElement(MORPH_RECT, Size(5, 5)));
 
     // warping
-    float width_ratio = 0.5; // 사다리꼴의 상단과 하단 간의 비율
+    float width_ratio = 0.3; // 사다리꼴의 상단과 하단 간의 비율
     float height_ratio = 0.8; // 밑변과 높이 간의 비율
     // Warping 전의 이미지 상의 좌표
     vector<Point2f> corners(4);
@@ -309,7 +309,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
 
     double steer = 0;
     double ratio = 1;
-    double lane_width = (double)new_width * width_ratio * 0.8;
+    double lane_width = (double)new_width * width_ratio * 0.7;
     vector<Point2d> line_points;
     vector<double> ans;
     int lane_type = 0;
@@ -376,7 +376,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
         // cout << "fuck3" << endl;
         // 3) 목적지 방향 및 조향 계산
         // *무게중심 좌표
-        Point2i cen = Point2i((lane_top.x + lane_bot.x) * 2/3, (lane_top.y + lane_bot.y) * 2/3);
+        Point2i cen = Point2i((lane_top.x + lane_bot.x)/2, (lane_top.y + lane_bot.y)/2);
         Point2i cp, des;
         double angle;
         // **무게중심에 해당하는 곡선 위 좌표
@@ -401,8 +401,9 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
         // cout << "fuck5" << endl;
         // *****조향각 계산
         // 방향벡터 계산
-        // Point2d direction(des.x - (double)new_width/2, des.y - new_height);
-        Point2d direction(des.x - (double)new_width/2, des.y - lane_bot.y);
+        Point2d direction(des.x - (double)new_width/2, des.y - (new_height * 10/10));
+        // Point2d direction(des.x - (double)new_width/2, des.y - (new_height * 10/10 + 2/10 * (new_height - cen.y)));
+        // Point2d direction(des.x - (double)new_width/2, des.y - lane_bot.y);
         double direction_norm = sqrt((pow(direction.x, 2) + pow(direction.y, 2)));
         // direction =  direction * 50 / direction_norm;
         direction.x = direction.x * 50 / direction_norm;
@@ -413,13 +414,36 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
         steer *= 1.0;
         // steer = angle;
         cout << "steer : " << steer << endl;
+
+        if (abs(angle) < 20) {
+            ratio = 1;
+        }
+        else if (abs(angle) < 30) {
+            ratio = 0.7;
+        }
+        else if (abs(angle) < 40) {
+            ratio = 0.5;
+        }
+        else if (abs(angle) < 50) {
+            ratio = 0.3;
+        }
+        else {
+            ratio = 0.2;
+        }
+
+        // ratio = pow(cos(angle*CV_PI/180), 2);
+
         // 최대 조향을 벗어날 경우 조향 제한
-        if (abs(steer) >= 50) {
+        if (abs(angle) >= 50 && cp.y >= new_height * 1/3) {
+            
+            // steer = 50;
+            // ratio = 1;
+            
             // cout << "steer out of range !!!" << endl;
             // steer = 0;
-            if (steer < 0) steer = -50;
-            else steer = 50;
-            ratio = 1.0;
+            // if (steer < 0) steer = -50;
+            // else steer = 50;
+            // ratio = 1.0;
             // ratio = -0.4;
             // if (steer < 0) steer = -45;
             // else steer = 45;
@@ -436,8 +460,12 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
     // cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
     // cout << "fuck7" << endl;
 
+    // if (ratio > 0) ratio = ratio * pow(cos(steer*CV_PI/180), 1);
+    // if (lane_idx != -1 && lane_top.y >= new_height * 1/3) {
+    //     steer = 0;
+    //     ratio = -1;
+    // }
     *output_angle = steer;
-    if (ratio > 0) ratio = pow(cos(steer*CV_PI/180), 1);
     *output_ratio = ratio;
     // cout << "fuck8" << endl;
 }

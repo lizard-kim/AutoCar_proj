@@ -280,13 +280,13 @@ int main(int argc, char **argv)
     //P-gain
     gain = SpeedPIDProportional_Read();        // default value = 10, range : 1~50
     printf("SpeedPIDProportional_Read() = %d \n", gain);
-    gain = 10;
+    gain = 50;
     SpeedPIDProportional_Write(gain);
 
     //I-gain
     gain = SpeedPIDIntegral_Read();        // default value = 10, range : 1~50
     printf("SpeedPIDIntegral_Read() = %d \n", gain);
-    gain = 10;
+    gain = 50;
     SpeedPIDIntegral_Write(gain);
     
     //D-gain
@@ -312,7 +312,7 @@ int main(int argc, char **argv)
 		/** printf("mission_id = %d\n", data->mission_id); */
 
 		if (data->mission_id == 1) {//test driving
-			DesireSpeed_Write(100);
+			/** DesireSpeed_Write(100); */
 			usleep(1000000);
 		} 
 		/// start & highway
@@ -479,12 +479,10 @@ int main(int argc, char **argv)
 			angle = 0.5 * tdata.pre_angle + 0.5 * angle;
 			/** printf("tdata.speed = %d\n", data->speed);//error */
 			SteeringServoControl_Write(angle); 
-
 			tdata.pre_angle = angle;//???
-			
+			printf("speed, ratio %d %d\n", data->speed, data->speed_ratio);
 			DesireSpeed_Write(data->speed);
 			if(data->speed == 0) usleep(100000);
-			usleep(100000); //calibrate IO delay
 
 		} 
 
@@ -612,6 +610,7 @@ void * capture_thread(void *arg)
 		/** data->speed = 100; */
 		// ---- pky end
 		data->speed_ratio = color_detection(vpe->disp, capt);
+		
 		/** data->speed_ratio = 1;//test */
 		data->speed = data->speed * data->speed_ratio;
 		if(data->speed == 0) usleep(150000);
