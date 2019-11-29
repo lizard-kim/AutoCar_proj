@@ -483,6 +483,7 @@ int main(int argc, char **argv)
 			printf("speed, ratio %d %d\n", data->speed, data->speed_ratio);
 			DesireSpeed_Write(data->speed);
 			if(data->speed == 0) usleep(100000);
+			usleep(100000);
 
 		} 
 
