@@ -1147,7 +1147,7 @@ static char* passing_master(struct display *disp, struct buffer *cambuf, void *a
 /**     } */
 /** } */
 
-void dynamic_obs_ver2() {
+void dynamic_obs_ver2(void) {
     DesireSpeed_Write(0);
     SteeringServoControl_Write(1500);
 
@@ -1161,11 +1161,17 @@ void dynamic_obs_ver2() {
 
     while (DistFunc(DistanceSensor(4)) > DYNAMIC_OBS_END) {} /// 뒤에서 차가 따라옴. Dynamic obs end 수치 이하일때
 
-    // lane tracing part
-    DesireSpeed_Write(data->speed);
-    SteeringServoControl_Write(data->angle);
 
-    usleep(2*1000*1000);
+    int a = 0;
+    while (a<100) { // lane tracing part
+        DesireSpeed_Write(data->speed);
+        SteeringServoControl_Write(data->angle);
+        usleep(1000); // in usleep, 1000 * 1000 is 1 second
+        a++;
+    }
+    Alarm_Write(ON);
+    usleep(1000*500); // mission is over alarm signal
+    Alarm_Write(OFF);
 }
 
 int stopLine_detect(void) { /// 1 if stopline detected: the car is on white line
