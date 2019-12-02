@@ -106,11 +106,16 @@ struct thr_data {
     char* yellow_stop_line; // 정지선 인식 변수, 관형 추가
     int white_stop_line; // 정지선 인식 변수, 관형 추가
     MissionState mission_state;
+	int after_passing; // to judge whether passing mission
 	//end
 	
 	// ----dY
 	bool stop_line_detect;
-	// ---- end
+
+	// --- lizard
+	int is_Traffic_Light;
+	int is_Traffic_Light_for_traffic_light;
+
 	double sensor1;//front
 	double sensor2;//right1
 	double sensor3;//right2
@@ -134,7 +139,7 @@ struct thr_data {
 };
 
 /** signed short real_speed = 0; */
-int is_Traffic_Light = 0; //1 is traffic light mission 1 is left, 2 is right
+/** int is_Traffic_Light = 0; //1 is traffic light mission 1 is left, 2 is right */
 int passing_where = -1; // 1 is left 2 is right
 int passing = 0; // decide the time to passing other car
 
@@ -172,7 +177,7 @@ int main(int argc, char **argv)
     memset(tdata.dump_img_data, 0, sizeof(tdata.dump_img_data)); // dump data를 0으로 채워서 초기화
 
 	//init data struct
-	tdata.mission_id = 0; // 0 is basic driving 1 is for testing
+	tdata.mission_id = 8; // 0 is basic driving 1 is for testing
     tdata.driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
     tdata.pre_angle = 0;
     tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
@@ -191,10 +196,13 @@ int main(int argc, char **argv)
 	tdata.O_data_2 = 0;
 	tdata.O_data_3 = 0;
 	tdata.O_data_4 = 0;
+	tdata.after_passing = 1; //0 is initial value, 1 is finished
     tdata.direction = "NONE"; // 추월 차로 진행 방향, left or right
     tdata.yellow_stop_line = "NONE"; // 정지선 인식 변수, 관형 추가
     tdata.white_stop_line = -1; // 정지선 인식 변수, 관형 추가
 	tdata.mission_state = BEFORE_PASSING_OVER;
+	tdata.is_Traffic_Light = 0; // 1 is left 2 is right
+	tdata.is_Traffic_Light_for_traffic_light = 0; // 1 is red sign
 
     // init for using VPE hardware
     vpe = vpe_open(); if(!vpe) return 1;
@@ -425,10 +433,27 @@ int main(int argc, char **argv)
 			}
 
 		} /// 추월
-
 		else if (data->mission_id == 8) {//[TODO] 튜닝
+			camera_angle = 1500;//1650
+			CameraYServoControl_Write(camera_angle);    
+
 			printf("traffic mission!!!!\n");
-			if(is_Traffic_Light == 1){
+			if(data->is_Traffic_Light_for_traffic_light == 0){
+				DesireSpeed_Write(0);
+				usleep(100000);
+			}
+			else if(data->is_Traffic_Light_for_traffic_light == 1 && data->is_Traffic_Light == 0){
+				Alarm_Write(ON);
+				usleep(100000);
+				Alarm_Write(OFF);
+				usleep(10000000);
+				DesireSpeed_Write(80);
+				usleep(1000000);
+				DesireSpeed_Write(0);
+				break;
+			}
+
+			else if(data->is_Traffic_Light_for_traffic_light == 1 && data->is_Traffic_Light == 1){
 				//go left
 				DesireSpeed_Write(-200);
 				usleep(10000);
@@ -449,7 +474,7 @@ int main(int argc, char **argv)
 				Alarm_Write(OFF);
 				break;
 			}
-			else if(is_Traffic_Light == 2){
+			else if(data->is_Traffic_Light_for_traffic_light == 1 && data->is_Traffic_Light == 2){
 				//right
 				DesireSpeed_Write(-200);
 				usleep(10000);
@@ -526,7 +551,9 @@ signed short color_detection(struct display *disp, struct buffer *cambuf)
 
 		speed_ratio = OpenCV_red_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
 		/** speed_ratio = 1; */
-		/** is_Traffic_Light = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); */
+		/** else if(mission_id > 7){ */
+		/**     is_Traffic_Light = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H); */
+		/** } */
 		/** printf("speed : %d\n", speed); *///ok
 
         gettimeofday(&et, NULL);
@@ -537,7 +564,47 @@ signed short color_detection(struct display *disp, struct buffer *cambuf)
 	return speed_ratio;
 }
 
+int Traffic_mission(struct display *disp, struct buffer *cambuf){
+    unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
+    uint32_t optime;
+    struct timeval st, et;
+	int is_Traffic_Light_for_traffic_light = 0;
 
+    unsigned char* cam_pbuf[4];
+    if(get_framebuf(cambuf, cam_pbuf) == 0) {
+        memcpy(srcbuf, cam_pbuf[0], VPE_OUTPUT_W*VPE_OUTPUT_H*3);
+
+        gettimeofday(&st, NULL);
+
+		is_Traffic_Light_for_traffic_light = OpenCV_red_Detection_for_traffic_light(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+		// 1 is red sign
+        gettimeofday(&et, NULL);
+        optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
+        draw_operatingtime(disp, optime);
+    }
+	return is_Traffic_Light_for_traffic_light; 
+}
+
+int Traffic_mission_green(struct display *disp, struct buffer *cambuf){
+    unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
+    uint32_t optime;
+    struct timeval st, et;
+	int is_Traffic_Light = 0;
+
+    unsigned char* cam_pbuf[4];
+    if(get_framebuf(cambuf, cam_pbuf) == 0) {
+        memcpy(srcbuf, cam_pbuf[0], VPE_OUTPUT_W*VPE_OUTPUT_H*3);
+
+        gettimeofday(&st, NULL);
+
+		is_Traffic_Light = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+		// 1 is red sign
+        gettimeofday(&et, NULL);
+        optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
+        draw_operatingtime(disp, optime);
+    }
+	return is_Traffic_Light; 
+}
 void * capture_thread(void *arg)
 {
     struct thr_data *data = (struct thr_data *)arg;
@@ -599,7 +666,7 @@ void * capture_thread(void *arg)
 		/** if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;//parking */
 		/** if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 6;//parparking */
 		/** if(data->mission_state == BEFORE_PASSING_OVER && data->distance < 20) data->mission_id = 7;//passing master */
-		if(is_Traffic_Light != 0) data->mission_id = 8; //traffic light
+		if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light
 
 
 // -------------------- image process by capt ----------------------------------
@@ -610,8 +677,11 @@ void * capture_thread(void *arg)
 		data->speed = v;
 		/** data->speed = 100; */
 		// ---- pky end
-		data->speed_ratio = color_detection(vpe->disp, capt);
-		
+		if(data->mission_id < 8)data->speed_ratio = color_detection(vpe->disp, capt);
+		else{
+			data->is_Traffic_Light_for_traffic_light = Traffic_mission(vpe->disp, capt);//red sign
+			/** data->is_Traffic_Light = Traffic_mission_green(vpe->disp, capt); //green sign */
+		}
 		/** data->speed_ratio = 1;//test */
 		data->speed = data->speed * data->speed_ratio;
 		if(data->speed == 0) usleep(150000);

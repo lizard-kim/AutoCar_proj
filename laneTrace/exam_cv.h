@@ -12,6 +12,7 @@ void OpenCV_binding_image(char* file1, char* file2, unsigned char* outBuf, int n
 void OpenCV_canny_edge_image(char* file, unsigned char* outBuf, int nw, int nh);
 void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh);
 signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh);
+int OpenCV_red_Detection_for_traffic_light(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh);
 int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh);
 void OpenCV_merge_image(unsigned char* src1, unsigned char* src2, unsigned char* dst, int w, int h);
 // koo

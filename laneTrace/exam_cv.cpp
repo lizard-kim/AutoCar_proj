@@ -271,7 +271,7 @@ void OpenCV_canny_edge_image(char* file, unsigned char* outBuf, int nw, int nh)
 signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh) // detect red stop sign
 {
 
-	printf("reddddddddddddddddddddddddddddddddddddddddddddddddddddddd\n");
+	// printf("reddddddddddddddddddddddddddddddddddddddddddddddddddddddd\n");
 	int range_count = 0;
 	int stopornot = 1;
 	Mat img_input, img_gray, img_hsv, img_result;
@@ -359,9 +359,111 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	}
 	// cvtColor(test, srcRGB, COLOR_BGR2GRAY);
 	srcRGB = img_result;
-	resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+	// resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
 	return speed;
+}
+
+int OpenCV_red_Detection_for_traffic_light(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh) // detect red stop sign
+{
+
+	int range_count = 0;
+	int stopornot = 1;
+	Mat img_input, img_gray, img_hsv, img_result;
+	signed short speed = 1; //[TODO]basic speed you can edit this value!
+	// Scalar blue(10, 200, 50);
+	Scalar red(0, 0, 255); //red definition
+	Scalar black(0, 0, 0);
+	Mat rgb_color, hsv_color;
+    Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
+    Mat dstRGB(nh, nw, CV_8UC3, outBuf);
+	int is_Traffic_Light_red = 0;
+
+	Coloring(rgb_color, red); //red coloring
+
+	cvtColor(rgb_color, hsv_color, COLOR_BGR2HSV);
+
+	int hue = (int)hsv_color.at<Vec3b>(0, 0)[0]; //we will use only hue value
+	int low_hue = hue;//make limit
+	int high_hue = hue + 210;//make limit
+	int low_hue1 = 0, low_hue2 = 0;
+	int high_hue1 = 0, high_hue2 = 0;
+	printf("hue = %d, low_hue = %d\n", hue, low_hue);
+
+	MakeLimit(low_hue, low_hue1, low_hue2, high_hue, high_hue1, high_hue2, range_count);//make limit of hue value
+
+	img_input = srcRGB;
+
+	cvtColor(img_input, img_hsv, COLOR_BGR2HSV);
+
+	Mat binary_image;
+	Mat img_mask1, img_mask2, test;
+
+	//accept red filter for detect red stop sign
+	inRange(img_hsv, Scalar(170, 100, 0), Scalar(180, 255, 255), img_mask1);
+	// inRange(img_input, Scalar(low_hue1, 250, 250), Scalar(high_hue1, 255, 255), test);
+	if (range_count == 2) {
+		inRange(img_hsv, Scalar(170, 100, 0), Scalar(180, 255, 255), img_mask2);
+		img_mask1 |= img_mask2;
+	}
+
+	//make contour...
+	vector<vector<Point> > contours;
+	findContours(img_mask1, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
+	
+	vector<Point> approx;
+	
+	// for disp test
+	// Mat test(ih, iw, CV_8UC3, black);
+	// srcRGB = test;
+	cvtColor(img_mask1, img_result, COLOR_GRAY2BGR);
+
+
+	for (size_t i = 0; i < contours.size(); i++){
+		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
+		// approxPolyDP(Mat(contours[i]), approx, 1, true);
+
+		if (fabs(contourArea(Mat(approx))) > 400)  // edit responsiveness...
+		{
+			int size = approx.size();
+
+			//drawing contour
+			if (size % 2 == 0) {
+				line(img_result, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+
+				for (int k = 0; k < size - 1; k++)
+					line(img_result, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+				for (int k = 0; k < size; k++)
+					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
+			}
+			else {
+				line(img_result, approx[0], approx[approx.size() - 1], Scalar(0, 255, 0), 3);
+
+				for (int k = 0; k < size - 1; k++)
+					line(img_result, approx[k], approx[k + 1], Scalar(0, 255, 0), 3);
+				for (int k = 0; k < size; k++)
+					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
+			}
+			//circle!! stop!!
+			if (size >= 4){
+				cout << "red_sign" << endl;
+				cout << "red_sign" << endl;
+				cout << "red_sign" << endl;
+				cout << "red_sign" << endl;
+				cout << "red_sign" << endl;
+				cout << "red_sign" << endl;
+				cout << "red_sign" << endl;
+				cout << "red_sign" << endl;
+				cout << "red_sign" << endl;
+				is_Traffic_Light_red = 1;//red!
+			}
+		}
+	}
+	// cvtColor(test, srcRGB, COLOR_BGR2GRAY);
+	srcRGB = img_result;
+	resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+
+	return is_Traffic_Light_red;
 }
 
 
@@ -414,7 +516,7 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 	for (size_t i = 0; i < contours.size(); i++){
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
 
-		if (fabs(contourArea(Mat(approx))) > 100) //[TODO]we have to do fine tuning 
+		if (fabs(contourArea(Mat(approx))) > 600) //[TODO]we have to do fine tuning 
 		{
 			int size = approx.size();
 
@@ -438,10 +540,21 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 			if (size == 7){//go left!
 				// setLabel(img_result, "left!", contours[i]); //¿¿¿
 				cout << "left" << endl;
+				cout << "left" << endl;
+				cout << "left" << endl;
+				cout << "left" << endl;
+				cout << "left" << endl;
+				cout << "left" << endl;
 				is_Traffic_Light = 1; //left signal
 			}
 			else if (size >= 8){//circle, go right!!
 				// setLabel(img_result, "circle!!", contours[i]); //¿
+				cout << "circle" << endl;
+				cout << "circle" << endl;
+				cout << "circle" << endl;
+				cout << "circle" << endl;
+				cout << "circle" << endl;
+				cout << "circle" << endl;
 				cout << "circle" << endl;
 				is_Traffic_Light = 2; //right signal
 			}
