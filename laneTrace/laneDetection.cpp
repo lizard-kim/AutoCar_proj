@@ -90,7 +90,7 @@ void curveFitting(Mat &input, Mat &output, vector<Point2d> &route, vector<double
         cerr << "Lack of Points to fitting !" << endl;
         return;
     }
-    cout << "a" << endl;
+    // cout << "a" << endl;
     vector<pair<double, double> > v;
 
     for (size_t i = 0; i < route.size(); i++) {
@@ -99,19 +99,19 @@ void curveFitting(Mat &input, Mat &output, vector<Point2d> &route, vector<double
     int n = v.size();
     Mat A;
 
-    cout << "aa" << endl;
+    // cout << "aa" << endl;
     // A를 완성시키는 이중 for문
     // 3 차 방정식으로 근사한다. 이 숫자 바꿔 주면 n-1 차 방정식까지 근사 가능.
     for (size_t i = 0; i < v.size(); i++) {
         vector<double> tmp;
-        cout << "0.5" << endl;
+        // cout << "0.5" << endl;
         for (int j = 3; j >= 0; j--) {
             double x = v[i].second; // x 하고 y 를 바꾸기로 함. 그래야 함수가 만들어지니까
-            cout << "0.1" << endl;
+            // cout << "0.1" << endl;
             tmp.push_back(pow(x,j));
-            cout << "0.2" << endl;
+            // cout << "0.2" << endl;
         }
-        cout << "1" << endl;
+        // cout << "1" << endl;
         // A.push_back(Mat(tmp).t());
         if (i == 0) {
             A = Mat(tmp).clone();
@@ -120,28 +120,28 @@ void curveFitting(Mat &input, Mat &output, vector<Point2d> &route, vector<double
         else {
             vconcat(A, tmp, A);
         }
-        cout << "2" << endl;
-        cout << "A.size() : " << A.size() << endl;
+        // cout << "2" << endl;
+        // cout << "A.size() : " << A.size() << endl;
     }
 
-    cout << "aaa" << endl;
+    // cout << "aaa" << endl;
     Mat B; // B 에는 y 좌표들을 저장한다.
     vector<double> tmp;
     for (size_t i = 0; i < v.size(); i++) {
-        cout << "1.1" << endl;
+        // cout << "1.1" << endl;
         double y = v[i].first; // x 하고 y 바꾸기로 함. 그래야 함수가 만들어지니까
-        cout << "1.2" << endl;
+		// cout << "1.2" << endl;
         tmp.push_back(y);
-        cout << "1.3" << endl;
+        // cout << "1.3" << endl;
     }
-    cout << "1.4" << endl;
+    // cout << "1.4" << endl;
     B = Mat(tmp).clone();
-    cout << "1.5" << endl;
+    // cout << "1.5" << endl;
     // B.push_back(Mat(tmp));
 
     // X = invA * B; // X = A(-1)B
     Mat X = ((A.t() * A).inv()) * A.t() * B;
-    cout << "aaaa" << endl;
+    // cout << "aaaa" << endl;
     // X 에서 차례대로 뽑아내서 ans 에 담는다.
     // 몇차 방정식으로 근사할껀지 정할때 건드려줘야 되는부분, 3차 방정식으로 근사할꺼면 4 ㅇㅇ.
     for (int i = 0; i < 4; i++) {
@@ -160,7 +160,7 @@ void curveFitting(Mat &input, Mat &output, vector<Point2d> &route, vector<double
     for (int i = 0; i < ans_size; i++) {
         coef[i] = ans.at(i);
     }
-    cout << "aaaaa" << endl;
+    // cout << "aaaaa" << endl;
     // 계산된 곡선 그리기
     output = input.clone();
     for (int i = end; i >= start; i -= 1) {
@@ -171,7 +171,7 @@ void curveFitting(Mat &input, Mat &output, vector<Point2d> &route, vector<double
         }
         line(output, Point(x1, i), Point(x2, i - 1), Scalar(0, 0, 255), 2);
     }
-    cout << "aaaaaa" << endl;
+    // cout << "aaaaaa" << endl;
 }
 
 
@@ -347,22 +347,22 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
             line_points.resize((int)line_temp.size());
             copy(line_temp.begin(), line_temp.end(), line_points.begin());
         }
-        cout << "bot_dx : " << bot_dx << endl;
+        // cout << "bot_dx : " << bot_dx << endl;
     }
     // 외곽선 그리기
     Mat frame_show = Mat::zeros(new_height, new_width, CV_8UC3);
     drawContours(frame_show, contours, -1, Scalar(255, 255, 255), -1);
     if (lane_idx != -1) drawContours(frame_show, contours, lane_idx, Scalar(50, 200, 50), -1);
 
-    cout << "contours.size() : " << contours.size() << endl;
-    cout << "line_points.size() : " << line_points.size() << endl;
+    // cout << "contours.size() : " << contours.size() << endl;
+    // cout << "line_points.size() : " << line_points.size() << endl;
 
 
 
     /// 3. 왼쪽/오른쪽 차선 구분 및 목표점 정의
     // 차선이 인식되지 않은 경우
     if (lane_idx == -1) {
-        cout << "lane not detected !!!!!" << endl;
+        // cout << "lane not detected !!!!!" << endl;
         ratio = 0;
     }
     // 차선이 인식된 경우
@@ -413,7 +413,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
         steer = atan(direction.x / abs(direction.y)) * 180 / CV_PI;
         steer *= 1.0;
         // steer = angle;
-        cout << "steer : " << steer << endl;
+        // cout << "steer : " << steer << endl;
 
         if (abs(angle) < 20) {
             ratio = 1;
@@ -454,7 +454,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
     temp << steer;
     string str = temp.str();
     putText(frame_show, "steer : " + str, Point(10, 15), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 0, 255));
-    cout << "steer : " << steer << endl;
+    // cout << "steer : " << steer << endl;
 
     srcRGB = frame_show;
     // cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);

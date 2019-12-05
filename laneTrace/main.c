@@ -318,6 +318,7 @@ int main(int argc, char **argv)
     ////////////////////////////////////////////////////////// DY added /////////////////////////////////////////////////////////
 	while (true){
 		/** printf("mission_id = %d\n", data->mission_id); */
+		printf("mission_id: %d\n", data->mission_id);
 
 		if (data->mission_id == 1) {//test driving
 			/** DesireSpeed_Write(100); */
@@ -438,6 +439,7 @@ int main(int argc, char **argv)
 			CameraYServoControl_Write(camera_angle);    
 
 			printf("traffic mission!!!!\n");
+			printf("is_Traffic_Light : %d\n", data->is_Traffic_Light);
 			if(data->is_Traffic_Light_for_traffic_light == 0){
 				DesireSpeed_Write(0);
 				usleep(100000);
@@ -450,13 +452,13 @@ int main(int argc, char **argv)
 				DesireSpeed_Write(80);
 				usleep(1000000);
 				DesireSpeed_Write(0);
-				break;
+				/** break; */
 			}
 
 			else if(data->is_Traffic_Light_for_traffic_light == 1 && data->is_Traffic_Light == 1){
 				//go left
 				DesireSpeed_Write(-200);
-				usleep(10000);
+				usleep(1000000);
 
 				SteeringServoControl_Write(1950);
 				DesireSpeed_Write(200);
@@ -472,7 +474,7 @@ int main(int argc, char **argv)
 				Alarm_Write(ON);
 				usleep(1000000);
 				Alarm_Write(OFF);
-				break;
+				/** break; */
 			}
 			else if(data->is_Traffic_Light_for_traffic_light == 1 && data->is_Traffic_Light == 2){
 				//right
@@ -493,7 +495,7 @@ int main(int argc, char **argv)
 				Alarm_Write(ON);
 				usleep(1000000);
 				Alarm_Write(OFF);
-				break;
+				/** break; */
 			}
 			else{
 				printf("ERROR!!!!\n");
@@ -662,7 +664,7 @@ void * capture_thread(void *arg)
 		// ---- end
 
 		// ---- mission trigger
-		if(data->tunnelSignal == 1 && data->O_data_2 < 30) data->mission_id = 4;//tunnel
+		/** if(data->tunnelSignal == 1 && data->O_data_2 < 30) data->mission_id = 4;//tunnel */
 		/** if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;//parking */
 		/** if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 6;//parparking */
 		/** if(data->mission_state == BEFORE_PASSING_OVER && data->distance < 20) data->mission_id = 7;//passing master */
@@ -680,7 +682,7 @@ void * capture_thread(void *arg)
 		if(data->mission_id < 8)data->speed_ratio = color_detection(vpe->disp, capt);
 		else{
 			data->is_Traffic_Light_for_traffic_light = Traffic_mission(vpe->disp, capt);//red sign
-			/** data->is_Traffic_Light = Traffic_mission_green(vpe->disp, capt); //green sign */
+			data->is_Traffic_Light = Traffic_mission_green(vpe->disp, capt); //green sign
 		}
 		/** data->speed_ratio = 1;//test */
 		data->speed = data->speed * data->speed_ratio;

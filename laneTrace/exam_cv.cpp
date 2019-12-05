@@ -461,7 +461,7 @@ int OpenCV_red_Detection_for_traffic_light(unsigned char* srcBuf, int iw, int ih
 	}
 	// cvtColor(test, srcRGB, COLOR_BGR2GRAY);
 	srcRGB = img_result;
-	resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+	// resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
 	return is_Traffic_Light_red;
 }
@@ -501,9 +501,9 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 	Mat img_mask1, img_mask2;
 
 	//accept green filter for detect Traffic light
-	inRange(img_hsv, Scalar(30, 90, 50), Scalar(120, 120, 90), img_mask1);//70 100 70
+	inRange(img_hsv, Scalar(60, 100, 100), Scalar(120, 255, 255), img_mask1);//70 100 70
 	if (range_count == 2) {
-		inRange(img_hsv, Scalar(30, 90, 50), Scalar(120, 120, 90), img_mask2);
+		inRange(img_hsv, Scalar(60, 100, 100), Scalar(120, 255, 255), img_mask2);
 		img_mask1 |= img_mask2;
 	}
 
@@ -516,7 +516,7 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 	for (size_t i = 0; i < contours.size(); i++){
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
 
-		if (fabs(contourArea(Mat(approx))) > 600) //[TODO]we have to do fine tuning 
+		if (fabs(contourArea(Mat(approx))) > 500) //[TODO]we have to do fine tuning 
 		{
 			int size = approx.size();
 
