@@ -687,7 +687,7 @@ void * capture_thread(void *arg)
 		if(data->tunnelSignal == 1 && data->O_data_2 < 30) data->mission_id = 4;//tunnel
 		if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;//parking
 		if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 6;//parparking
-		if(data->mission_state == BEFORE_PASSING_OVER && data->distance < 20) data->mission_id = 7;//passing master
+		if(data->mission_state == HISTOGRAM_BACK_PROPAGATION && data->distance < 50) data->mission_id = 7;//passing master
 		if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light
 
 // -------------------- image process by capt ----------------------------------
