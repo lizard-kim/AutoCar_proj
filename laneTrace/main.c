@@ -83,8 +83,8 @@ struct thr_data {
     struct vpe *vpe;
     struct buffer **input_bufs;
 
-    double angle; /// pky set this value
-    double pre_angle;
+	double angle; /// pky set this value
+    /** double pre_angle; */
 	signed short speed;
 	signed short speed_ratio;// lizard edit this var 0 or 1
 
@@ -159,6 +159,61 @@ static struct thr_data* pexam_data = NULL;
 void signal_handler(int sig);
 int stopLine_detect(void); // 정지선 인식하는 함수 1이면 정지선 위, 0이면 아님 by Doyeon
 
+volatile int start_flag = 0; // 1
+volatile int angle1 = 1520;  //조향값
+volatile int temp_angle;
+int data, volt, dist, interval;
+void driving_write_steer()           //주행 중 조향값 쓰기
+{
+  if(temp_angle != angle1){
+    angle1 = temp_angle;
+    SteeringServoControl_Write(angle1);
+  }
+}
+int get_distance(int channel)                        // 적외선 센서 변환 함수
+{
+  int data, volt, dist;
+  data = DistanceSensor(channel);
+  volt = data * 5000 / 4095;
+  // volt = data_transform(data, 0, 4095, 0, 5000);
+  dist = (27.61 / (volt - 0.1696))*1000;
+
+  return dist;
+}
+
+int data_transform(int x, int in_min, int in_max, int out_min, int out_max) // 적외선 센서 데이터 변환 함수
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+float data_transformF(float x, float in_min, float in_max, float out_min, float out_max) // 적외선 센서 데이터 변환 함수
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+bool start_condition()
+{
+  dist = get_distance(1);
+
+  if(start_flag == 0 && dist < 10) start_flag = 1;       // 출발전이고 손을 갖다대면 flag 1로
+  else if(start_flag == 1 && dist > 20) start_flag = 2;  // 손을 치웠을 때 flag 2로
+  else if(start_flag == 2) return true;                         // 손을 치우면 출발
+
+  return false;
+}
+
+void mode_start()
+{
+  // printf("START\n");
+  if(start_condition()){
+    // speed = 120; // speed set     --> speed must be set when using position controller //best
+    speed = 120;
+    DesireSpeed_Write(speed);
+    /** mode = mode + 2; // 출발하면 고가도로 모드 */
+
+  }
+}
+
+
 int main(int argc, char **argv)
 {
     struct v4l2 *v4l2;
@@ -177,9 +232,9 @@ int main(int argc, char **argv)
     memset(tdata.dump_img_data, 0, sizeof(tdata.dump_img_data)); // dump data를 0으로 채워서 초기화
 
 	//init data struct
-	tdata.mission_id = 8; // 0 is basic driving 1 is for testing
+	tdata.mission_id = 0; // 0 is basic driving 1 is for testing
     tdata.driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
-    tdata.pre_angle = 0;
+    /** tdata.pre_angle = 0; */
     tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
     tdata.stop_line_detect = false; /// by dy: true 면 정지선 인식된거임
 	tdata.park = 0;//non
@@ -196,7 +251,7 @@ int main(int argc, char **argv)
 	tdata.O_data_2 = 0;
 	tdata.O_data_3 = 0;
 	tdata.O_data_4 = 0;
-	tdata.after_passing = 1; //0 is initial value, 1 is finished
+	tdata.after_passing = 0; //0 is initial value, 1 is finished
     tdata.direction = "NONE"; // 추월 차로 진행 방향, left or right
     tdata.yellow_stop_line = "NONE"; // 정지선 인식 변수, 관형 추가
     tdata.white_stop_line = -1; // 정지선 인식 변수, 관형 추가
@@ -502,16 +557,19 @@ int main(int argc, char **argv)
 			}
 		}	/// 신호등
 		else { //basic driving 
-			angle = 1500-(tdata.angle/50)*500;
-			angle = 0.5 * tdata.pre_angle + 0.5 * angle;
-			/** printf("tdata.speed = %d\n", data->speed);//error */
-			SteeringServoControl_Write(angle); 
-			tdata.pre_angle = angle;//???
-			printf("speed, ratio %d %d\n", data->speed, data->speed_ratio);
-			DesireSpeed_Write(data->speed);
-			if(data->speed == 0) usleep(100000);
-			usleep(100000);
+			/** angle = 1500-(tdata.angle/50)*500; */
+			/** angle = 0.5 * tdata.pre_angle + 0.5 * angle; */
+			/** [> printf("tdata.speed = %d\n", data->speed);//error <] */
+			/** SteeringServoControl_Write(angle);  */
+			/** tdata.pre_angle = angle;//??? */
+			/** printf("speed, ratio %d %d\n", data->speed, data->speed_ratio); */
+			/** DesireSpeed_Write(80); */
+			/** if(data->speed == 0) usleep(100000); */
+			/** usleep(100000); */
+			/** printf("dddd\n"); */
 
+			mode_start();
+			/** break; */
 		} 
 
 		/** printf("data_driving_onoff = %d\n", data->driving_flag_onoff); */
@@ -668,7 +726,7 @@ void * capture_thread(void *arg)
 		/** if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;//parking */
 		/** if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 6;//parparking */
 		/** if(data->mission_state == BEFORE_PASSING_OVER && data->distance < 20) data->mission_id = 7;//passing master */
-		if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light
+		/** if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light */
 
 
 // -------------------- image process by capt ----------------------------------
@@ -992,27 +1050,27 @@ static void draw_operatingtime(struct display *disp, uint32_t time)
 
 void getSteeringWithLane(struct display *disp, struct buffer *cambuf, double *steer, double *speed) //detect lane
 {
-    double angle, ratio;
-    unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
-    uint32_t optime;
-    struct timeval st, et;
+	double angle, ratio;
+	unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
+	uint32_t optime;
+	struct timeval st, et;
 
-    unsigned char* cam_pbuf[4];
-    if(get_framebuf(cambuf, cam_pbuf) == 0) {
-        memcpy(srcbuf, cam_pbuf[0], VPE_OUTPUT_W*VPE_OUTPUT_H*3);
+	unsigned char* cam_pbuf[4];
+	if(get_framebuf(cambuf, cam_pbuf) == 0) {
+		memcpy(srcbuf, cam_pbuf[0], VPE_OUTPUT_W*VPE_OUTPUT_H*3);
 
-        gettimeofday(&st, NULL);
-        
-        laneDetection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H, &angle, &ratio); //get angle value from laneDetection()
+		gettimeofday(&st, NULL);
+
+		laneDetection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H, &angle, &ratio); //get angle value from laneDetection()
 
 
-        gettimeofday(&et, NULL);
-        optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
-        draw_operatingtime(disp, optime);
-    }
+		gettimeofday(&et, NULL);
+		optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
+		draw_operatingtime(disp, optime);
+	}
 	*steer = angle;
-    /** *speed = 130 *ratio; */
-    *speed = 100;//test
+	*speed = 130 *ratio; 
+	*speed = 100;//test
 }
 
 static char* passing_master(struct display *disp, struct buffer *cambuf, void *arg){
