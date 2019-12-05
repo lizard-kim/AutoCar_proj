@@ -53,6 +53,12 @@
 #define DUMP_MSGQ_KEY           1020
 #define DUMP_MSGQ_MSG_TYPE      0x02
 
+// DY part
+#define FLAG_DYNAMIC_OBS 1
+#define DYNAMIC_OBS_START 25
+#define DYNAMIC_OBS_END 15
+//
+
 typedef enum {
     DUMP_NONE,
     DUMP_CMD,
@@ -135,7 +141,7 @@ struct thr_data {
 	int park;//jh for parking
     bool driving_flag_onoff; /// by dy: true면 주행중, false면 주행종료
     //double speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
-    bool stop_line; /// by dy: true 면 정지선 인식된거임
+    int stop_line; /// by dy: true 면 정지선 인식된거임
 };
 
 /** signed short real_speed = 0; */
@@ -158,6 +164,7 @@ void warmSensorTrigger();
 static struct thr_data* pexam_data = NULL;
 void signal_handler(int sig);
 int stopLine_detect(void); // 정지선 인식하는 함수 1이면 정지선 위, 0이면 아님 by Doyeon
+void dynamic_obs_ver2(); // 
 
 int main(int argc, char **argv)
 {
@@ -203,6 +210,9 @@ int main(int argc, char **argv)
 	tdata.mission_state = BEFORE_PASSING_OVER;
 	tdata.is_Traffic_Light = 0; // 1 is left 2 is right
 	tdata.is_Traffic_Light_for_traffic_light = 0; // 1 is red sign
+    tdata.stop_line = 0; // DY: stop line detected if first stop line is detected it will change to 1, second 2
+
+	// ---------------- init data structure end -------------------
 
     // init for using VPE hardware
     vpe = vpe_open(); if(!vpe) return 1;
@@ -326,7 +336,7 @@ int main(int argc, char **argv)
 		} 
 		/// start & highway
 		else if (data->mission_id == 2) {   } ///
-		else if (data->mission_id == 3) {/// 회전
+		else if (data->mission_id == 3 ) { /// DY mission
 			dynamic_obs_ver2(data->angle, data->speed, data->speed_ratio);
 		} 
 		else if (data->mission_id == 4) {/// 터널
@@ -662,14 +672,20 @@ void * capture_thread(void *arg)
 		data->I_data_4 = DistanceSensor(4);
 		data->O_data_4 = DistFunc(data->I_data_4);
 		// ---- end
+		
+         if (data->stop_line == 0) { // if stop line was never detected, it start to find stopline, if it detected once, it never executes stopLine function anymore
+            if (stopLine_detect() == 1) {
+                data->stop_line = 1;
+                data->mission_id = 3;
+            }
+        }
 
 		// ---- mission trigger
-		/** if(data->tunnelSignal == 1 && data->O_data_2 < 30) data->mission_id = 4;//tunnel */
-		/** if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;//parking */
-		/** if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 6;//parparking */
-		/** if(data->mission_state == BEFORE_PASSING_OVER && data->distance < 20) data->mission_id = 7;//passing master */
+		if(data->tunnelSignal == 1 && data->O_data_2 < 30) data->mission_id = 4;//tunnel
+		if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;//parking
+		if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 6;//parparking
+		if(data->mission_state == BEFORE_PASSING_OVER && data->distance < 20) data->mission_id = 7;//passing master
 		if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light
-
 
 // -------------------- image process by capt ----------------------------------
 		// ---- pky function
@@ -697,10 +713,9 @@ void * capture_thread(void *arg)
 		data->distance = distance_sensor();
 		printf("distance = 0x%04X(%d) \n", data->distance);
 
+// ------------------------ DY mission Trigger ---------------------------------------------
 		// -------------------- capt로 이미지 처리 ----------------------------------
-		if (stopLine_detect() == 1) data->stop_line = true;
-		else data->stop_line = false; /// 여기서 트루 되었다가 바로 false로 바뀌면 chot됨
-
+// ---------------------------------------------------------------------------------------
 		// 여기서 data->mission_state로 던져줍니다
 
 		if (data->mission_state == AUTO_DRIVE){
@@ -1042,6 +1057,36 @@ static char* passing_master(struct display *disp, struct buffer *cambuf, void *a
 
 }
 
+void dynamic_obs_ver2(void *arg) {
+
+    DesireSpeed_Write(0);
+    SteeringServoControl_Write(1500);
+    struct thr_data *data = (struct thr_data *)arg;
+
+    while (1) {
+            double front_dist = DistFunc(DistanceSensor(1));
+            if (front_dist < DYNAMIC_OBS_START) break;
+    }
+    /// go straight
+    DesireSpeed_Write(150);
+    usleep(2*1000*1000);
+
+    while (DistFunc(DistanceSensor(4)) > DYNAMIC_OBS_END) {} /// 뒤에서 차가 따라옴. Dynamic obs end 수치 이하일때
+
+
+    int a = 0;
+    while (a<100) { // lane tracing part
+        DesireSpeed_Write(data->speed);
+        SteeringServoControl_Write(data->angle);
+        usleep(1000); // in usleep, 1000 * 1000 is 1 second
+        a++;
+    }
+    Alarm_Write(ON);
+    usleep(1000*500); // mission is over alarm signal
+    Alarm_Write(OFF);
+}
+
+
 int stopLine_detect(void) { /// 1 if stopline detected: the car is on white line
     sensor = LineSensor_Read();
     int whitecount = 0;
@@ -1049,8 +1094,15 @@ int stopLine_detect(void) { /// 1 if stopline detected: the car is on white line
         if (!sensor) whitecount++;
         sensor = sensor << 1;
     }
+
     printf("\n");
     printf("whitecount: %d\n", whitecount);
-    if (whitecount > 3) return 1; /// white
+    if (whitecount > 2) {
+        Alarm_Write(ON);
+        usleep(1000*1000); // mission is over alarm signal
+        Alarm_Write(OFF);
+        printf("white stop line detect!");
+        return 1; /// white
+    }
     else return 0; /// black
 }
