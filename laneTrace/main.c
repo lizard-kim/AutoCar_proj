@@ -618,9 +618,12 @@ void * capture_thread(void *arg)
 		// ---- end
 
 		// ---- mission trigger
-        if (stopLine_detect() == 1 && data->stop_line == 0) { 
-            data->stop_line = 1;
-            data->mission_id = 3; } /// 여기서 트루 되었다가 바로 false로 바뀌면 chot됨
+         if (data->stop_line == 0) { // if stop line was never detected, it start to find stopline, if it detected once, it never executes stopLine function anymore
+            if (stopLine_detect() == 1) {
+                data->stop_line = 1;
+                data->mission_id = 3;
+            }
+        }
 
 		if(data->tunnelSignal == 1 && data->O_data_2 < 30) data->mission_id = 4;//tunnel
 		if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;//parking
@@ -1147,9 +1150,11 @@ static char* passing_master(struct display *disp, struct buffer *cambuf, void *a
 /**     } */
 /** } */
 
-void dynamic_obs_ver2(void) {
+void dynamic_obs_ver2(void *arg) {
+
     DesireSpeed_Write(0);
     SteeringServoControl_Write(1500);
+    struct thr_data *data = (struct thr_data *)arg;
 
     while (1) {
             double front_dist = DistFunc(DistanceSensor(1));
@@ -1174,6 +1179,7 @@ void dynamic_obs_ver2(void) {
     Alarm_Write(OFF);
 }
 
+
 int stopLine_detect(void) { /// 1 if stopline detected: the car is on white line
     sensor = LineSensor_Read();
     int whitecount = 0;
@@ -1181,8 +1187,15 @@ int stopLine_detect(void) { /// 1 if stopline detected: the car is on white line
         if (!sensor) whitecount++;
         sensor = sensor << 1;
     }
+
     printf("\n");
     printf("whitecount: %d\n", whitecount);
-    if (whitecount > 3) return 1; /// white
+    if (whitecount > 2) {
+        Alarm_Write(ON);
+        usleep(1000*1000); // mission is over alarm signal
+        Alarm_Write(OFF);
+        printf("white stop line detect!");
+        return 1; /// white
+    }
     else return 0; /// black
 }
