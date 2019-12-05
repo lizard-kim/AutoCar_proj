@@ -9,7 +9,7 @@ short speed;
 unsigned char gain;
 int position, posInit, posDes, posRead;
 short angle;
-int channel;
+int channel = 1;
 int tol;
 int data, distance; // distance 센서용
 int i, j;
@@ -79,8 +79,47 @@ void passing_go_back(){
     Alarm_Write(OFF);
     CarLight_Write(ALL_OFF);
 }
-
 void passing_left(){
+    DesireSpeed_Write(50);
+    Winker_Write(LEFT_ON);
+    SteeringServoControl_Write(2000);
+    usleep(2000000);
+    SteeringServoControl_Write(1100);
+    usleep(2000000);
+    Winker_Write(ALL_OFF);    
+}
+
+void passing_right(){
+    DesireSpeed_Write(50);
+    Winker_Write(RIGHT_ON);
+    SteeringServoControl_Write(1100);
+    usleep(2000000);
+    SteeringServoControl_Write(2000);
+    usleep(2000000);
+    Winker_Write(ALL_OFF);    
+}
+
+void passing_left_later(){
+    DesireSpeed_Write(-100);
+    usleep(500000);
+    DesireSpeed_Write(50);
+    SteeringServoControl_Write(1000);
+    usleep(2000000);
+    SteeringServoControl_Write(2000);
+    usleep(2000000);
+}
+
+void passing_right_later(){
+    DesireSpeed_Write(-100);
+    usleep(500000);
+    DesireSpeed_Write(50);
+    SteeringServoControl_Write(2000);
+    usleep(2000000);
+    SteeringServoControl_Write(1000);
+    usleep(2000000);
+}
+
+void passing_left2(){
     printf("왼쪽으로 가자!\n");
 
     SpeedControlOnOff_Write(CONTROL);
@@ -138,7 +177,7 @@ void passing_left(){
 }
 
 
-void passing_right(){
+void passing_right2(){
     printf("오른쪽으로 가자!\n");
 
     SpeedControlOnOff_Write(CONTROL);
@@ -265,7 +304,7 @@ void passing_go_back_later(){
     CarLight_Write(ALL_OFF);
 }
 
-void passing_right_later(){
+void passing_right_later2(){
     printf("오른쪽으로 가자!\n");
 
     SpeedControlOnOff_Write(CONTROL);
@@ -318,7 +357,7 @@ void passing_right_later(){
 }
 
 
-void passing_left_later(){
+void passing_left_later2(){
     printf("왼쪽으로 가자!\n");
 
     SpeedControlOnOff_Write(CONTROL);
@@ -370,9 +409,17 @@ void passing_left_later(){
     usleep(1500000);    
 }
 
-void stop(){
+void passing_stop(){
+    printf("멈춰!\n");
     angle = 1500;
     SteeringServoControl_Write(angle);
     speed = 0;
     DesireSpeed_Write(speed);
+
+    // 모드가 바뀔 때 빛과 소리가 납니다
+    CarLight_Write(ALL_ON);
+    Alarm_Write(ON);
+    usleep(100000);
+    Alarm_Write(OFF);
+    CarLight_Write(ALL_OFF);
 }

@@ -68,6 +68,7 @@ typedef struct _DumpMsg{
 //--koo structure
 typedef enum {
     AUTO_DRIVE,
+    HISTOGRAM_BACK_PROPAGATION,
     BEFORE_PASSING_OVER, // 추월차로 미션 전의 임의의 미션
     PASSING_OVER_LEFT,
     PASSING_OVER_RIGHT,
@@ -194,7 +195,7 @@ int main(int argc, char **argv)
     tdata.direction = "NONE"; // 추월 차로 진행 방향, left or right
     tdata.yellow_stop_line = "NONE"; // 정지선 인식 변수, 관형 추가
     tdata.white_stop_line = -1; // 정지선 인식 변수, 관형 추가
-	tdata.mission_state = BEFORE_PASSING_OVER;
+	tdata.mission_state = HISTOGRAM_BACK_PROPAGATION; // 여기서 mission_state를 HISTOGRAM_BACK_PROPAGATION로 설정함!!!
 
     // init for using VPE hardware
     vpe = vpe_open(); if(!vpe) return 1;
@@ -307,6 +308,8 @@ int main(int argc, char **argv)
     check_speed = DesireSpeed_Read();  
     printf("DesireSpeed_Read() = %d \n", check_speed); 
 
+    data->mission_id = 7; ////////////////////////////////////////////////미션 id 7로 설정////////////////////////////////////////////
+
     ////////////////////////////////////////////////////////// DY added /////////////////////////////////////////////////////////
 	while (true){
 		/** printf("mission_id = %d\n", data->mission_id); */
@@ -386,7 +389,6 @@ int main(int argc, char **argv)
 			switch(data->mission_state){//[TODO] what is initial mission_state?
 				// 기본주행 모드
 				case AUTO_DRIVE : 
-					/** while(distance_sensor > 8){ */
 					while(data->distance > 8){
 						DesireSpeed_Write(data->speed);
 						SteeringServoControl_Write(data->angle);
@@ -406,21 +408,21 @@ int main(int argc, char **argv)
 
 				case WAIT : 
 					// 규열이의 차선주행
-					DesireSpeed_Write(100);
+					DesireSpeed_Write(50);
 					SteeringServoControl_Write(1500);
 					printf("Speed : %d", DesireSpeed_Read());
-					usleep(1500000); // 이게 없으면 속력을 계속해서 주기 때문에 매우 낮은 속도로 감
+					//usleep(1500000); // 이게 없으면 속력을 계속해서 주기 때문에 매우 낮은 속도로 감
 
 				case PASSING_OVER_RETURN_RIGHT :
-					passing_go_back_later();
+					//passing_go_back_later();
 					passing_right_later();
 
 				case PASSING_OVER_RETURN_LEFT :
-					passing_go_back_later();
+					//passing_go_back_later();
 					passing_left_later();
 
 				case STOP :
-					stop();
+					passing_stop();
 					// 미션 끝
 			}
 
@@ -620,52 +622,67 @@ void * capture_thread(void *arg)
 // ----------------------- end of image process ----------------------------------
 
 // -------------------------koo mission trigger---------------------
-		// ---- 적외선 센서 ----
-		data->distance = distance_sensor();
-		printf("distance = 0x%04X(%d) \n", data->distance);
+		if (data->mission_id == 7){
+            // ---- 적외선 센서 ----
+            data->distance = distance_sensor();
+            printf("distance = 0x%04X(%d) \n", data->distance);
 
-		// -------------------- capt로 이미지 처리 ----------------------------------
-		if (stopLine_detect() == 1) data->stop_line = true;
-		else data->stop_line = false; /// 여기서 트루 되었다가 바로 false로 바뀌면 chot됨
+            // -------------------- capt로 이미지 처리 ----------------------------------
+            //if (stopLine_detect() == 1) data->stop_line = true;
+            //else data->stop_line = false; /// 여기서 트루 되었다가 바로 false로 바뀌면 chot됨
 
-		// 여기서 data->mission_state로 던져줍니다
+            // 여기서 data->mission_state로 던져줍니다
 
-		if (data->mission_state == AUTO_DRIVE){
-			/** data->angle = getSteeringWithLane(vpe->disp, capt); // 차선인식 <] */
-			/** data->speed = color_detection(vpe->disp, capt); */
-		}
+            if (data->mission_state == AUTO_DRIVE){
+                /** data->angle = getSteeringWithLane(vpe->disp, capt); // 차선인식 <] */
+                /** data->speed = color_detection(vpe->disp, capt); */
+            }
 
-		// 추월 미션 진입 트리거 원래 else if 라서 에러떴음
-		else if (data->mission_state == BEFORE_PASSING_OVER && data->distance < 20){
-			data->direction = passing_master(vpe->disp, capt, &data);
-			if (data->direction == "left")
-				data->mission_state = PASSING_OVER_LEFT;
-			else if (data->direction == "right")
-				data->mission_state = PASSING_OVER_RIGHT;
-			else if (data->direction == "fail")
-				data->mission_state = PASSING_OVER_LEFT; // 만일 역히스토그램 투영으로 방향을 도출해내지 못하면 왼쪽으로 간다고 설정
-		}
+            // 추월 미션 진입 트리거 원래 else if 라서 에러떴음
+            else if (data->mission_state == HISTOGRAM_BACK_PROPAGATION && data->distance < 50){
+                data->direction = passing_master(vpe->disp, capt, &data);
+                data->mission_state == BEFORE_PASSING_OVER;
+            }
 
-		// 추월 이후 정지선을 인식할 때까지 차선 인식
-		else if (data->mission_state == WAIT){ // WAIT은 불가피하게 main에서 바꾸어준다
-			/** data->angle = getSteeringWithLane(vpe->disp, capt); // 차선인식  <] */
-			/** data->speed = color_detection(vpe->disp, capt); */
-			data->yellow_stop_line = stop_line_detection(vpe->disp, capt, &data); // 정지선 인식하면 stop_line_recognition을 1로 return
-		}
+            else if (data->mission_state == BEFORE_PASSING_OVER && data->distance < 20){
+                if (data->direction == "left")
+                    data->mission_state = PASSING_OVER_LEFT;
+                else if (data->direction == "right")
+                    data->mission_state = PASSING_OVER_RIGHT;
+                else if (data->direction == "fail")
+                    data->mission_state = PASSING_OVER_LEFT; // 만일 역히스토그램 투영으로 방향을 도출해내지 못하면 왼쪽으로 간다고 설정
+            }           
 
-		// 정지선을 인식하면 다시 차로로 return
-		else if (data->mission_state == WAIT && data->yellow_stop_line == "stop"){
-			if (data->direction == "left" || data->direction == "fail")
-				data->mission_state = PASSING_OVER_RETURN_RIGHT;
-			else if (data->direction == "right")
-				data->mission_state = PASSING_OVER_RETURN_LEFT;
-		}
+            // 추월 이후 정지선을 인식할 때까지 차선 인식
+            else if (data->mission_state == WAIT){ // WAIT은 불가피하게 main에서 바꾸어준다
+                /** data->angle = getSteeringWithLane(vpe->disp, capt); // 차선인식  <] */
+                /** data->speed = color_detection(vpe->disp, capt); */
+                data->yellow_stop_line = stop_line_detection(vpe->disp, capt, &data); // 정지선 인식하면 stop_line_recognition을 1로 return
 
-		else if (data->mission_state == PASSING_OVER_RETURN_RIGHT || data->mission_state == PASSING_OVER_RETURN_LEFT){
-			data->white_stop_line = line_trace_sensor();
-			if (data->white_stop_line == 0) // 0이면 흰색, 1이면 검은색 -> 흰색인 정지선을 만날 때 멈추어야 한다
-				data->mission_state = STOP;
-		}
+            }
+
+            // 정지선을 인식하면 다시 차로로 return
+            else if (data->mission_state == WAIT && data->yellow_stop_line == "stop"){
+                // 정지선 인식 신호
+                CarLight_Write(ALL_ON);
+                Alarm_Write(ON);
+                usleep(100000);
+                Alarm_Write(OFF);
+                CarLight_Write(ALL_OFF);
+
+                if (data->direction == "left" || data->direction == "fail")
+                    data->mission_state = PASSING_OVER_RETURN_RIGHT;
+                else if (data->direction == "right")
+                    data->mission_state = PASSING_OVER_RETURN_LEFT;
+            }
+
+            else if (data->mission_state == PASSING_OVER_RETURN_RIGHT || data->mission_state == PASSING_OVER_RETURN_LEFT){
+                data->white_stop_line = line_trace_sensor();
+                if (data->white_stop_line == 0) // 0이면 흰색, 1이면 검은색 -> 흰색인 정지선을 만날 때 멈추어야 한다
+                    data->mission_state = STOP;
+            }
+
+        }
 //--------------------------koo mission trigger end-----------
 
 		// input video data to disp_buf

@@ -10,4 +10,4 @@ int line_trace_sensor();
 void passing_go_back_later();
 void passing_right_later();
 void passing_left_later();
-void stop();
+void passing_stop();
