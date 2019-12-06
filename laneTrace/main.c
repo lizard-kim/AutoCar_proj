@@ -185,7 +185,7 @@ int main(int argc, char **argv)
     memset(tdata.dump_img_data, 0, sizeof(tdata.dump_img_data)); // dump data를 0으로 채워서 초기화
 
 	//init data struct
-	tdata.mission_id = 8; // 0 is basic driving 1 is for testing
+	tdata.mission_id = 0; // 0 is basic driving 1 is for testing
     tdata.driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
     tdata.pre_angle = 0;
     tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
@@ -204,7 +204,7 @@ int main(int argc, char **argv)
 	tdata.O_data_2 = 0;
 	tdata.O_data_3 = 0;
 	tdata.O_data_4 = 0;
-	tdata.after_passing = 1; //0 is initial value, 1 is finished
+	tdata.after_passing = 0; //0 is initial value, 1 is finished
     tdata.direction = "NONE"; // 추월 차로 진행 방향, left or right
     tdata.yellow_stop_line = "NONE"; // 정지선 인식 변수, 관형 추가
     tdata.white_stop_line = -1; // 정지선 인식 변수, 관형 추가
@@ -327,12 +327,11 @@ int main(int argc, char **argv)
     check_speed = DesireSpeed_Read();  
     printf("DesireSpeed_Read() = %d \n", check_speed); 
 
-    data->mission_id = 7; ////////////////////////////////////////////////미션 id 7로 설정////////////////////////////////////////////
-
     ////////////////////////////////////////////////////////// DY added /////////////////////////////////////////////////////////
 	while (true){
 		/** printf("mission_id = %d\n", data->mission_id); */
 		printf("mission_id: %d\n", data->mission_id);
+		printf("distance value %d\n", data->distance);
 
 		if (data->mission_id == 1) {//test driving
 			/** DesireSpeed_Write(100); */
@@ -676,19 +675,19 @@ void * capture_thread(void *arg)
 		data->O_data_4 = DistFunc(data->I_data_4);
 		// ---- end
 		
-         if (data->stop_line == 0) { // if stop line was never detected, it start to find stopline, if it detected once, it never executes stopLine function anymore
-            if (stopLine_detect() == 1) {
-                data->stop_line = 1;
-                data->mission_id = 3;
-            }
-        }
-
 		// ---- mission trigger
-		if(data->tunnelSignal == 1 && data->O_data_2 < 30) data->mission_id = 4;//tunnel
-		if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;//parking
-		if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 6;//parparking
-		if(data->mission_state == HISTOGRAM_BACK_PROPAGATION && data->distance < 50) data->mission_id = 7;//passing master
-		if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light
+		/** if (data->stop_line == 0) { // if stop line was never detected, it start to find stopline, if it detected once, it never executes stopLine function anymore */
+		/**     if (stopLine_detect() == 1) { */
+		/**         data->stop_line = 1; */
+		/**         data->mission_id = 3; */
+		/**     } */
+		/** } */
+        /**  */
+		/** if(data->tunnelSignal == 1 && data->O_data_2 < 30) data->mission_id = 4;//tunnel */
+		/** if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 5;//parking */
+		/** if(data->parParkingSignal_2 == 1 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30) data->mission_id = 6;//parparking */
+		/** if(data->mission_state == HISTOGRAM_BACK_PROPAGATION && data->distance < 50) data->mission_id = 7;//passing master */
+		/** if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light */
 
 // -------------------- image process by capt ----------------------------------
 		// ---- pky function

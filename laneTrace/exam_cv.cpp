@@ -563,7 +563,7 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 		}
 	}  
 	srcRGB = img_result;
-	resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+	// resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
 	return is_Traffic_Light;
 }
