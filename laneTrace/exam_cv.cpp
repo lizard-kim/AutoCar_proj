@@ -294,7 +294,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	int high_hue = hue + 210;//make limit
 	int low_hue1 = 0, low_hue2 = 0;
 	int high_hue1 = 0, high_hue2 = 0;
-	printf("hue = %d, low_hue = %d\n", hue, low_hue);
+	// printf("hue = %d, low_hue = %d\n", hue, low_hue);
 
 	MakeLimit(low_hue, low_hue1, low_hue2, high_hue, high_hue1, high_hue2, range_count);//make limit of hue value
 
