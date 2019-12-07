@@ -191,7 +191,7 @@ int main(int argc, char **argv)
 	int start_sig = 0;
 
 	//init data struct
-	tdata.mission_id = 1; // 0 is basic driving 1 is for testing
+	tdata.mission_id = 0; // 0 is basic driving 1 is for testing
     tdata.driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
     tdata.pre_angle = 0;
     tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
@@ -1356,10 +1356,10 @@ int stopLine_detect(void) { /// 1 if stopline detected: the car is on white line
 
     printf("\n");
     printf("whitecount: %d\n", whitecount);
-    if (whitecount > 6) {
-        Alarm_Write(ON);
-        usleep(1000*1000); // mission is over alarm signal
-        Alarm_Write(OFF);
+    if (whitecount > 5) {
+		/** Alarm_Write(ON); */
+		/** usleep(1000*1000); // mission is over alarm signal */
+		/** Alarm_Write(OFF); */
         printf("white stop line detect!");
         return 1; /// white
     }
