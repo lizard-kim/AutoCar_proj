@@ -401,7 +401,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
         // cout << "fuck5" << endl;
         // *****조향각 계산
         // 방향벡터 계산
-        Point2d direction(des.x - (double)new_width/2, des.y - (new_height * 10/10));
+        Point2d direction(des.x - (double)new_width/2, des.y - (new_height * 14/10));
         // Point2d direction(des.x - (double)new_width/2, des.y - (new_height * 10/10 + 2/10 * (new_height - cen.y)));
         // Point2d direction(des.x - (double)new_width/2, des.y - lane_bot.y);
         double direction_norm = sqrt((pow(direction.x, 2) + pow(direction.y, 2)));
@@ -415,11 +415,11 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
         // steer = angle;
         // cout << "steer : " << steer << endl;
 
-        if (abs(angle) < 20) {
+        if (abs(angle) < 50) {
             ratio = 1;
         }
-        else if (abs(angle) < 30) {
-            ratio = 0.7;
+        else if (abs(angle) >= 50) {
+            ratio = 0.5;
         }
         else if (abs(angle) < 40) {
             ratio = 0.5;
@@ -457,7 +457,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
     // cout << "steer : " << steer << endl;
 
     srcRGB = frame_show;
-    // cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+	// cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
     // cout << "fuck7" << endl;
 
     // if (ratio > 0) ratio = ratio * pow(cos(steer*CV_PI/180), 1);

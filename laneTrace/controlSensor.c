@@ -333,7 +333,6 @@ void parking()
 }
 
 
-
 void parparking()
 {
     DesireSpeed_Write(100);
@@ -347,6 +346,8 @@ void parparking()
     I_data_3 = DistanceSensor(3);
     int I_data_5 = DistanceSensor(5);
     int O_data_5 = DistFunc(I_data_5);
+    int tmpdist_1 =  0;
+    int tmpdist = 0;
     O_data_2 = DistFunc(I_data_2);
     O_data_3 = DistFunc(I_data_3);
 
@@ -355,7 +356,13 @@ void parparking()
     //printf("ParkingSignal = %d\n", ParkingSignal_1);
     printf("O_data_2 : %d\n", O_data_2);
     printf("O_data_3 : %d\n", O_data_3);
-    usleep(180000);
+    tmpdist_1 = O_data_2;
+    if(tmpdist_1 >= 15)
+    {
+        tmpdist = tmpdist_1;
+    }
+    usleep(210000+(tmpdist*5000));
+    
     DesireSpeed_Write(0);
     //printf("Parking Start!!\n");
     usleep(500000);
@@ -363,24 +370,24 @@ void parparking()
     SteeringServoControl_Write(1000);
     //printf("Steering..\n.");
     EncoderCounter_Write(0);
-    DesireSpeed_Write(-100);
-    usleep(1400000);
+    DesireSpeed_Write(-50);
+    usleep(1300000+(tmpdist*5000));
     
     int posRead_1 = EncoderCounter_Read();
     printf("EncoderCounter_Read() = %d\n", posRead_1);
 
     printf("-600 reached\n");
     SteeringServoControl_Write(1500);
-    usleep(3800000);
+    usleep(1800000);
 
     printf("-800 reached\n");
     SteeringServoControl_Write(2000);
 
     while(1)
     {
-        if(DistFunc(DistanceSensor(4)) > 8)
+        if(DistFunc(DistanceSensor(4)) > 7 && DistFunc(DistanceSensor(3)) > 4)
         {
-            DesireSpeed_Write(-100);
+            DesireSpeed_Write(-80);
         }
         else
         {
@@ -390,6 +397,7 @@ void parparking()
     }
 
     SteeringServoControl_Write(1500);
+    
     while(1)
     {
         int posRead_1 = DistFunc(DistanceSensor(4));
@@ -415,30 +423,31 @@ void parparking()
     */
 
     SteeringServoControl_Write(1999);
-    DesireSpeed_Write(100);
-    usleep(500000);
+    DesireSpeed_Write(80);
+    usleep(300000);
     printf("step 1...\n");
 
     SteeringServoControl_Write(1500);
-    DesireSpeed_Write(-100);
-    usleep(600000);
+    DesireSpeed_Write(-80);
+    usleep(300000);
     printf("step 1...\n");
 
     SteeringServoControl_Write(1999);
-    DesireSpeed_Write(100);
-    usleep(1600000);
+    DesireSpeed_Write(80);
+    usleep(700000);
     printf("step 1...\n");
 
     SteeringServoControl_Write(1500);
-    usleep(700000);
+    usleep(500000);
 
     SteeringServoControl_Write(1000);
-    usleep(2000000);
+    usleep(1300000);
     printf("step 2...\n");
 
     SteeringServoControl_Write(1500);
 
     printf("Basic Mode is ready...Parking finished..!!!\n");
+    printf("tmpdist : %d\n", tmpdist);
     DesireSpeed_Write(0); //E-Stop;
     parParkingSignal_1 = 0;
     CarLight_Write(ALL_OFF);
@@ -446,3 +455,4 @@ void parparking()
     //return 0;
         
 }
+
