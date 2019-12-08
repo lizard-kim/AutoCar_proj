@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 //koo
-bool pixel_detector(Mat image, char* order);
+bool pixel_detector(Mat image);
 Mat pre_histogram_backprojection(unsigned char* srcBuf, int iw, int ih);
 char* histogram_backprojection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh, Mat hist);
 char* stop_line_detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh);

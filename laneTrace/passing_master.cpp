@@ -24,60 +24,95 @@ using namespace cv;
 extern "C" {
 #endif
 
-bool pixel_detector(Mat image, char* order){
+bool pixel_detector(Mat image){
 	int count = 0;
-    if(order == "first") {
-        for(int j = (2*(image.rows))/3; j < image.rows; j++){
+    int count1 = 0;
+    int count2 = 0;
+    for(int j = 140; j < 170; j++){
             uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
-            for(int i = 0; i < (image.cols)/3; i++){
+            for(int i = 0; i < 100; i++){
                 //cout << "(" << i << ", " << j << ") " << "pixel 값 : " << int(pointer[i]) << endl;
                 if(int(pointer[i]) == 255) count ++;
                 pointer[i]++;
             }
 	    }
-    }
-    else if(order == "second"){
-        for(int j = (2*(image.rows))/3; j < image.rows; j++){
+        cout << " <<<<<<<<<<<<<<<<<< count 값 : " << count << endl;
+    for(int j = 140; j < 170; j++){
             uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
-            for(int i = image.cols/3; i < (2*image.cols)/3; i++){
+            for(int i = 120; i < 200; i++){
                 //cout << "(" << i << ", " << j << ") " << "pixel 값 : " << int(pointer[i]) << endl;
-                if(int(pointer[i]) == 255) count ++;
+                if(int(pointer[i]) == 255) count1 ++;
                 pointer[i]++;
             }
 	    }
-    }
-    else if(order == "third"){
-        for(int j = (2*(image.rows))/3; j < image.rows; j++){
+        cout << "<<<<<<<<<<<<<<<<<<  count1 값 : " << count1 << endl;
+    for(int j = 140; j < 180; j++){
             uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
-            for(int i = (2*image.cols)/3; i < image.cols; i++){
+            for(int i = 220; i < 320; i++){
                 //cout << "(" << i << ", " << j << ") " << "pixel 값 : " << int(pointer[i]) << endl;
-                if(int(pointer[i]) == 255) count ++;
+                if(int(pointer[i]) == 255) count2 ++;
                 pointer[i]++;
             }
 	    }
-    }
-	
-	cout << "count 값 : " << count << endl;
-	return count > 1000 ? true : false;
+        cout << "<<<<<<<<<<<<<<<<<<  count2 값 : " << count2 << endl;
+
+    // if(order == "first") {
+    //     for(int j = 140; j < 170; j++){
+    //         uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
+    //         for(int i = 0; i < 100; i++){
+    //             //cout << "(" << i << ", " << j << ") " << "pixel 값 : " << int(pointer[i]) << endl;
+    //             if(int(pointer[i]) == 255) count ++;
+    //             pointer[i]++;
+    //         }
+	//     }
+    //     cout << "count 값 : " << count << endl;
+    // }
+    // else if(order == "second"){
+    //     for(int j = 140; j < 170; j++){
+    //         uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
+    //         for(int i = 120; i < 200; i++){
+    //             //cout << "(" << i << ", " << j << ") " << "pixel 값 : " << int(pointer[i]) << endl;
+    //             if(int(pointer[i]) == 255) count1 ++;
+    //             pointer[i]++;
+    //         }
+	//     }
+    //     cout << "count1 값 : " << count1 << endl;
+    // }
+    // else if(order == "third"){
+    //     for(int j = 140; j < 180; j++){
+    //         uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
+    //         for(int i = 220; i < 320; i++){
+    //             //cout << "(" << i << ", " << j << ") " << "pixel 값 : " << int(pointer[i]) << endl;
+    //             if(int(pointer[i]) == 255) count2 ++;
+    //             pointer[i]++;
+    //         }
+	//     }
+    //     cout << "count2 값 : " << count2 << endl;
+    // }
+	return abs(count - count1) > abs(count1 - count2) ? false : true; // false이면 오른쪽, true이면 왼쪽으로, 값이 같아도 왼쪽으로
 }
 
+
 Mat pre_histogram_backprojection(unsigned char* srcBuf, int iw, int ih){
-    
-    //Mat srcImage(ih, iw, CV_8UC3, srcBuf);
-    Mat srcImage = imread("overroad2.jpg", IMREAD_COLOR); // 이게 기준값!
+    //Mat srcImage = imread("capture.png", IMREAD_COLOR); // 이게 기준값!
+    Mat srcImage(ih, iw, CV_8UC3, srcBuf);
     //if (srcImage.empty())
-	//	return ; 
-    cout << "이미지 높이 ih : \n" << ih << endl; 
-    cout << "이미지 너비 iw : \n" << iw << endl;
-    cout << "이미지의 크기는 : " << srcImage.cols << " " << srcImage.rows << endl;
-    resize(srcImage, srcImage, Size(srcImage.cols/5, srcImage.rows/5));
+	//	return ;
+    resize(srcImage, srcImage, Size(320, 180));
+    Mat srcImage2 = srcImage.clone(); // 여기에 사각형을 그리자 (시각화)
+    cout << "srcImage size(cols, rows) : " << srcImage.cols << " " << srcImage.rows << endl;
     Mat hsvImage;
     cvtColor(srcImage, hsvImage, COLOR_BGR2HSV);
-    //Rect roi(Point(480, 570), Point(495, 585));
-    Rect roi(Point( (1/2)*iw - 20, ih - 30), Point( (1/2)*iw + 20, ih - 10));
-    rectangle(srcImage, roi, Scalar(0, 0, 255), 2);  
+    //Rect roi1(Point(0, 140), Point(80, 170));
+    Rect roi(Point(120, 140), Point(200, 170));
+    //Rect roi3(Point(220, 140), Point(320, 170));
+    //rectangle(srcImage2, roi1, Scalar(0, 0, 255), 2);
+    rectangle(srcImage2, roi, Scalar(0, 0, 255), 2);
+    //rectangle(srcImage, roi3, Scalar(0, 0, 255), 2);
     Mat roiImage = hsvImage(roi);
-
+    //imshow("srcImage_pre", srcImage2);
+    //waitKey(0);
+    
     int histSize = 256;
 	float hValue[] = { 0, 256 };
     float sValue[] = { 0, 256 };
@@ -86,16 +121,17 @@ Mat pre_histogram_backprojection(unsigned char* srcBuf, int iw, int ih){
 	int channels[] = {0, 1, 2};
 	int dims = 3; // dimenstion 차원
 
-	Mat hist;
+	Mat hist, hist2;
+    cout << "what.." << endl;
 	calcHist(&roiImage, 1, channels, Mat(), hist, dims, &histSize, ranges); //관심 영역을 히스토그램 계산
+    //cout << "this is hist value" << double(hist.at<uchar>(5,5)) << endl << endl;
+    cout << "hist.cols : " << hist.cols << "hist.rows : " << hist.rows << endl;
     return hist;
-    //passing->hist
-    //passing pre;
-    //struct pass pre;
 }
 
 char* histogram_backprojection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh, Mat hist)
-{  
+{   
+    cout << "srcBuf real size(ih, iw) : " << ih << " " << iw << " << in histogram_backprojection" << endl; 
     Mat dstRGB(nh, nw, CV_8UC3, outBuf); // 나중에 
     //Mat srcRGB(ih, iw, CV_8UC3, srcBuf); // 이미지 받아오기
     Mat srcImage(ih, iw, CV_8UC3, srcBuf);
@@ -113,7 +149,7 @@ char* histogram_backprojection(unsigned char* srcBuf, int iw, int ih, unsigned c
 		cout << "이미지 인식 실패\n" << endl;
         return "fail";//fail
     cout << "이미지의 크기는 : " << srcImage.cols << " " << srcImage.rows << endl;
-    resize(srcImage, srcImage, Size(srcImage.cols/5, srcImage.rows/5));
+    //resize(srcImage, srcImage, Size(srcImage.cols/5, srcImage.rows/5));
    
     cvtColor(srcImage, hsvImage, COLOR_BGR2HSV); //히스토그램은 밝기값을 통해 계산하기 때문에
 												 //RGB 영상을 HSV 영상으로 바꾼 후 H 채널만 분리하도록 한다.
@@ -132,53 +168,83 @@ char* histogram_backprojection(unsigned char* srcBuf, int iw, int ih, unsigned c
 
     cv::resize(srcImage, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
-    bool answer = pixel_detector(backProject2, "first"); // 여기서 pixet_detector 함수 사용
-    cout << "첫번째 탐지" << endl;
-	if(answer == 1) cout << "장애물 감지!!" << endl;
-	else cout << "감지되지 않았습니다" << endl;
+    bool answer = pixel_detector(backProject2); // 여기서 pixet_detector 함수 사용
+    cout << "start pixel detector!!! " << endl;
 
-    cout << "두번째 탐지" << endl;
-	bool answer2 = pixel_detector(backProject2, "second");
-	if(answer2 == 1) cout << "장애물 감지!!" << endl;
-	else cout << "감지되지 않았습니다" << endl;
+     // false이면 오른쪽, true이면 왼쪽으로
 
-    bool answer3 = pixel_detector(backProject2, "third");
-	if(answer3 == 1) cout << "장애물 감지!!" << endl;
-	else cout << "감지되지 않았습니다" << endl;
-
-    if(answer == 0 && answer2 == 1 && answer3 == 1){
-        return "left"; //left
+    //bool answer = pixel_detector(backProject2);
+    if(answer == false){
+        return "right";
+        cout << "--------------right--------------" << endl;
     }
-    else if(answer == 1 && answer2 == 1 && answer3 == 0){
-        return "right"; //right
+    else if (answer == true){
+        return "left";
+        cout << "--------------left---------------" << endl;
     }
-    else return "fail"; //fail
+
+    // cout << "두번째 탐지" << endl;
+	// bool answer2 = pixel_detector(backProject2, "second");
+	// if(answer2 == 1) cout << "장애물 감지!!" << endl;
+	// else cout << "감지되지 않았습니다" << endl;
+
+    // bool answer3 = pixel_detector(backProject2, "third");
+	// if(answer3 == 1) cout << "장애물 감지!!" << endl;
+	// else cout << "감지되지 않았습니다" << endl;
+
+    // if(answer == 0 && answer2 == 1 && answer3 == 1){
+    //     return "left"; //left
+    // }
+    // else if(answer == 1 && answer2 == 1 && answer3 == 0){
+    //     return "right"; //right
+    // }
+    // else return "fail"; //fail
 }
 
 char* stop_line_detection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
 {  
+
+    Mat dstRGB(nh, nw, CV_8UC3, outBuf);
+    Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
+    Mat resRGB(ih, iw, CV_8UC3);
+
+
     //Mat image_ori = imread("stop_line.jpg"); // 7개
     Mat image_ori(ih, iw, CV_8UC3, srcBuf);
     //Mat image_ori = imread("stop_line_2.jpg"); // 7개
     //Mat image_ori = imread("stop_line_3.jpg"); // 24개 - 가까워지면
-    Mat image(ih, iw, CV_8UC3);
+    cout << "111111111111111111111" << endl;
+    Mat image;
 
-    resize(image_ori, image_ori, Size(320, 180), 0, 0, CV_INTER_LINEAR);
+    cout << "aaaaaaaaaaaa size : " << image_ori.cols << " " << image_ori.rows << endl;
+    cout << "aaaaaaaaaaaa size2 : " << ih << " " << iw << endl;
+
+    //resize(image_ori, image_ori, Size(320, 180), 0, 0, CV_INTER_LINEAR);
+
+    cout << "111111111111111111111" << endl;
 
     // 1. grayscale로 바꾸어 줍니다
     cvtColor(image_ori, image, CV_RGB2GRAY);
+
+    cout << "111111111111111111111" << endl;
 
     // 2. local averaging을 실행합니다. 이것은 gaussian blur와는 다릅니다
     Mat image_blur;
     blur(image, image_blur, Size(5,5));
 
+    cout << "111111111111111111111" << endl;
+
     // 3. canny edge 함수를 사용해서 외곽선을 추출합니다
     Mat image_canny;
     Canny(image_blur, image_canny, 50, 150);
 
+    cout << "111111111111111111111" << endl;
+
     // 3-2. sobel filter 함수를 사용해서 외곽선을 추출합니다
     Mat image_sobel;
-    Sobel(image_blur, image_sobel, CV_8U, 0, 1);
+    Sobel(image_blur, image_sobel, CV_8UC1, 0, 1);
+
+    cout << "2222222222222222222222" << endl;
 
     // 4. ROI를 설정합니다
     //Rect rect(image_canny.rows, image_canny.cols*3/4, image_canny.rows, image_canny.cols/2);
@@ -203,6 +269,9 @@ char* stop_line_detection(unsigned char* srcBuf, int iw, int ih, unsigned char* 
     double minLineLength = 20; // 직선을 구성하는 픽셀의 최소 길이
     double maxLineGap = 10; // 이걸 작게 설정하면 기울기가 0보다 큰 직선들이 검출된다.. 왜일까?
 
+    cout << "2222222222222222222222" << endl;
+
+
     HoughLinesP(image_canny, lines, rho, theta, hough_threshold, minLineLength, maxLineGap);
     for (int i=0; i<lines.size(); i++){
         Vec4i L = lines[i];
@@ -218,6 +287,7 @@ char* stop_line_detection(unsigned char* srcBuf, int iw, int ih, unsigned char* 
     dilate(image_canny, dilated, mask, cv::Point(-1, -1), 3);
     //cvtColor(dilated, dilated_gray, COLOR_BGR2GRAY);
 
+    cout << "2222222222222222222222" << endl;
 
     // 7. 다시 허프변환을 통해 외곽선 중 직선을 검출합니다
     HoughLinesP(dilated, lines_two, rho, theta, hough_threshold, minLineLength, maxLineGap);
@@ -232,6 +302,8 @@ char* stop_line_detection(unsigned char* srcBuf, int iw, int ih, unsigned char* 
     //     Vec4i L2 = lines_2[i];
     //     line(image_empty_2, Point(L2[0],L2[1]), Point(L2[2],L2[3]), Scalar(0,0,255), 1, LINE_AA);
     // }
+    cout << "2222222222222222222222" << endl;
+
 
     // 8. 검출한 line 의 기울기를 구하고, 기울기가 10도 이상 낮은 직선을 filtering 합니다
     double slope_threshold = 0.005;
@@ -258,6 +330,8 @@ char* stop_line_detection(unsigned char* srcBuf, int iw, int ih, unsigned char* 
             cout << "x1, y1, x2, y2 = " << x1 << " " << y1 << " " << x2 << " " << y2 << " " << endl;
         }
     }
+    cout << "2222222222222222222222" << endl;
+
 
     // 9. 기울기가 0.2보다 직선을 검출한 그림을 imshow 합니다
     Mat image_empty_3(Size(image_ori.cols, image_ori.rows/2), CV_8UC3, Scalar(0,0,0));
@@ -271,12 +345,17 @@ char* stop_line_detection(unsigned char* srcBuf, int iw, int ih, unsigned char* 
         cout << "slopes : " << slopes[i] << " ";
     }
 
-    if (new_lines.size()>10){
+    srcRGB = image_empty_3;
+    resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+
+    if (new_lines.size()>5){
+        cout << "return valuse is stop in passing_master.cpp" << endl;
         return "stop";
     }
-
-    return "go";
     
+    cout << "return value is go in passing_master.cpp" << endl;
+    return "go";
+    cout << "2222222222222222222222" << endl;
     //namedWindow("image");
     //imshow("image", image);
     //imshow("image_blur", image_blur);
@@ -287,7 +366,10 @@ char* stop_line_detection(unsigned char* srcBuf, int iw, int ih, unsigned char* 
     //imshow("image_hough_2", image_empty_2);
     //imshow("image_slope", image_empty_3);
     cout << "cols, rows : " << image_empty.cols << ", " << image_empty.rows << endl;
-    waitKey(0);
+    //waitKey(0);
+
+    //srcRGB = image_empty_3;
+    //resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
     return 0;
 
 }
