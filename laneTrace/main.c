@@ -57,10 +57,9 @@
 #define DUMP_MSGQ_MSG_TYPE      0x02
 
 // DY part
-#define FLAG_DYNAMIC_OBS 1
-#define DYNAMIC_OBS_START 25
+#define DYNAMIC_OBS_START 15
 #define DYNAMIC_OBS_END 15
-#define DYNAMIC_OBS_WAIT 30
+#define DYNAMIC_OBS_WAIT 25
 //
 
 typedef enum {
@@ -353,20 +352,20 @@ int main(int argc, char **argv)
 		/** printf("mission_id: %d\n", data->mission_id); */
 
 		if (data->mission_id == 1) {//test driving
-			DesireSpeed_Write(100);
+			//DesireSpeed_Write(100);
 			/** usleep(1000000); */
 		} 
 		/// start & highway
-		else if (data->mission_id == 2) {   } ///
+		//else if (data->mission_id == 2) {   } ///
 		else if (data->mission_id == 3 ) { /// DY mission
 			dynamic_obs_ver2(&tdata);
 		} 
 		else if (data->mission_id == 4) {/// 터널
 			if(data->tunnelSignal == 1 && data->O_data_2 < 30){
-				/** start_3 = clock(); */
+				// start_3 = clock();
 			}
 			if(data->O_data_2 < 30 && data->O_data_3 < 30){
-				/** tunnel_adv(); */
+				// tunnel_adv();
 			}
 		}  
 		else if (data->mission_id == 5) {//수직
@@ -374,11 +373,11 @@ int main(int argc, char **argv)
 				data->mission_id = 0;// test driving edit it to 0
 			} 
 		else if (data->mission_id == 6) {//수평주차
-			/** printf("juuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuun\n"); */
-			/** printf("juuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuun\n"); */
-			/** printf("juuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuun\n"); */
+			// printf("juuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuun\n");
+			// printf("juuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuun\n");
+			// printf("juuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuun\n");
 			parparking();
-			/** data->parParkingSignal_2 = 2; */
+			// data->parParkingSignal_2 = 2;
 			data->tunnelSignal = 1;
 			data->mission_id = 0;// test driving edit it to 0
 		} 
@@ -424,6 +423,7 @@ int main(int argc, char **argv)
 			}
 
 		} /// 추월
+        
 		else if (data->mission_id == 8) {//[TODO] 튜닝
 			camera_angle = 1500;//1650
 			CameraYServoControl_Write(camera_angle);    
@@ -645,7 +645,7 @@ void * capture_thread(void *arg)
 		capt = vpe->disp_bufs[index];
 		// ---- end
 
-		// ---- mission trigger
+		// ---- mission trigger by DY --------------------------------------------------------
 		//
 		if (data->stop_line_DY == 0) { // if stop line was never detected, it start to find stopline, if it detected once, it never executes stopLine function anymore
 			if (stopLine_detect() == 1) {
@@ -1305,42 +1305,72 @@ void dynamic_obs_ver2(void *arg) {
 
     DesireSpeed_Write(0);
     SteeringServoControl_Write(1500);
+    Alarm_Write(ON);
+	usleep(500*1000); // mission is over alarm signal */
+	Alarm_Write(OFF); //
     struct thr_data *data = (struct thr_data *)arg;
-
+    printf("I'm here00-------------------------\n ");
+    int testing;
     while (1) { /// 앞에서 차가 지나갈 때 까지 기다림
-            double front_dist = DistFunc(DistanceSensor(1));
-            if (front_dist < DYNAMIC_OBS_START) break;
+        usleep(1000*300);
+        if (data->O_data_1 < DYNAMIC_OBS_START) {
+            break;
         }
-    printf("I am here0---------------------------- \n");
-
-    while (1) {
-        double front_dist = data->O_data_1;
-        if (front_dist > DYNAMIC_OBS_WAIT) break;
+        
     }
-    usleep(100*1000); // after 1 second wait(until front car is go to far enough)
+    printf("I am here0----------------------------ver6 \n");
+    
+    while (1) {
+        usleep(1000*300);
+        //printf("here0 data: %d\n", data->O_data_1);
+        if (data->O_data_1 > DYNAMIC_OBS_WAIT) break;
+        
+    }
+    usleep(100*1000); // after 1/10 second wait(until front car is go to far enough)
     printf("I am here1---------------------------- \n");
     /// go straight
     DesireSpeed_Write(150);
-    usleep(1000*1000);
+    usleep(1200*1000);
 
     DesireSpeed_Write(0);  
     printf("I am here2---------------------------- \n");
-    while (DistFunc(DistanceSensor(4)) > DYNAMIC_OBS_END) {} /// 뒤에서 차가 따라옴. Dynamic obs end 수치 이하일때
+    while (1) {
+        usleep(1000*300);
+        //printf("here3 data: %d\n", data->O_data_4);
+        if (data->O_data_4 < DYNAMIC_OBS_END) break;
+    }
+    /// 뒤에서 차가 따라옴. Dynamic obs end 수치 이하일때
     printf("I am here3-------------------------- \n");
 
     int a = 0;
-    while (a<100) { // lane tracing part
+    double angle;
+    while (a<40) { // lane tracing part
+    	angle = 1500-(data->angle/50)*500;
+		angle = 0.5 * data->pre_angle + 0.5 * angle;
+		/** printf("tdata.speed = %d\n", data->speed);//error */
+		SteeringServoControl_Write(angle); 
+		data->pre_angle = angle;//???
         DesireSpeed_Write(data->speed);
-        SteeringServoControl_Write(data->angle);
-        usleep(1000*50); // in usleep, 1000 * 1000 is 1 second
+        usleep(1000*200);
+        //SteeringServoControl_Write(data->angle);
+        //printf("angle: %i\n", data->angle);
+        //usleep(1000*50); // in usleep, 1000 * 1000 is 1 second
+        
         a++; // [TODO] 대회장에서 규열이 함수가 충분히 원형교차로 빠져나올 수 있을 수준으로 a 컨트롤하기
     }
 
     printf("I am here4-----------------------------%d\n", a);
 
     SteeringServoControl_Write(1500);
-    DesireSpeed_Write(0);
+    DesireSpeed_Write(100);
     usleep(1000*1000); /// [TODO] 원형교차로 빠져나온 뒤 직선주행 잠깐 하기
+    Alarm_Write(ON);
+    usleep(500*1000);
+    Alarm_Write(OFF);
+    Alarm_Write(ON);
+    usleep(500*1000);
+    Alarm_Write(OFF);
+    data->mission_id = 10;
 }
 
 
@@ -1354,12 +1384,9 @@ int stopLine_detect(void) { /// 1 if stopline detected: the car is on white line
         sensor = sensor << 1;
     }
 
-    printf("\n");
-    printf("whitecount: %d\n", whitecount);
+    // printf("\n");
+    // printf("whitecount: %d\n", whitecount);
     if (whitecount > 5) {
-		/** Alarm_Write(ON); */
-		/** usleep(1000*1000); // mission is over alarm signal */
-		/** Alarm_Write(OFF); */
         printf("white stop line detect!");
         return 1; /// white
     }
