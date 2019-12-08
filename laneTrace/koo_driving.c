@@ -29,13 +29,20 @@ int distance_sensor(){
     int distance = 1;
     while(1){
         data = DistanceSensor(channel);
-        printf("channel = %d, distance = %d\n", channel, data);
         distance = distance_calculate(data);
+        printf("channel = %d, distance = %d\n", channel, distance);
         return distance;
     }
 }
 
 void passing_go_back(){
+    DesireSpeed_Write(-40);
+    Winker_Write(LEFT_ON);
+    usleep(600000);
+    Winker_Write(ALL_OFF);
+}
+
+void passing_go_back2(){
     printf("뒤로 가자!\n");
     SpeedControlOnOff_Write(CONTROL);
     speed = -100;

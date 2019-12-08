@@ -295,11 +295,6 @@ void parking()
             
             break;
         }
-    }
-    usleep(200000);
-    SteeringServoControl_Write(1500);
-    while(1)
-    {
         if(DistFunc(DistanceSensor(4)) > 8)
         {
             DesireSpeed_Write(-100);
