@@ -358,7 +358,7 @@ int main(int argc, char **argv)
 		/// start & highway
 		//else if (data->mission_id == 2) {   } ///
 		else if (data->mission_id == 3 ) { /// DY mission
-			dynamic_obs_ver2(&tdata);
+			dynamic_obs_ver3(&tdata);
 		} 
 		else if (data->mission_id == 4) {/// 터널
 			if(data->tunnelSignal == 1 && data->O_data_2 < 30){
@@ -1301,6 +1301,83 @@ void DistanceTest()
     usleep(50000);
 }
 
+void dynamic_obs_ver3(void *arg) {
+
+    DesireSpeed_Write(0);
+    SteeringServoControl_Write(1500);
+    Alarm_Write(ON);
+	usleep(500*1000); // mission is over alarm signal */
+	Alarm_Write(OFF); //
+    struct thr_data *data = (struct thr_data *)arg;
+    printf("I'm here00-------------------------\n ");
+    int testing;
+    while (1) { /// 앞에서 차가 지나갈 때 까지 기다림
+        usleep(1000*300);
+        if (data->O_data_1 < DYNAMIC_OBS_START) {
+            break;
+        }   
+    }
+    printf("I am here0----------------------------ver6 \n");
+    
+    while (1) {
+        usleep(1000*300);
+        //printf("here0 data: %d\n", data->O_data_1);
+        if (data->O_data_1 > DYNAMIC_OBS_WAIT) break;        
+    }
+
+    int a = 0;
+    double angle;
+    while (a<13) { // go straight with pky function
+    	angle = 1500-(data->angle/50)*500;
+		angle = 0.5 * data->pre_angle + 0.5 * angle;
+		/** printf("tdata.speed = %d\n", data->speed);//error */
+		SteeringServoControl_Write(angle); 
+		data->pre_angle = angle;
+        DesireSpeed_Write(data->speed);
+        usleep(1000*200);
+        //SteeringServoControl_Write(data->angle);
+        //printf("angle: %i\n", data->angle);
+        //usleep(1000*50); // in usleep, 1000 * 1000 is 1 second
+        
+        a++; // [TODO] 대회장에서 규열이 함수가 충분히 원형교차로 빠져나올 수 있을 수준으로 a 컨트롤하기
+    }
+
+    DesireSpeed_Write(0);  
+    printf("I am here2---------------------------- \n");
+    while (1) {
+        usleep(1000*300);
+        //printf("here3 data: %d\n", data->O_data_4);
+        if (data->O_data_4 < DYNAMIC_OBS_END) break;
+    }
+    /// 뒤에서 차가 따라옴. Dynamic obs end 수치 이하일때
+    printf("I am here3-------------------------- \n");
+
+    int b = 0;
+    double angle2;
+    while (b<40) { // lane tracing part
+    	angle2 = 1500-(data->angle/50)*500;
+		angle2 = 0.5 * data->pre_angle + 0.5 * angle2;
+		/** printf("tdata.speed = %d\n", data->speed);//error */
+		SteeringServoControl_Write(angle2); 
+		data->pre_angle = angle2;//???
+        DesireSpeed_Write(data->speed);
+        usleep(1000*200);
+        //SteeringServoControl_Write(data->angle);
+        //printf("angle: %i\n", data->angle);
+        //usleep(1000*50); // in usleep, 1000 * 1000 is 1 second
+        
+        b++; // [TODO] 대회장에서 규열이 함수가 충분히 원형교차로 빠져나올 수 있을 수준으로 a 컨트롤하기
+    }
+
+    printf("I am here4-----------------------------%d\n", a);
+    printf("ver 3\n");
+    usleep(1000*1000); /// [TODO] 원형교차로 빠져나온 뒤 직선주행 잠깐 하기
+    Alarm_Write(ON);
+    usleep(500*1000);
+    Alarm_Write(OFF);
+    data->mission_id = 10;
+}
+
 void dynamic_obs_ver2(void *arg) {
 
     DesireSpeed_Write(0);
@@ -1344,7 +1421,7 @@ void dynamic_obs_ver2(void *arg) {
 
     int a = 0;
     double angle;
-    while (a<40) { // lane tracing part
+    while (a<28) { // lane tracing part
     	angle = 1500-(data->angle/50)*500;
 		angle = 0.5 * data->pre_angle + 0.5 * angle;
 		/** printf("tdata.speed = %d\n", data->speed);//error */
@@ -1361,7 +1438,7 @@ void dynamic_obs_ver2(void *arg) {
 
     printf("I am here4-----------------------------%d\n", a);
 
-    SteeringServoControl_Write(1500);
+    SteeringServoControl_Write(1300);
     DesireSpeed_Write(100);
     usleep(1000*1000); /// [TODO] 원형교차로 빠져나온 뒤 직선주행 잠깐 하기
     Alarm_Write(ON);
