@@ -213,7 +213,7 @@ int main(int argc, char **argv)
 	tdata.O_data_2 = 0;
 	tdata.O_data_3 = 0;
 	tdata.O_data_4 = 0;
-	tdata.after_passing = 0; //0 is initial value, 1 is finished
+	tdata.after_passing = 1; //0 is initial value, 1 is finished
     tdata.direction = "NONE"; // 추월 차로 진행 방향, left or right
     tdata.yellow_stop_line = "NONE"; // 정지선 인식 변수, 관형 추가
     tdata.white_stop_line = -1; // 정지선 인식 변수, 관형 추가
@@ -353,7 +353,7 @@ int main(int argc, char **argv)
 	/** printf("start_sig : %d\n", start_sig); */
 
 	while (1){
-		/** printf("mission_id: %d\n", data->mission_id); */
+		printf("mission_id: %d\n", data->mission_id);
 		if (data->mission_id == 1) {//test driving
 			DesireSpeed_Write(100);
 			/** usleep(1000000); */
@@ -376,7 +376,7 @@ int main(int argc, char **argv)
 			data->tunnelSignal = 1;
 			data->mission_id = 0;// test driving edit it to 0
 		} 
-		else if (data->mission_id == 7) {//passing master
+		else if (data->mission_id == 7 && data->after_passing == 0) {//passing master
 			switch(data->mission_state){//[TODO] what is initial mission_state?
 				// 기본주행 모드
 				case AUTO_DRIVE : 
@@ -431,6 +431,7 @@ int main(int argc, char **argv)
                     break;
 				case STOP :
 					passing_stop();
+					data->after_passing = 1;
                     data->mission_state = BREAK;
                     break;
 			}
@@ -439,25 +440,30 @@ int main(int argc, char **argv)
 			camera_angle = 1500;//1650
 			CameraYServoControl_Write(camera_angle);    
 
-			printf("traffic mission!!!!\n");
-			printf("is_Traffic_Light : %d\n", data->is_Traffic_Light);
+			/** printf("traffic mission!!!!\n"); */
+			printf("main is_Traffic_Light : %d\n", data->is_Traffic_Light);
 			if(data->is_Traffic_Light_for_traffic_light == 0){
 				DesireSpeed_Write(0);
 				usleep(100000);
 			}
 			else if(data->is_Traffic_Light_for_traffic_light == 1 && data->is_Traffic_Light == 0){
 				Alarm_Write(ON);
+
+				SteeringServoControl_Write(1500); 
 				usleep(100000);
 				Alarm_Write(OFF);
-				usleep(10000000);
+				usleep(100000);
 				DesireSpeed_Write(80);
 				usleep(1000000);
 				DesireSpeed_Write(0);
+				usleep(100000);
+				data->is_Traffic_Light_for_traffic_light = 2;
 				/** break; */
 			}
 
-			else if(data->is_Traffic_Light_for_traffic_light == 1 && data->is_Traffic_Light == 1){
+			else if(data->is_Traffic_Light_for_traffic_light >= 1 && data->is_Traffic_Light == 1){
 				//go left
+				printf("go left\n");
 				DesireSpeed_Write(-200);
 				usleep(1000000);
 
@@ -477,8 +483,9 @@ int main(int argc, char **argv)
 				Alarm_Write(OFF);
 				/** break; */
 			}
-			else if(data->is_Traffic_Light_for_traffic_light == 1 && data->is_Traffic_Light == 2){
+			else if(data->is_Traffic_Light_for_traffic_light >= 1 && data->is_Traffic_Light == 2){
 				//right
+				printf("go right\n");
 				DesireSpeed_Write(-200);
 				usleep(10000);
 
@@ -660,8 +667,9 @@ void * capture_thread(void *arg)
 		// ---- pky end
 		if(data->mission_id < 8) data->speed_ratio = color_detection(vpe->disp, capt);
 		else{
-			data->is_Traffic_Light_for_traffic_light = Traffic_mission(vpe->disp, capt);//red sign
+			if(data->is_Traffic_Light_for_traffic_light == 0) data->is_Traffic_Light_for_traffic_light = Traffic_mission(vpe->disp, capt);//red sign
 			data->is_Traffic_Light = Traffic_mission_green(vpe->disp, capt); //green sign
+			printf("capture_thread is_Traffic_Light : %d\n", data->is_Traffic_Light);
 		}
 		data->speed_ratio = 1;//test
 		data->speed = data->speed * data->speed_ratio;
@@ -670,7 +678,7 @@ void * capture_thread(void *arg)
 		// ----------------------- end of image process ----------------------------------
 		
 // -------------------------koo mission trigger---------------------
-		if (data->mission_id == 7){
+		if (data->mission_id == 7&& data->after_passing == 0){
             // ---- 적외선 센서 ----
             //data->distance = distance_sensor();
             printf("######### capture thread and id = 7 ###########\n");
@@ -907,6 +915,8 @@ void * trigger_thread(void *arg)
 {
 	struct thr_data *data = (struct thr_data *)arg;
 	while(1) {
+		/** printf("trigger_thread!\n"); */
+		usleep(1000*300);
 		// ---- mission trigger
 		
 		// 3 DY trigger ====================================================
@@ -996,7 +1006,7 @@ void * trigger_thread(void *arg)
 		/** if(data->mission_state == HISTOGRAM_BACK_PROPAGATION && data->distance < 50) data->mission_id = 7;//passing master */
 
 		// 8 traffic light trigger
-		/** if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light */
+		if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light
 
 
 	}
