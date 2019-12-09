@@ -398,13 +398,15 @@ int main(int argc, char **argv)
 					// 추월 미션 진입
 				case PASSING_OVER_LEFT :
 					printf("------------------------ main_PASSING_OVER_LEFT ---------------------------\n");
-					passing_go_back();
+					CameraYServoControl_Write(1720);
+                    passing_go_back();
 					passing_left();
                     data->mission_state = WAIT;
                     break;
 				case PASSING_OVER_RIGHT :
 					printf("------------------------ main_PASSING_OVER_RIGHT ---------------------------\n");
-					passing_go_back();
+					CameraYServoControl_Write(1720);
+                    passing_go_back();
 					passing_right();
                     data->mission_state = WAIT;
                     break;
@@ -418,7 +420,7 @@ int main(int argc, char **argv)
                     break;
 				case PASSING_OVER_RETURN_RIGHT :
 					printf("------------------------ main_PASSING_OVER_RETURN_RIGHT ---------------------------\n");
-					//passing_go_back_later();
+                    //passing_go_back_later();
 					passing_right_later();
                     /** printf("finishing passing later\n"); */
                     data->mission_state = STOP;
@@ -426,10 +428,11 @@ int main(int argc, char **argv)
 				case PASSING_OVER_RETURN_LEFT :
 					printf("------------------------ main_PASSING_OVER_RETURN_LEFT ---------------------------\n");
 					//passing_go_back_later();
-					passing_left_later();
+                    passing_left_later();
                     data->mission_state = STOP;
                     break;
 				case STOP :
+                    CameraYServoControl_Write(1650);
 					passing_stop();
 					data->after_passing = 1;
                     data->mission_state = BREAK;
@@ -711,7 +714,7 @@ void * capture_thread(void *arg)
 
             }
         
-            else if (data->mission_state == BEFORE_PASSING_OVER && data->O_data_1 < 35){
+            else if (data->mission_state == BEFORE_PASSING_OVER && data->O_data_1 < 12){
                 printf(" ###########  mission_state == BEFORE_PASSING_OVER \n");
                 if (strcmp(data->direction, "left")==0){
                     printf(" ########### data->direction in capture thread = %s\n", data->direction);

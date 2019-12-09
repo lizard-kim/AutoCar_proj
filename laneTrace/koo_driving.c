@@ -36,7 +36,7 @@ int distance_sensor(){
 }
 
 void passing_go_back(){
-    DesireSpeed_Write(-70);
+    DesireSpeed_Write(-50);
     Winker_Write(LEFT_ON);
     usleep(1000000);
     Winker_Write(ALL_OFF);
@@ -112,12 +112,12 @@ void passing_left_later(){
     printf("passing_left_later in !!!\n");
     printf("passing_left_later in !!!\n");
     printf("passing_left_later in !!!\n");
-    DesireSpeed_Write(-70);
-    printf("why\n");
-    usleep(1000000);
-    DesireSpeed_Write(50);
+    DesireSpeed_Write(-30);
+    printf("why22\n");
+    usleep(800000);
+    DesireSpeed_Write(30);
     SteeringServoControl_Write(2000);
-    usleep(3000000);
+    usleep(3500000);
     while(line_trace_sensor() == 1){  // black:1, white:0
         printf("in the while line_trace_sensor\n");
         printf("in the while line_trace_sensor\n");
@@ -132,13 +132,13 @@ void passing_right_later(){
     printf("passing_right_later in !!!\n");
     printf("passing_right_later in !!!\n");
     printf("passing_right_later in !!!\n");
-    DesireSpeed_Write(-80);
+    DesireSpeed_Write(-30);
     printf("why\n");
-    usleep(1000000);
+    usleep(800000);
     DesireSpeed_Write(30);
     SteeringServoControl_Write(1000);
-    usleep(3000000);
-    while(line_trace_sensor() == 1){
+    usleep(3500000);
+    while(line_trace_sensor() == 1){ // black:1, white:0
         printf("in the while line_trace_sensor\n");
         printf("in the while line_trace_sensor\n");
         SteeringServoControl_Write(2000);
@@ -282,8 +282,8 @@ int line_trace_sensor(){
         printf("LineSensor_Read() = %d\n", line_buffer[j]);
         sum = sum + line_buffer[j];
     }
-    if (sum >= 4) return 0; // black:1, white:0
-    else if (sum < 4) return 1;
+    if (sum > 1) return 1; // black:1, white:0
+    else if (sum <= 1) return 0; //0111111이 검은색, 000000이 흰색이었음
 }
 
 void passing_go_back_later(){
@@ -310,7 +310,7 @@ void passing_go_back_later(){
     position=DesireEncoderCount_Read();
     printf("DesireEncoderCount_Read() = %d\n", position);
     
-    tol = 100;    // tolerance
+    printf("passing_right_later in !!!\n");
     while(abs(posRead-position)>tol)
     {
         posRead=EncoderCounter_Read();
