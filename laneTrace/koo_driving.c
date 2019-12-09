@@ -25,7 +25,7 @@ double distance_calculate(double data){
 }
 
 int distance_sensor(){
-    printf("distance sensor start!!!\n");
+    printf("distance sensor start in koo_driving.c!!!\n");
     int distance = 1;
     while(1){
         data = DistanceSensor(channel);
@@ -36,9 +36,9 @@ int distance_sensor(){
 }
 
 void passing_go_back(){
-    DesireSpeed_Write(-40);
+    DesireSpeed_Write(-70);
     Winker_Write(LEFT_ON);
-    usleep(600000);
+    usleep(1000000);
     Winker_Write(ALL_OFF);
 }
 
@@ -92,7 +92,7 @@ void passing_left(){
     SteeringServoControl_Write(2000);
     usleep(2000000);
     SteeringServoControl_Write(1100);
-    usleep(2000000);
+    usleep(2500000);
     Winker_Write(ALL_OFF);    
 }
 
@@ -102,28 +102,48 @@ void passing_right(){
     SteeringServoControl_Write(1100);
     usleep(2000000);
     SteeringServoControl_Write(2000);
-    usleep(2000000);
+    usleep(2500000);
     Winker_Write(ALL_OFF);    
 }
 
 void passing_left_later(){
-    DesireSpeed_Write(-100);
-    usleep(500000);
+    printf("passing_left_later in !!!\n");
+    printf("passing_left_later in !!!\n");
+    printf("passing_left_later in !!!\n");
+    printf("passing_left_later in !!!\n");
+    printf("passing_left_later in !!!\n");
+    DesireSpeed_Write(-70);
+    printf("why\n");
+    usleep(1000000);
     DesireSpeed_Write(50);
-    SteeringServoControl_Write(1000);
-    usleep(2000000);
     SteeringServoControl_Write(2000);
-    usleep(2000000);
+    usleep(3000000);
+    while(line_trace_sensor() == 1){  // black:1, white:0
+        printf("in the while line_trace_sensor\n");
+        printf("in the while line_trace_sensor\n");
+        SteeringServoControl_Write(1000);
+        usleep(10000);
+    } 
 }
 
 void passing_right_later(){
-    DesireSpeed_Write(-100);
-    usleep(500000);
-    DesireSpeed_Write(50);
-    SteeringServoControl_Write(2000);
-    usleep(2000000);
+    printf("passing_right_later in !!!\n");
+    printf("passing_right_later in !!!\n");
+    printf("passing_right_later in !!!\n");
+    printf("passing_right_later in !!!\n");
+    printf("passing_right_later in !!!\n");
+    DesireSpeed_Write(-80);
+    printf("why\n");
+    usleep(1000000);
+    DesireSpeed_Write(30);
     SteeringServoControl_Write(1000);
-    usleep(2000000);
+    usleep(3000000);
+    while(line_trace_sensor() == 1){
+        printf("in the while line_trace_sensor\n");
+        printf("in the while line_trace_sensor\n");
+        SteeringServoControl_Write(2000);
+        usleep(10000);
+    }
 }
 
 void passing_left2(){
@@ -262,8 +282,8 @@ int line_trace_sensor(){
         printf("LineSensor_Read() = %d\n", line_buffer[j]);
         sum = sum + line_buffer[j];
     }
-    if (sum >= 6) return 0; // black:1, white:0
-    else if (sum < 6) return 1;
+    if (sum >= 4) return 0; // black:1, white:0
+    else if (sum < 4) return 1;
 }
 
 void passing_go_back_later(){
@@ -429,4 +449,6 @@ void passing_stop(){
     usleep(100000);
     Alarm_Write(OFF);
     CarLight_Write(ALL_OFF);
+
+    usleep(6000000);
 }
