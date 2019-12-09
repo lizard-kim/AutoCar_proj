@@ -75,7 +75,8 @@ typedef enum {
     WAIT,
     PASSING_OVER_RETURN_LEFT,
     PASSING_OVER_RETURN_RIGHT,
-    STOP
+    STOP,
+    BREAK
 }MissionState;
 //---
 struct thr_data {
@@ -410,25 +411,11 @@ int main(int argc, char **argv)
                     DesireSpeed_Write(0);
                     usleep(2000000);
                     printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
-                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
-                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
-                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
-                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
-                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
-                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
-                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
                     break;
 
 
 					// 추월 미션 진입
 				case PASSING_OVER_LEFT :
-                    printf("------------------------ main_PASSING_OVER_LEFT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_LEFT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_LEFT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_LEFT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_LEFT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_LEFT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_LEFT ---------------------------\n");
                     printf("------------------------ main_PASSING_OVER_LEFT ---------------------------\n");
 					passing_go_back();
 					passing_left();
@@ -436,13 +423,6 @@ int main(int argc, char **argv)
                     break;
 
 				case PASSING_OVER_RIGHT :
-                    printf("------------------------ main_PASSING_OVER_RIGHT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_RIGHT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_RIGHT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_RIGHT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_RIGHT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_RIGHT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_RIGHT ---------------------------\n");
                     printf("------------------------ main_PASSING_OVER_RIGHT ---------------------------\n");
 					passing_go_back();
 					passing_right();
@@ -452,12 +432,6 @@ int main(int argc, char **argv)
 				case WAIT : 
 					// 규열이의 차선주행
                     printf("------------------------ main_WAIT ---------------------------\n");
-                    printf("------------------------ main_WAIT ---------------------------\n");
-                    printf("------------------------ main_WAIT ---------------------------\n");
-                    printf("------------------------ main_WAIT ---------------------------\n");
-                    printf("------------------------ main_WAIT ---------------------------\n");
-                    printf("------------------------ main_WAIT ---------------------------\n");
-
 					DesireSpeed_Write(50);
 					SteeringServoControl_Write(1500);
 					printf("Speed : %d\n", DesireSpeed_Read());
@@ -468,29 +442,25 @@ int main(int argc, char **argv)
                     printf("------------------------ main_PASSING_OVER_RETURN_RIGHT ---------------------------\n");
                     printf("------------------------ main_PASSING_OVER_RETURN_RIGHT ---------------------------\n");
                     printf("------------------------ main_PASSING_OVER_RETURN_RIGHT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_RETURN_RIGHT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_RETURN_RIGHT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_RETURN_RIGHT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_RETURN_RIGHT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_RETURN_RIGHT ---------------------------\n");
 					//passing_go_back_later();
 					passing_right_later();
+                    printf("finishing passing later\n");
+                    printf("finishing passing later\n");
+                    data->mission_state = STOP;
                     break;
 
 				case PASSING_OVER_RETURN_LEFT :
                     printf("------------------------ main_PASSING_OVER_RETURN_LEFT ---------------------------\n");
                     printf("------------------------ main_PASSING_OVER_RETURN_LEFT ---------------------------\n");
                     printf("------------------------ main_PASSING_OVER_RETURN_LEFT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_RETURN_LEFT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_RETURN_LEFT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_RETURN_LEFT ---------------------------\n");
-                    printf("------------------------ main_PASSING_OVER_RETURN_LEFT ---------------------------\n");
 					//passing_go_back_later();
 					passing_left_later();
+                    data->mission_state = STOP;
                     break;
 
 				case STOP :
 					passing_stop();
+                    data->mission_state = BREAK;
                     break;
 					// 미션 끝
 			}
@@ -651,8 +621,8 @@ void * capture_thread(void *arg)
         capt = vpe->disp_bufs[index];
 
 		// ---- sensor data input
-		data->I_data_1 = DistanceSensor(1);
-		data->O_data_1 = DistFunc(data->I_data_1);
+		//data->I_data_1 = DistanceSensor(1);
+		data->O_data_1 = DistFunc(DistanceSensor(1));
 		data->I_data_2 = DistanceSensor(2);
 		data->O_data_2 = DistFunc(data->I_data_2);
 		data->I_data_3 = DistanceSensor(3);
@@ -690,30 +660,26 @@ void * capture_thread(void *arg)
 // -------------------------koo mission trigger---------------------
 		if (data->mission_id == 7){
             // ---- 적외선 센서 ----
-            data->distance = distance_sensor();
+            //data->distance = distance_sensor();
             //printf("######### capture thread and id = 7 ###########\n");
             printf("distance = %d \n", data->distance);
 
             // -------------------- capt로 이미지 처리 ------------------0x%04Xfalse로 바뀌면 chot됨
 
             // 여기서 data->mission_state로 던져줍니다
+            printf("###### O_data_1 = %d\n", data->O_data_1);
+            printf("###### O_data_1 = %d\n", data->O_data_1);
+            printf("###### O_data_1 = %d\n", data->O_data_1);
+            printf("###### O_data_1 = %d\n", data->O_data_1);
+            printf("###### O_data_1 = %d\n", data->O_data_1);
 
             if (data->mission_state == AUTO_DRIVE){
                 printf(" ###########  mission_state == AUTO_DRIVE in capture thread\n");
             }
-            if (data->mission_state == AUTO_DRIVE && data->distance < 50){
+            if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 50){
                 data->mission_state = HISTOGRAM_BACK_PROPAGATION;
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
+        
             }
 
             // 추월 미션 진입 트리거 원래 else if 라서 에러떴음
@@ -724,15 +690,10 @@ void * capture_thread(void *arg)
                 data->mission_state = BEFORE_PASSING_OVER;
 
             }
-
-            else if (data->mission_state == BEFORE_PASSING_OVER && data->distance < 25){
+        
+            else if (data->mission_state == BEFORE_PASSING_OVER && data->O_data_1 < 35){
                 printf(" ###########  mission_state == BEFORE_PASSING_OVER \n");
                 if (strcmp(data->direction, "left")==0){
-                    printf(" ########### data->direction in capture thread = %s\n", data->direction);
-                    printf(" ########### data->direction in capture thread = %s\n", data->direction);
-                    printf(" ########### data->direction in capture thread = %s\n", data->direction);
-                    printf(" ########### data->direction in capture thread = %s\n", data->direction);
-                    printf(" ########### data->direction in capture thread = %s\n", data->direction);
                     printf(" ########### data->direction in capture thread = %s\n", data->direction);
 
                     data->mission_state = PASSING_OVER_LEFT;
@@ -752,31 +713,17 @@ void * capture_thread(void *arg)
                 /** data->angle = getSteeringWithLane(vpe->disp, capt); // 차선인식  <] */
                 /** data->speed = color_detection(vpe->disp, capt); */
                 printf(" ###########  mission_state == WAIT in capture thread \n");
-                printf(" ###########  mission_state == WAIT in capture thread \n");
-                printf(" ###########  mission_state == WAIT in capture thread \n");
-                printf(" ###########  mission_state == WAIT in capture thread \n");
                 data->yellow_stop_line = main_stop_line_detection(vpe->disp, capt); // 정지선 인식하면 stop_line_recognition을 1로 return
                 printf("data->yellow_stop_line = %s\n", data->yellow_stop_line);
-                printf("data->yellow_stop_line = %s\n", data->yellow_stop_line);
-                printf("data->yellow_stop_line = %s\n", data->yellow_stop_line);
-                printf("data->yellow_stop_line = %s\n", data->yellow_stop_line);
-                printf("data->yellow_stop_line = %s\n", data->yellow_stop_line);
-                printf("data->yellow_stop_line = %s\n", data->yellow_stop_line);
+
             
             }
 
             // 정지선을 인식하면 다시 차로로 return
             if (data->mission_state == WAIT && strcmp(data->yellow_stop_line, "stop")==0){
                 printf(" ###########  find yellow_stop_line in capture thread \n");
-                printf(" ###########  find yellow_stop_line in capture thread \n");
-                printf(" ###########  find yellow_stop_line in capture thread \n");
-                printf(" ###########  find yellow_stop_line in capture thread \n");
                 printf(" ########### data->direction in capture thread = %s\n", data->direction);
-                printf(" ########### data->direction in capture thread = %s\n", data->direction);
-                printf(" ########### data->direction in capture thread = %s\n", data->direction);
-                printf(" ########### data->direction in capture thread = %s\n", data->direction);
-                printf(" ########### data->direction in capture thread = %s\n", data->direction);
-                printf(" ########### data->direction in capture thread = %s\n", data->direction);
+
 
                 // 정지선 인식 신호
                 CarLight_Write(ALL_ON);
@@ -785,41 +732,25 @@ void * capture_thread(void *arg)
                 Alarm_Write(OFF);
                 CarLight_Write(ALL_OFF);
 
-                if (data->direction == "left" || data->direction == "fail"){
+                if (strcmp(data->direction, "left") == 0 || strcmp(data->direction, "fail") == 0){
                     data->mission_state = PASSING_OVER_RETURN_RIGHT;
-                    printf("fuck fuck fuck\n");
-                    printf("fuck fuck fuck\n");
-                    printf("fuck fuck fuck\n");
-                    printf("fuck fuck fuck\n");
-                    printf("fuck fuck fuck\n");
-                    printf("fuck fuck fuck\n");
-                    printf("fuck fuck fuck\n");
+                    printf("fuck fuck fuck 1111\n");
                 }
                     
-                else if (data->direction == "right"){
+                else if (strcmp(data->direction, "right")){
                     data->mission_state = PASSING_OVER_RETURN_LEFT;
-                    printf("fuck fuck fuck\n");
-                    printf("fuck fuck fuck\n");
-                    printf("fuck fuck fuck\n");
-                    printf("fuck fuck fuck\n");
-                    printf("fuck fuck fuck\n");
-                    printf("fuck fuck fuck\n");
-                    printf("fuck fuck fuck\n");
+                    printf("fuck fuck fuck 1111\n");
+
                 }
 
             }
 
             else if (data->mission_state == PASSING_OVER_RETURN_RIGHT || data->mission_state == PASSING_OVER_RETURN_LEFT){
                 printf("fuck fuck fuck 2222\n");
-                printf("fuck fuck fuck 2222\n");
-                printf("fuck fuck fuck 2222\n");
-                printf("fuck fuck fuck\n");
-                printf("fuck fuck fuck\n");
-                printf("fuck fuck fuck\n");
-                printf("fuck fuck fuck\n"); 
-                data->white_stop_line = line_trace_sensor();
-                if (data->white_stop_line == 0) // 0이면 흰색, 1이면 검은색 -> 흰색인 정지선을 만날 때 멈추어야 한다
-                    data->mission_state = STOP;
+
+                // data->white_stop_line = line_trace_sensor();
+                // if (data->white_stop_line == 0) // 0이면 흰색, 1이면 검은색 -> 흰색인 정지선을 만날 때 멈추어야 한다
+                //     data->mission_state = STOP;
             }
 
         }
