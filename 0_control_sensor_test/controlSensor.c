@@ -136,7 +136,7 @@ void warmSensorTrigger() // must be included ParkingSignal_1, ParkingSignal_2, p
    
 
 
-    DesireSpeed_Write(100);
+    DesireSpeed_Write(80);
     SteeringServoControl_Write(1500);
 
 
@@ -212,25 +212,37 @@ void warmSensorTrigger() // must be included ParkingSignal_1, ParkingSignal_2, p
         tunnelSignal = 1;
     }
 
-    if(tunnelSignal == 1 && O_data_2 < 30)
-    {
-        start_3 = clock();
+
+    int tunnelcount = 0;
+    int tunnelend = 0;
+    if(tunnelend == 0 && tunnelSignal == 1 && O_data_3 < 30){
         tunnelSignal = 2;
     }
-    if(tunnelSignal == 2 && O_data_2 < 30 && O_data_3 < 30)
-    {
-        float endtime_3 = (clock()- start_3)/(CLOCKS_PER_SEC);
-        if(endtime_3 < 3)
-        {
+    if(tunnelSignal == 2 && (O_data_2 > 30 || O_data_3 > 30)){
+        tunnelSignal = 1;
+    }
+    if(tunnelSignal == 2 && O_data_2 < 30 && O_data_3 < 30){
+
+        tunnelcount +=1;
+        
+        if(tunnelcount > 10){
             tunnelSignal = 3;
-            tunnel_adv();
-        }
-        else
-        {
-            tunnelSignal = 1;
         }
     }
+    if(tunnelSignal == 3 && (O_data_2 > 30 || O_data_3 > 30)){
+        tunnelSignal = 1;
+        tunnelcount = 0;
+    }
+     if(tunnelend == 0 && tunnelSignal == 3 && O_data_2 < 30 && O_data_3 < 30){
+        tunnel_adv();
+        tunnelend = 1;
+    }
 }
+
+
+
+
+
 
 
 void warmSensorTrigger_pal()
@@ -263,7 +275,7 @@ void warmSensorTrigger_pal()
         start_2 = clock();
         parParkingSignal_1 = 1;
     }
-    if(parParkingSignal_1 == 1 && O_data_2 > 50 && O_data_3 > 50)
+    if(parParkingSignal_1 == 1 && O_data_2 > 80 && O_data_3 > 80)
     {
        // printf("INITIAL\n");
         parParkingSignal_1 = 0;
@@ -279,11 +291,20 @@ void warmSensorTrigger_pal()
             parParkingSignal_1 = 0;
         }
     }
+    if(parParkingSignal_1 == 2 && O_data_2 < 30 && O_data_3 > 30)
+    {
+       // printf("INITIAL\n");
+        parParkingSignal_1 = 0;
+    }
     if(parParkingSignal_1 == 2 && O_data_2 > 30 && O_data_3 > 30)
     {
         parParkingSignal_1 = 3;         
+    } 
+    if(parParkingSignal_1 == 3 && O_data_2 < 30 && O_data_3 > 30)
+    {
+        parParkingSignal_1 = 4;
     }
-    if(parParkingSignal_1 == 3 && O_data_3 < 30)
+    if(parParkingSignal_1 == 4 && O_data_3 < 30)
     {
         parparking();
         parParkingSignal_2 = 2;
@@ -291,6 +312,9 @@ void warmSensorTrigger_pal()
     }
 
 }
+
+
+
 
 void warmSensorTrigger_tunnel()
 {
@@ -305,33 +329,35 @@ void warmSensorTrigger_tunnel()
     I_data_3 = DistanceSensor(3);
     O_data_3 = DistFunc(I_data_3);
 
-    clock_t start_1=0, start_2=0, start_3=0;
-    float endtime_1=0, endtime_2=0, endtime_3=0;
-
-
-    if(tunnelSignal == 0 && O_data_2 < 30)
-    {
-        start_3 = clock();
+    int tunnelcount = 0;
+    int tunnelend = 0;
+    if(tunnelend == 0 && tunnelSignal == 1 && O_data_3 < 30){
         tunnelSignal = 2;
     }
-    if(tunnelSignal == 2 && O_data_2 < 30 && O_data_3 < 30)
-    {
-        float endtime_3 = (clock()- start_3)/(CLOCKS_PER_SEC);
-        printf("endtime_2 : %d\n", endtime_3);
-        if(endtime_3 < 3)
-        {
-            printf("clock function operated....\n");
+    if(tunnelSignal == 2 && (O_data_2 > 30 || O_data_3 > 30)){
+        tunnelSignal = 1;
+    }
+    if(tunnelSignal == 2 && O_data_2 < 30 && O_data_3 < 30){
+
+        tunnelcount +=1;
+        
+        if(tunnelcount > 10){
             tunnelSignal = 3;
-            tunnel_adv();
-        }
-        else
-        {
-            printf("clock function anoperated....\n");
-            tunnel_adv();
-            //tunnelSignal = 1;
         }
     }
+    if(tunnelSignal == 3 && (O_data_2 > 30 || O_data_3 > 30)){
+        tunnelSignal = 1;
+        tunnelcount = 0;
+    }
+     if(tunnelend == 0 && tunnelSignal == 3 && O_data_2 < 30 && O_data_3 < 30){
+        tunnel_adv();
+        tunnelend = 1;
+    } 
 }
+
+
+
+
 
 
 
@@ -389,8 +415,15 @@ void warmSensorTrigger_T()
 }
 
 
+
+
+
+
+
+
 void tunnel_adv()
 {
+    DesireSpeed_Write(100);
    // DesireSpeed_Write(200);
     I_data_1 = DistanceSensor(1);
     O_data_1 = DistFunc(I_data_1);
@@ -400,48 +433,70 @@ void tunnel_adv()
     I_data_2 = DistanceSensor(2);
     O_data_2 = DistFunc(I_data_2);
 
-    int I_data_5, O_data_5;
-    I_data_5 = DistanceSensor(5);
-    O_data_5 = DistFunc(I_data_5);
+    int I_data_3, O_data_3;
+    I_data_3 = DistanceSensor(3);
+    O_data_3 = DistFunc(I_data_3);
     printf("O_data_5 : %d", O_data_5);
     //Distance between car and wall is each 10cm.
-    // 10 --> 1500 , 20 --> 1000            y = -50x + 2000
-    if(O_data_2 >= 8)
+    // 13 --> 1500 , 20 --> 1000            y = -50x + 2000
+    if(O_data_2 >= 13)
     {
-        angle = -50*O_data_2 + 2000;
-        if(angle < 1200)
+        //angle = -50*O_data_2 + 2000;
+        angle = -71*O_data_2 + 2420;
+        if(angle < 1010)
         {
-            angle = 1200;
-        }
-        if(O_data_1 < 40)
-        {
-            DesireSpeed_Write(100);
-            //angle = -16*O_data_1 + 2140;
             angle = 1001;
         }
-        SteeringServoControl_Write(angle);
         if(O_data_1 < 40)
         {
-            usleep(300000);
+            
+            if(O_data_2 > O_data_3)
+            {
+                DesireEncoderCount_Write(80);
+                angle = 1001;
+            }
+            else if(O_data_2 <= O_data_3){
+                DesireEncoderCount_Write(80);
+                angle = 1999;
+            }
+            
         }
-        DesireSpeed_Write(200);
+        SteeringServoControl_Write(angle);
+        /* 
+        if(O_data_1 < 40)
+        {
+            usleep(200000);
+        }*/
+        DesireSpeed_Write(100);
         printf("tunnel, O>10 = %d", angle);
     }
-    else if(O_data_2 < 8) // 10--> 1500 0 --> 1800            y = -30x + 1800
+    else if(O_data_2 < 13) // 13--> 1500 0 --> 1900            y = -31x + 1900
     {
-        angle = -30*O_data_2 + 1800;
+        //angle = -30*O_data_2 + 1800;
+        angle = -31*O_data_2 + 1900;
+        if(angle > 1990)
+        {
+            angle = 1999;
+        }
         if(O_data_1 < 40)
         {
-            printf("FUCK2222");
-            //angle = -16*O_data_1 + 2140;
-            angle = 1990;
+            if(O_data_2 > O_data_3)
+            {
+                DesireEncoderCount_Write(80);
+                angle = 1001;
+            }
+            else if(O_data_2 <= O_data_3){
+                DesireEncoderCount_Write(80);
+                angle = 1999;
+            }
         }
         printf("tunnel, O<10 = %d", angle);
         SteeringServoControl_Write(angle);
+        /* 
         if(O_data_1 < 40)
         {
-            usleep(300000);
-        }
+            usleep(200000);
+        }*/
     } 
     /////////////////////////////////////FROM HERE, DUMMY CODE!!! /////////////////////////////////////////
     else if(O_data_1 < 40)
@@ -471,6 +526,111 @@ void tunnel_adv()
 
 
 
+
+
+
+
+
+
+
+
+void tunnel_adv_copy()
+{
+    DesireSpeed_Write(100);
+   // DesireSpeed_Write(200);
+    I_data_1 = DistanceSensor(1);
+    O_data_1 = DistFunc(I_data_1);
+    printf("O_data_1 : %d", O_data_1);
+
+    CarLight_Write(FRONT_ON);
+    I_data_2 = DistanceSensor(2);
+    O_data_2 = DistFunc(I_data_2);
+
+    int I_data_5, O_data_5;
+    I_data_5 = DistanceSensor(5);
+    O_data_5 = DistFunc(I_data_5);
+    printf("O_data_5 : %d", O_data_5);
+    //Distance between car and wall is each 10cm.
+    // 10 --> 1500 , 20 --> 1000            y = -50x + 2000
+    if(O_data_2 >= 13)
+    {
+        angle = -50*O_data_2 + 2000;
+        if(angle < 1010)
+        {
+            angle = 1001;
+        }
+        if(O_data_1 < 40)
+        {
+
+            DesireEncoderCount_Write(80);
+            angle = 1001;
+            
+        }
+        SteeringServoControl_Write(angle);
+        /* 
+        if(O_data_1 < 40)
+        {
+            usleep(200000);
+        }*/
+        DesireSpeed_Write(100);
+        printf("tunnel, O>10 = %d", angle);
+    }
+    else if(O_data_2 < 13) // 10--> 1500 0 --> 1800            y = -30x + 1800
+    {
+        angle = -30*O_data_2 + 1800;
+        if(O_data_1 < 40)
+        {
+            if(O_data_2 < 8)
+            {
+                printf("FUCK2222");
+            //angle = -16*O_data_1 + 2140;
+                angle = 1990;
+            }
+            else
+            {
+                angle = 1001;
+            }
+        }
+        printf("tunnel, O<10 = %d", angle);
+        SteeringServoControl_Write(angle);
+        /* 
+        if(O_data_1 < 40)
+        {
+            usleep(200000);
+        }*/
+    } 
+    /////////////////////////////////////FROM HERE, DUMMY CODE!!! /////////////////////////////////////////
+    else if(O_data_1 < 40)
+    {
+        printf("tunnel, detected front sensor");
+        if(O_data_2 <  10) // right curve , looking front
+        {
+            angle = 1800;
+            DesireSpeed_Write(100);
+            printf("tunnel, right curve = %d", angle);
+            printf("FUCK");
+            SteeringServoControl_Write(angle);
+        }
+        else if(O_data_2  - O_data_5 <= 3) // left curve, looking front
+        {
+            angle = 1200;
+            printf("tunnel, left curve = %d", angle);
+            SteeringServoControl_Write(angle);
+        }
+    }
+
+    else if(O_data_2 > 60)
+    {
+        return;
+    } 
+}
+
+
+
+
+
+
+
 void parking()
 {
     DesireSpeed_Write(100);
@@ -494,7 +654,7 @@ void parking()
     printf("O_data_2 : %d\n", O_data_2);
     printf("O_data_3 : %d\n", O_data_3);
     DesireSpeed_Write(100);
-    usleep(600000+(meandist*3000));
+    usleep(220000+(meandist*3000));
     printf("MISSION ONE\n");
     DesireSpeed_Write(0);
     //printf("Parking Start!!\n");
@@ -539,17 +699,17 @@ void parking()
     printf("FUCK0");
     SteeringServoControl_Write(1500);
     DesireSpeed_Write(100);
-    usleep(620000);
+    usleep(300000);
     EncoderCounter_Write(0);
     
     printf("FUCK0_1");
     SteeringServoControl_Write(1001);
     DesireSpeed_Write(100);
-    usleep(3300000);
+    usleep(1400000);
     SteeringServoControl_Write(1500);
 
     printf("Basic Mode is ready...");
-    DesireSpeed_Write(0); //E-Stop;
+    DesireSpeed_Write(100); //E-Stop;
     ParkingSignal_1 = 0;
     CarLight_Write(ALL_OFF);
     //return 0;
