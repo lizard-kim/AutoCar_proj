@@ -640,7 +640,7 @@ static void draw_operatingtime(struct display *disp, uint32_t time)
 
 void getSteeringWithLane(struct display *disp, struct buffer *cambuf, double *steer, double *speed) //detect lane
 {
-    double angle, ratio;
+    double angle = *steer, ratio;
     unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
     uint32_t optime;
     struct timeval st, et;
@@ -660,6 +660,7 @@ void getSteeringWithLane(struct display *disp, struct buffer *cambuf, double *st
     }
 	*steer = angle;
     *speed = 150 *ratio;
+    // *speed = 0;
 }
 
 double distance_calculate(double data){ // make sensor input data to real distance data
