@@ -58,10 +58,10 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 	Mat img_mask1, img_mask2, test;
 
 	//accept red filter for detect red stop sign
-	inRange(img_hsv, Scalar(low_hue1, 100, 100), Scalar(255, 255, 255), img_mask1);
+	inRange(img_hsv, Scalar(low_hue1, 100, 0), Scalar(10, 255, 255), img_mask1);
 	// inRange(img_input, Scalar(low_hue1, 250, 250), Scalar(high_hue1, 255, 255), test);
 	if (range_count == 2) {
-		inRange(img_hsv, Scalar(low_hue2, 100, 100), Scalar(255, 255, 255), img_mask2);
+		inRange(img_hsv, Scalar(170, 100, 0), Scalar(180, 255, 255), img_mask2);
 		img_mask1 |= img_mask2;
 	}
 
