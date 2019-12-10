@@ -114,7 +114,7 @@ void passing_left_later(){
     printf("passing_left_later in !!!\n");
     DesireSpeed_Write(-30);
     printf("why22\n");
-    usleep(800000);
+    usleep(850000);
     DesireSpeed_Write(30);
     SteeringServoControl_Write(2000);
     usleep(3500000);
@@ -132,16 +132,18 @@ void passing_right_later(){
     printf("passing_right_later in !!!\n");
     printf("passing_right_later in !!!\n");
     printf("passing_right_later in !!!\n");
-    DesireSpeed_Write(-30);
+    DesireSpeed_Write(-50);
     printf("why\n");
-    usleep(800000);
-    DesireSpeed_Write(30);
-    SteeringServoControl_Write(1000);
-    usleep(3500000);
+    usleep(1000000);
+    DesireSpeed_Write(50);
+    SteeringServoControl_Write(1100);
+    usleep(2000000);
+    SteeringServoControl_Write(2000);
+    usleep(2000000);
     while(line_trace_sensor() == 1){ // black:1, white:0
         printf("in the while line_trace_sensor\n");
         printf("in the while line_trace_sensor\n");
-        SteeringServoControl_Write(2000);
+        SteeringServoControl_Write(1500);
         usleep(10000);
     }
 }
@@ -262,24 +264,25 @@ void passing_right2(){
 }
 
 int line_trace_sensor(){
+	/** printf("line_trace_sensor\n"); */
     int sum = 0;
     sensor = LineSensor_Read(); // black:1, white:0
-    printf("LineSensor_Read() = ");
+    /** printf("LineSensor_Read() = "); */
         for(i=0; i<8; i++){
             if((sensor & byte)) {
-                printf("1");
+				printf("1");
                 line_buffer[i] = 1;
             }
             else {
-                printf("0");
+				printf("0");
                 line_buffer[i] = 0;
             }
             sensor = sensor << 1;
         }
-    printf("\n");
+	printf("\n");
     //printf("LineSensor_Read() = %d \n", sensor);
     for(j=0; j<8; j++){
-        printf("LineSensor_Read() = %d\n", line_buffer[j]);
+        /** printf("LineSensor_Read() = %d\n", line_buffer[j]); */
         sum = sum + line_buffer[j];
     }
     if (sum > 1) return 1; // black:1, white:0

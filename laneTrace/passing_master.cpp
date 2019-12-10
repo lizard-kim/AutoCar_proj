@@ -37,6 +37,12 @@ bool pixel_detector(Mat image){
             }
 	    }
         cout << " <<<<<<<<<<<<<<<<<< count 값 : " << count << endl;
+        cout << " <<<<<<<<<<<<<<<<<< count 값 : " << count << endl;
+        cout << " <<<<<<<<<<<<<<<<<< count 값 : " << count << endl;
+        cout << " <<<<<<<<<<<<<<<<<< count 값 : " << count << endl;
+        cout << " <<<<<<<<<<<<<<<<<< count 값 : " << count << endl;
+        cout << " <<<<<<<<<<<<<<<<<< count 값 : " << count << endl;
+        cout << " <<<<<<<<<<<<<<<<<< count 값 : " << count << endl;
     for(int j = 140; j < 170; j++){
             uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
             for(int i = 120; i < 200; i++){
@@ -45,6 +51,12 @@ bool pixel_detector(Mat image){
                 pointer[i]++;
             }
 	    }
+        cout << "<<<<<<<<<<<<<<<<<<  count1 값 : " << count1 << endl;
+        cout << "<<<<<<<<<<<<<<<<<<  count1 값 : " << count1 << endl;
+        cout << "<<<<<<<<<<<<<<<<<<  count1 값 : " << count1 << endl;
+        cout << "<<<<<<<<<<<<<<<<<<  count1 값 : " << count1 << endl;
+        cout << "<<<<<<<<<<<<<<<<<<  count1 값 : " << count1 << endl;
+        cout << "<<<<<<<<<<<<<<<<<<  count1 값 : " << count1 << endl;
         cout << "<<<<<<<<<<<<<<<<<<  count1 값 : " << count1 << endl;
     for(int j = 140; j < 180; j++){
             uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
@@ -55,6 +67,13 @@ bool pixel_detector(Mat image){
             }
 	    }
         cout << "<<<<<<<<<<<<<<<<<<  count2 값 : " << count2 << endl;
+        cout << "<<<<<<<<<<<<<<<<<<  count2 값 : " << count2 << endl;
+        cout << "<<<<<<<<<<<<<<<<<<  count2 값 : " << count2 << endl;
+        cout << "<<<<<<<<<<<<<<<<<<  count2 값 : " << count2 << endl;
+        cout << "<<<<<<<<<<<<<<<<<<  count2 값 : " << count2 << endl;
+        cout << "<<<<<<<<<<<<<<<<<<  count2 값 : " << count2 << endl;
+        cout << "<<<<<<<<<<<<<<<<<<  count2 값 : " << count2 << endl;
+        
 
     // if(order == "first") {
     //     for(int j = 140; j < 170; j++){

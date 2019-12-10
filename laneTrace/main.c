@@ -153,12 +153,13 @@ static char* main_stop_line_detection(struct display *disp, struct buffer *cambu
 void warmSensorTrigger(); 
 static struct thr_data* pexam_data = NULL;
 void signal_handler(int sig);
-int stopLine_detect(void); // 정지선 인식하는 함수 1이면 정지선 위, 0이면 아님 by Doyeon
+/** int stopLine_detect(void); // 정지선 인식하는 함수 1이면 정지선 위, 0이면 아님 by Doyeon */
+int line_trace_sensor();
 double DistFunc(double data);
 void DistanceTest();
-void parparking();
-void parking();
-void tunnel_adv();
+void parparking(void *arg);
+void parking(void *arg);
+void tunnel_adv(void *arg);
 void dynamic_obs_ver2(void *arg); // 
 void dynamic_obs_ver3(void *arg);
 
@@ -176,7 +177,7 @@ int main(int argc, char **argv)
 
     tdata.dump_state = DUMP_NONE;
     memset(tdata.dump_img_data, 0, sizeof(tdata.dump_img_data)); // dump data를 0으로 채워서 초기화
-	int start_sig = 0;
+	int start_sig = 2;
 
 	//init data struct
 	tdata.mission_id = 0; // 0 is basic driving 1 is for testing
@@ -187,7 +188,7 @@ int main(int argc, char **argv)
 	tdata.ParkingSignal_1 = 0;
 	tdata.ParkingSignal_2 = 0;
 	tdata.parParkingSignal_1 = 0;
-	tdata.parParkingSignal_2 = 0;
+	tdata.parParkingSignal_2 = 2;
 	tdata.tunnelSignal = 0;
 	tdata.tunnelend = 0;
 	tdata.tunnelcount = 0;
@@ -324,17 +325,17 @@ int main(int argc, char **argv)
 	DesireSpeed_Write(0);
 	usleep(100000);
 
-	printf("start_sig : %d\n", start_sig);
+	/** printf("start_sig : %d\n", start_sig); */
 	while(start_sig == 0){
 		if(data->O_data_1 < 10 && start_sig != 2) start_sig = 1;
 		while(start_sig == 1){
-			if(data->O_data_1 > 10) start_sig = 2;
 			printf("O_data_1 : %d\n", data->O_data_1);
+			if(data->O_data_1 > 10) start_sig = 2;
 		}
-		printf("start_sig : %d\n", start_sig);
+		usleep(10000);
 	}
 
-	printf("start_sig : %d\n", start_sig);
+	/** printf("start_sig : %d\n", start_sig); */
 
 	while (start_sig == 2){
 		printf("mission_id: %d\n", data->mission_id);
@@ -346,17 +347,20 @@ int main(int argc, char **argv)
 		//else if (data->mission_id == 2) {   } ///
 		else if (data->mission_id == 3 ) { /// DY mission
 			dynamic_obs_ver3(&tdata);
+			data->tunnelSignal = 1;//[TODO] move it!
+			data->mission_id = 0;
 		} 
 		else if (data->mission_id == 4) {/// 터널
-			tunnel_adv();
+			tunnel_adv(&tdata);
+			data->tunnelend = 1;
 			data->mission_id = 0;// test driving edit it to 0
 		}  
 		else if (data->mission_id == 5) {//수직
-			parking();
+			parking(&tdata);
 			data->mission_id = 0;// test driving edit it to 0
 		} 
 		else if (data->mission_id == 6) {//수평주차
-			parparking();
+			parparking(&tdata);
 			data->tunnelSignal = 1;
 			data->mission_id = 0;// test driving edit it to 0
 		} 
@@ -370,7 +374,7 @@ int main(int argc, char **argv)
 					SteeringServoControl_Write(angle); 
 					tdata.pre_angle = angle;//???
 					/** printf("speed, ratio %d %d\n", data->speed, data->speed_ratio); */
-					DesireSpeed_Write(data->speed);
+					DesireSpeed_Write(50);
 					if(data->speed == 0) usleep(500000);
 					usleep(100000);
                     break;     
@@ -590,7 +594,8 @@ int Traffic_mission_green(struct display *disp, struct buffer *cambuf){
 
 void * capture_thread(void *arg)
 {
-    struct thr_data *data = (struct thr_data *)arg;
+	usleep(100000);
+	struct thr_data *data = (struct thr_data *)arg;
     struct v4l2 *v4l2 = data->v4l2;
     struct vpe *vpe = data->vpe;
     struct buffer *capt;
@@ -621,6 +626,7 @@ void * capture_thread(void *arg)
 	double a, v;
 
 	while(1) {
+		/** printf("capture_thread!\n"); */
 		////////////////////////////do not touch////////////////////////////////////
 		index = v4l2_dqbuf(v4l2, &vpe->field); // 캡처 queue의 소유권으로 Application으로 가지고 옴
 		vpe_input_qbuf(vpe, index); // VPE 입력 큐 처리 권한을 드라이버에게 이전 (VPE 드라이버가 영상 가공)
@@ -634,12 +640,94 @@ void * capture_thread(void *arg)
 		index = vpe_output_dqbuf(vpe); // VPE 출력 큐 처리 권한을 어플리케이션이 가지고 옴
 		capt = vpe->disp_bufs[index];
 		///////////////////////////////////////////////////////////////////////////
-		
+		// ------------- trigger ----------------
+		// 3 DY trigger [TODO] trigger is weird 
+		/** printf("capture_thread\n"); */
+		/** if (data->stop_line_DY == 0) { // if stop line was never detected, it start to find stopline, if it detected once, it never executes stopLine function anymore */
+		/**     if (line_trace_sensor() == 0) { */
+		/**         data->stop_line_DY = 1; */
+		/**         data->mission_id = 3; */
+		/**     } */
+		/** } */
+		// 4 tunnel trigger 
+		/** if(data->tunnelend == 0 && data->tunnelSignal == 1 && data->O_data_3 < 30 && data->O_data_5 < 30){ */
+		/**     data->tunnelSignal = 2; */
+		/** } */
+		/** if(data->tunnelSignal == 2 && (data->O_data_2 > 30 || data->O_data_3 > 30)){ */
+		/**     data->tunnelSignal = 1; */
+		/** } */
+		/** if(data->tunnelSignal == 2 && data->O_data_2 < 30 && data->O_data_3 < 30){ */
+		/**     data->tunnelcount +=1; */
+        /**  */
+		/**     if(data->tunnelcount > 5){ */
+		/**         data->tunnelSignal = 3; */
+		/**     } */
+		/** } */
+		/** if(data->tunnelSignal == 3 && (data->O_data_2 > 30 || data->O_data_3 > 30)){ */
+		/**     data->tunnelSignal = 1; */
+		/**     data->tunnelcount = 0; */
+		/** } */
+		/** if(data->tunnelend == 0 && data->tunnelSignal == 3 && data->O_data_2 < 30 && data->O_data_3 < 30){ */
+		/**     data->mission_id = 4; */
+		/** } */
+
+		// 5 parking trigger 
+		/** if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30){ */
+		/**     printf("step1\n"); */
+		/**     data->ParkingSignal_1 = 1; */
+		/** } */
+		/** if(data->ParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30){ */
+		/**     printf("step3\n"); */
+		/**     data->ParkingSignal_1 = 2; */
+		/** } */
+		/** if(data->ParkingSignal_1 == 2 && data->O_data_2 < 30 && data->O_data_3 > 30) data->ParkingSignal_1 = 0; */
+		/** if(data->ParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30){ */
+		/**     printf("step4\n"); */
+		/**     data->ParkingSignal_1 = 3; */
+		/** } */
+		/** if(data->ParkingSignal_1 == 3 && data->O_data_2 < 30 && data->O_data_3 > 30) data->ParkingSignal_1 = 4; */
+		/** if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 4 && data->O_data_3 < 30){ */
+		/**     printf("step5\n"); */
+		/**     data->ParkingSignal_2 = 2; */
+		/**     data->mission_id = 5;// test driving edit it to 0 */
+		/** } */
+
+		// 6 parparking trigger 
+		/** if(data->ParkingSignal_2 == 2 && data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30){ */
+		/**     printf("step1\n"); */
+		/**     data->parParkingSignal_1 = 1; */
+		/** } */
+		/** if(data->parParkingSignal_1 == 1 && data->O_data_2 > 60 && data->O_data_3 > 60){ */
+		/**     printf("step2\n"); */
+		/**     data->parParkingSignal_1 = 0; */
+		/** } */
+		/** if(data->parParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30){ */
+		/**     printf("step3\n"); */
+		/**     data->parParkingSignal_1 = 2; */
+		/** } */
+		/** if(data->parParkingSignal_1 == 2 && data->O_data_2 < 30 && data->O_data_3 > 30) data->parParkingSignal_1 = 0; */
+		/** if(data->parParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30){ */
+		/**     printf("step4\n"); */
+		/**     data->parParkingSignal_1 = 3; */
+		/** } */
+		/** if(data->parParkingSignal_1 == 3 && data->O_data_2 < 30 && data->O_data_3 > 30) data->parParkingSignal_1 = 4; */
+		/** if(data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 4 && data->O_data_3 < 30){ */
+		/**     printf("step5\n"); */
+		/**     data->parParkingSignal_2 = 2; */
+		/**     data->mission_id = 6;// test driving edit it to 0 */
+		/** } */
+
+		// 7 passing trigger 
+		if(data->parParkingSignal_2 == 2 && data->mission_state == AUTO_DRIVE && data->O_data_1 < 50) data->mission_id = 7;//passing master
+
+		// 8 traffic light trigger
+		if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light
+
 		// -------------------- image process by capt ----------------------------------
 		// ---- pky function
 		getSteeringWithLane(vpe->disp, capt, &a, &v);
 		data->angle = a;
-		data->speed = v;
+		/** data->speed = v; */
 		// ---- pky end
 		if(data->mission_id < 8) data->speed_ratio = color_detection(vpe->disp, capt);
 		else{
@@ -647,25 +735,26 @@ void * capture_thread(void *arg)
 			data->is_Traffic_Light = Traffic_mission_green(vpe->disp, capt); //green sign
 			/** printf("capture_thread is_Traffic_Light : %d\n", data->is_Traffic_Light); */
 		}
-		data->speed_ratio = 1;//test
-		data->speed = data->speed * data->speed_ratio;
+		/** data->speed_ratio = 1;//test */
+		/** data->speed = data->speed * data->speed_ratio; */
+		data->speed = v * data->speed_ratio;
 		if(data->speed == 0) usleep(50000);
-
+		usleep(50000);
 		// ----------------------- end of image process ----------------------------------
-		
-// -------------------------koo mission trigger---------------------
+
+		// -------------------------koo mission trigger---------------------
 		if (data->mission_id == 7&& data->after_passing == 0){
-            // ---- 적외선 센서 ----
-            printf("######### capture thread and id = 7 ###########\n");
+			// ---- 적외선 센서 ----
+			printf("######### capture thread and id = 7 ###########\n");
 			printf("distance = %d \n", data->distance);
 
-            // -------------------- capt로 이미지 처리 ------------------0x%04Xfalse로 바뀌면 chot됨
+			// -------------------- capt로 이미지 처리 ------------------0x%04Xfalse로 바뀌면 chot됨
 
-            // 여기서 data->mission_state로 던져줍니다
-            printf("###### O_data_1 = %d\n", data->O_data_1);
+			// 여기서 data->mission_state로 던져줍니다
+			printf("###### O_data_1 = %d\n", data->O_data_1);
 
-            if (data->mission_state == AUTO_DRIVE){
-                printf(" ###########  mission_state == AUTO_DRIVE in capture thread\n");
+			if (data->mission_state == AUTO_DRIVE){
+				printf(" ###########  mission_state == AUTO_DRIVE in capture thread\n");
             }
             if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 50){
                 data->mission_state = HISTOGRAM_BACK_PROPAGATION;
@@ -848,6 +937,8 @@ void * sensor_thread(void *arg)
 	struct thr_data *data = (struct thr_data *)arg;
 	while(1) {
 		// ---- sensor data input
+		/** printf("sensor_thread!\n"); */
+		printf("odata1: %d\n", data->O_data_1);
 		data->I_data_1 = DistanceSensor(1);
 		data->O_data_1 = DistFunc(data->I_data_1);
 		data->I_data_2 = DistanceSensor(2);
@@ -856,88 +947,14 @@ void * sensor_thread(void *arg)
 		data->O_data_3 = DistFunc(data->I_data_3);
 		data->I_data_4 = DistanceSensor(4);
 		data->O_data_4 = DistFunc(data->I_data_4);
-		// ------------- trigger ----------------
-		// 3 DY trigger 
-		if (data->stop_line_DY == 0) { // if stop line was never detected, it start to find stopline, if it detected once, it never executes stopLine function anymore
-			if (stopLine_detect() == 1) {
-				data->stop_line_DY = 1;
-				data->mission_id = 3;
-			}
-		}
-		// 4 tunnel trigger 
-		/** if(data->tunnelend == 0 && data->tunnelSignal == 1 && data->O_data_3 < 30){ */
-		/**     data->tunnelSignal = 2; */
-		/** } */
-		/** if(data->tunnelSignal == 2 && (data->O_data_2 > 30 || data->O_data_3 > 30)){ */
-		/**     data->tunnelSignal = 1; */
-		/** } */
-		/** if(data->tunnelSignal == 2 && data->O_data_2 < 30 && data->O_data_3 < 30){ */
-		/**     data->tunnelcount +=1; */
-        /**  */
-		/**     if(data->tunnelcount > 10){ */
-		/**         data->tunnelSignal = 3; */
-		/**     } */
-		/** } */
-		/** if(data->tunnelSignal == 3 && (data->O_data_2 > 30 || data->O_data_3 > 30)){ */
-		/**     data->tunnelSignal = 1; */
-		/**     data->tunnelcount = 0; */
-		/** } */
-		/** if(data->tunnelend == 0 && data->tunnelSignal == 3 && data->O_data_2 < 30 && data->O_data_3 < 30){ */
-		/**     tunnel_adv(); */
-		/**     data->tunnelend = 1; */
-		/** } */
-
-		// 5 parking trigger 
-		if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30){
-			printf("step1\n");
-			data->ParkingSignal_1 = 1;
-		}
-		if(data->ParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30){
-			printf("step3\n");
-			data->ParkingSignal_1 = 2;
-		}
-		if(data->ParkingSignal_1 == 2 && data->O_data_2 < 30 && data->O_data_3 > 30) data->ParkingSignal_1 = 0;
-		if(data->ParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30){
-			printf("step4\n");
-			data->ParkingSignal_1 = 3;
-		}
-		if(data->ParkingSignal_1 == 3 && data->O_data_2 < 30 && data->O_data_3 > 30) data->ParkingSignal_1 = 4;
-		if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 4 && data->O_data_3 < 30){
-			printf("step5\n");
-			data->ParkingSignal_2 = 2;
-			data->mission_id = 5;// test driving edit it to 0
-		}
-
-		// 6 parparking trigger 
-		if(data->ParkingSignal_2 == 2 && data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30){
-			printf("step1\n");
-			data->parParkingSignal_1 = 1;
-		}
-		if(data->parParkingSignal_1 == 1 && data->O_data_2 > 60 && data->O_data_3 > 60){
-			printf("step2\n");
-			data->parParkingSignal_1 = 0;
-		}
-		if(data->parParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30){
-			printf("step3\n");
-			data->parParkingSignal_1 = 2;
-		}
-		if(data->parParkingSignal_1 == 2 && data->O_data_2 < 30 && data->O_data_3 > 30) data->parParkingSignal_1 = 0;
-		if(data->parParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30){
-			printf("step4\n");
-			data->parParkingSignal_1 = 3;
-		}
-		if(data->parParkingSignal_1 == 3 && data->O_data_2 < 30 && data->O_data_3 > 30) data->parParkingSignal_1 = 4;
-		if(data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 4 && data->O_data_3 < 30){
-			printf("step5\n");
-			data->parParkingSignal_2 = 2;
-			data->mission_id = 6;// test driving edit it to 0
-		}
-
-		// 7 passing trigger 
-		if(data->mission_state == HISTOGRAM_BACK_PROPAGATION && data->distance < 50) data->mission_id = 7;//passing master
-
-		// 8 traffic light trigger
-		if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light
+		data->I_data_5 = DistanceSensor(5);
+		data->O_data_5 = DistFunc(data->I_data_5);
+		data->I_data_6 = DistanceSensor(6);
+		data->O_data_6 = DistFunc(data->I_data_6);
+		/** printf("2: %d, 3: %d, 5: %d, 6: %d\n", data->O_data_2, data->O_data_3, data->O_data_5, data->O_data_6); */
+		usleep(10000);
+		/** printf("O_data_4 : %d\n", data->O_data_4); */
+		/** printf(" O_data_4 : %d\n", data->O_data_4); */
 	}
 	return NULL;
 }
@@ -1067,7 +1084,7 @@ void getSteeringWithLane(struct display *disp, struct buffer *cambuf, double *st
     }
 	*steer = angle;
         /** *speed = 130 *ratio; */
-    *speed = 100;//test
+    *speed = 100 * ratio;//test
 }
 
 static char* passing_master(struct display *disp, struct buffer *cambuf, void *arg){
@@ -1097,21 +1114,24 @@ static char* passing_master(struct display *disp, struct buffer *cambuf, void *a
 
 }
 
-void parking()
+void parking(void *arg)
 {
-    struct thr_data* data;
-	
+    /** struct thr_data* data; */
+	struct thr_data *data = (struct thr_data *)arg;
+	int meandist;	
+	printf("parking!!!!\n");
+	/** printf("%d\n", data->O_data_3); */
     DesireSpeed_Write(100);
-    if(data->ParkingSignal_2 == 1)
-    {
-        return;
-    }
+	if(data->ParkingSignal_2 == 1)
+	{
+		return;
+	}
 
-    CarLight_Write(REAR_ON);
+	CarLight_Write(REAR_ON);
 
-    int meandist = data->O_data_3;
     DesireSpeed_Write(100);
     usleep(220000+(meandist*3000));
+	printf("wtf3\n");
     DesireSpeed_Write(0);
     usleep(500000);
     SteeringServoControl_Write(1050);
@@ -1120,26 +1140,30 @@ void parking()
     int posRead = EncoderCounter_Read();
     while(1)
     {
-        if(EncoderCounter_Read() < -1300 || DistFunc(data->I_data_4 < 7)) // or EncoderCounter_Read == -6000; it means car moved 30cm.
+        if(data->O_data_4 < 7 || EncoderCounter_Read() < -1300) // or EncoderCounter_Read == -6000; it means car moved 30cm.
         {
             DesireSpeed_Write(0);
             SteeringServoControl_Write(1500);
             break;
         }
     }
+	printf("wtf1\n");
+    meandist = data->O_data_3;
     usleep(200000);
     SteeringServoControl_Write(1500);
     while(1)
     {
-        if(data->O_data_4 > 8)
-        {
-            DesireSpeed_Write(-100);
+        if(data->O_data_4 > 10)
+        {//this condition is weird
+            DesireSpeed_Write(-80);
         }
         else
         {
             break;
-        }
-    }
+		}
+		usleep(10000);
+	}
+	printf("wtf2\n");
     DesireSpeed_Write(0);
     usleep(1000000);
     
@@ -1160,20 +1184,14 @@ void parking()
 }
 
 
-void parparking()
+void parparking(void *arg)
 {
-    struct thr_data* data;
+    /** struct thr_data* data; */
+	struct thr_data *data = (struct thr_data *)arg;
     int tmpdist_1 =  0;
     int tmpdist = 0;
 
     DesireSpeed_Write(100);
-
-    /** data->I_data_2 = DistanceSensor(2); */
-    /** data->I_data_3 = DistanceSensor(3); */
-    /** data->I_data_5 = DistanceSensor(5); */
-    /** data->O_data_5 = DistFunc(data->I_data_5); */
-    /** data->O_data_2 = DistFunc(data->I_data_2); */
-    /** data->O_data_3 = DistFunc(data->I_data_3); */
 
     CarLight_Write(REAR_ON);
     tmpdist_1 = data->O_data_2;
@@ -1200,18 +1218,19 @@ void parparking()
     printf("-800 reached\n");
     SteeringServoControl_Write(2000);
 
-    while(1)
-    {
-        if(data->O_data_4 > 7 && data->O_data_3 > 4)
-        {
-            DesireSpeed_Write(-80);
-        }
-        else
-        {
-            DesireSpeed_Write(0);
-            break;
-        }
-    }
+	while(1)
+	{
+		if(data->O_data_4 > 10 && data->O_data_3 > 4)
+		{//this condition is weird
+			DesireSpeed_Write(-80);
+		}
+		else
+		{
+			DesireSpeed_Write(0);
+			break;
+		}
+		usleep(10000);
+	}
 
     SteeringServoControl_Write(1500);
     
@@ -1220,7 +1239,7 @@ void parparking()
         int posRead_1 = data->O_data_4;
         printf("DIST4 SENSOR = %d\n", posRead_1);
         
-        if(DistFunc(data->O_data_4) <= 5 && data->O_data_4 >= 4 )
+        if(data->O_data_4 > 10)
         {
             DesireSpeed_Write(-50);
         }
@@ -1276,136 +1295,84 @@ double DistFunc(double data)
 	return O_Dist;
 }
 
-void tunnel_adv()
+void tunnel_adv(void *arg)
 {
-    struct thr_data* data;
-	DesireSpeed_Write(100);
-	// DesireSpeed_Write(200);
-	/** data->I_data_1 = DistanceSensor(1); */
-	/** O_data_1 = DistFunc(I_data_1); */
-	/** printf("O_data_1 : %d", O_data_1); */
-
-	CarLight_Write(FRONT_ON);
-
-	// 13 --> 1500 , 20 --> 1000            y = -50x + 2000
-	if(data->O_data_2 >= 13)
+	struct thr_data *data = (struct thr_data *)arg;
+	int angle;
+	while(1)
 	{
-		//angle = -50*O_data_2 + 2000;
-		data->angle = -71*data->O_data_2 + 2420;
-		if(data->angle < 1010)
-		{
-			data->angle = 1001;
-		}
-		if(data->O_data_1 < 40)
-		{
-
-			if(data->O_data_2 > data->O_data_3)
-			{
-				DesireEncoderCount_Write(80);
-				data->angle = 1001;
-			}
-			else if(data->O_data_2 <= data->O_data_3){
-				DesireEncoderCount_Write(80);
-				data->angle = 1999;
-			}
-
-		}
-		SteeringServoControl_Write(data->angle);
-		/* 
-		   if(O_data_1 < 40)
-		   {
-		   usleep(200000);
-		   }*/
+		/** printf("2: %d, 3: %d, 5: %d\n", data->O_data_2, data->O_data_3, data->O_data_5); */
 		DesireSpeed_Write(100);
-		/** printf("tunnel, O>10 = %d", angle); */
-	}
-	else if(data->O_data_2 < 13) // 13--> 1500 0 --> 1900            y = -31x + 1900
-	{
-		//angle = -30*O_data_2 + 1800;
-		data->angle = -31*data->O_data_2 + 1900;
-		if(data->angle > 1990)
-		{
-			data->angle = 1999;
-		}
-		if(data->O_data_1 < 40)
-		{
-			if(data->O_data_2 > data->O_data_3)
-			{
-				DesireEncoderCount_Write(80);
-				data->angle = 1001;
-			}
-			else if(data->O_data_2 <= data->O_data_3){
-				DesireEncoderCount_Write(80);
-				data->angle = 1999;
-			}
-		}
-		/** printf("tunnel, O<10 = %d", angle); */
-		SteeringServoControl_Write(data->angle);
-	} 
-	/////////////////////////////////////FROM HERE, DUMMY CODE!!! /////////////////////////////////////////
-	else if(data->O_data_1 < 40)
-	{
-		/** printf("tunnel, detected front sensor"); */
-		if(data->O_data_2 <  10) // right curve , looking front
-		{
-			data->angle = 1800;
-			DesireSpeed_Write(100);
-			/** printf("tunnel, right curve = %d", angle); */
-			/** printf("FUCK"); */
-			SteeringServoControl_Write(data->angle);
-		}
-		else if(data->O_data_2 - data->O_data_5 <= 3) // left curve, looking front
-		{
-			data->angle = 1200;
-			/** printf("tunnel, left curve = %d", angle); */
-			SteeringServoControl_Write(data->angle);
-		}
-	}
+		usleep(10000);
 
-	else if(data->O_data_2 > 60)
-	{
-		return;
+		CarLight_Write(FRONT_ON);
+		if(data->O_data_2 >= 13)
+		{
+			angle = -71*data->O_data_2 + 2210;
+			if(angle < 1010)
+			{
+				angle = 1001;
+			}
+
+			SteeringServoControl_Write(angle);
+
+			DesireSpeed_Write(100);
+			usleep(10000);
+		}
+		else if(data->O_data_2 < 13) // 10--> 1500 5 --> 2000            y = -31x + 1900
+		{
+			angle = -100*data->O_data_2 + 2500;
+			if(angle > 1990)
+			{
+				angle = 1999;
+			}
+			SteeringServoControl_Write(angle);
+		}
+		if(data->O_data_2 >= 30 && data->O_data_3 >= 30 && data->O_data_5 >= 30){
+			printf("Tunnelofff\n");
+			break;
+		}
 	} 
 }
 
 void DistanceTest()
 {
-    struct thr_data* data;
-    CarLight_Write(FRONT_ON);
-    /** data->I_data_5 = DistanceSensor(5); */
-    /** data->O_data_5 = DistFunc(data->I_data_5); */
-    /** data->I_data_6 = DistanceSensor(6); */
-    /** data->O_data_6 = DistFunc(data->I_data_6); */
+	struct thr_data* data;
+	CarLight_Write(FRONT_ON);
+	/** data->I_data_5 = DistanceSensor(5); */
+	/** data->O_data_5 = DistFunc(data->I_data_5); */
+	/** data->I_data_6 = DistanceSensor(6); */
+	/** data->O_data_6 = DistFunc(data->I_data_6); */
 
-    //Distance between car and wall is each 10cm.
-    // 10 --> 1500 , 20 --> 1230            y = -27x + 1770
+	//Distance between car and wall is each 10cm.
+	// 10 --> 1500 , 20 --> 1230            y = -27x + 1770
 	/** printf("O_data_6 : %d\n", O_data_6 ); */
-    usleep(50000);
+	usleep(50000);
 }
 
 void dynamic_obs_ver3(void *arg) {
 
-    DesireSpeed_Write(0);
-    SteeringServoControl_Write(1500);
-    Alarm_Write(ON);
+	DesireSpeed_Write(0);
+	SteeringServoControl_Write(1500);
+	Alarm_Write(ON);
 	usleep(500*1000); // mission is over alarm signal */
 	Alarm_Write(OFF); //
-    struct thr_data *data = (struct thr_data *)arg;
-    printf("I'm here00-------------------------\n ");
-    int testing;
-    while (1) { /// 앞에서 차가 지나갈 때 까지 기다림
-        usleep(1000*300);
-        if (data->O_data_1 < DYNAMIC_OBS_START) {
-            break;
-        }   
-    }
-    printf("I am here0----------------------------ver6 \n");
-    
-    while (1) {
-        usleep(1000*300);
-        //printf("here0 data: %d\n", data->O_data_1);
-        if (data->O_data_1 > DYNAMIC_OBS_WAIT) break;        
-    }
+	struct thr_data *data = (struct thr_data *)arg;
+	printf("I'm here00-------------------------\n ");
+	int testing;
+	while (1) { /// 앞에서 차가 지나갈 때 까지 기다림
+		usleep(1000*300);
+		if (data->O_data_1 < DYNAMIC_OBS_START) {
+			break;
+		}   
+	}
+	printf("I am here0----------------------------ver6 \n");
+
+	while (1) {
+		usleep(1000*300);
+		//printf("here0 data: %d\n", data->O_data_1);
+		if (data->O_data_1 > DYNAMIC_OBS_WAIT) break;        
+	}
 
     int a = 0;
     double angle;
@@ -1555,21 +1522,21 @@ static char* main_stop_line_detection(struct display *disp, struct buffer *cambu
 }
 
 
-int stopLine_detect(void) { /// 1 if stopline detected: the car is on white line
-	int i;
-	unsigned char sensor;
-    sensor = LineSensor_Read();
-    int whitecount = 0;
-    for(i=0; i<8; i++){
-        if (!sensor) whitecount++;
-        sensor = sensor << 1;
-    }
-
-    // printf("\n");
-    // printf("whitecount: %d\n", whitecount);
-    if (whitecount > 5) {
-        printf("white stop line detect!");
-        return 1; /// black
-    }
-    else return 0; /// white
-}
+/** int stopLine_detect(void) { /// 1 if stopline detected: the car is on white line */
+/**     int i; */
+/**     unsigned char sensor; */
+/**     sensor = LineSensor_Read(); */
+/**     int whitecount = 0; */
+/**     for(i=0; i<8; i++){ */
+/**         if (!sensor) whitecount++; */
+/**         sensor = sensor << 1; */
+/**     } */
+/**  */
+/**     // printf("\n"); */
+/**     // printf("whitecount: %d\n", whitecount); */
+/**     if (whitecount < 2) { */
+/**         printf("white stop line detect!"); */
+/**         return 1; /// black */
+/**     } */
+/**     else return 0; /// white */
+/** } */
