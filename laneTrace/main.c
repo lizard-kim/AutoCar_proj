@@ -145,6 +145,7 @@ void * capture_thread(void *arg);
 /** void * capture_dump_thread(void *arg); */
 /** void* input_thread(void *arg); */
 void * sensor_thread(void *arg);
+void * line_thread(void *arg);
 double distance_calculate(double data); // make sensor input data to real distance data
 int distance_sensor(); //get sensor input data
 static char* passing_master(struct display *disp, struct buffer *cambuf, void *arg); // 2019.11.16 관형 변경
@@ -269,9 +270,9 @@ int main(int argc, char **argv)
 	if(ret) MSG("Failed creating capture dump thread");
 	pthread_detach(tdata.threads[1]);
 
-	/** ret = pthread_create(&tdata.threads[2], NULL, trigger_thread, &tdata); */
-	/** if(ret) MSG("Failed creating input thread"); */
-	/** pthread_detach(tdata.threads[2]); */
+	ret = pthread_create(&tdata.threads[2], NULL, line_thread, &tdata);
+	if(ret) MSG("Failed creating input thread");
+	pthread_detach(tdata.threads[2]);
 
     /* register signal handler for <CTRL>+C in order to clean up */
     if(signal(SIGINT, signal_handler) == SIG_ERR) {
@@ -651,13 +652,13 @@ void * capture_thread(void *arg)
 		index = vpe_output_dqbuf(vpe); // VPE 출력 큐 처리 권한을 어플리케이션이 가지고 옴
 		capt = vpe->disp_bufs[index];
 		///////////////////////////////////////////////////////////////////////////
+		
 		// ------------- trigger ----------------
 		// 3 DY trigger [TODO] trigger is weird 
 		/** printf("capture_thread\n"); */
 		if(data->parParkingSignal_2 == 2 && data->ParkingSignal_2 == 2 && data->stop_line_DY == 0){
 				/** data->white_stop_line = line_trace_sensor(); */
-				/** printf("stopline ======================================\n"); */
-				if (stopLine_detect() == 0) {
+				if (data->forline == 0) {
 					data->stop_line_DY = 1;
 					data->mission_id = 3;
 				}
@@ -953,7 +954,6 @@ void * capture_thread(void *arg)
 /**     return NULL; */
 /** } */
 
-
 void * sensor_thread(void *arg)
 {
 	struct thr_data *data = (struct thr_data *)arg;
@@ -974,9 +974,6 @@ void * sensor_thread(void *arg)
 		data->I_data_6 = DistanceSensor(6);
 		data->O_data_6 = DistFunc(data->I_data_6);
 		usleep(10000);
-		if(data->parParkingSignal_2 == 2 && data->ParkingSignal_2 == 2 && data->stop_line_DY == 0){
-			usleep(1000000);
-		}
 		/** usLeep(100000); */
 		/** printf("2: %d, 3: %d, 5: %d, 6: %d\n", data->O_data_2, data->O_data_3, data->O_data_5, data->O_data_6); */
 		/** printf("O_data_4 : %d\n", data->O_data_4); */
@@ -984,6 +981,26 @@ void * sensor_thread(void *arg)
 	}
 	return NULL;
 }
+
+void * line_thread(void *arg)
+{
+	struct thr_data *data = (struct thr_data *)arg;
+	while(1) {
+		/** data->forline = line_trace_sensor(); */
+		// ---- sensor data input
+		printf("line_thread!\n");
+		if(data->parParkingSignal_2 == 2 && data->ParkingSignal_2 == 2 && data->stop_line_DY == 0){
+			data->forline = stopLine_detect();
+			usleep(100000);
+		}
+		usleep(100000);
+	}
+	return NULL;
+}
+
+
+
+
 
 /**
  * @brief  handling an SIGINT(CTRL+C) signal
