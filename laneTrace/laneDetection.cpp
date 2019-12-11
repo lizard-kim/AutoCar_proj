@@ -456,7 +456,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
     putText(frame_show, "steer : " + str, Point(10, 15), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 0, 255));
     // cout << "steer : " << steer << endl;
 
-    srcRGB = frame_show;
+    //srcRGB = frame_show;
 	// cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
     // cout << "fuck7" << endl;
 

@@ -110,7 +110,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 		}
 	}
 	// cvtColor(test, srcRGB, COLOR_BGR2GRAY);
-	srcRGB = img_result;
+	//srcRGB = img_result;
 	// resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
 	return speed;
@@ -204,7 +204,7 @@ int OpenCV_red_Detection_for_traffic_light(unsigned char* srcBuf, int iw, int ih
 		}
 	}
 	// cvtColor(test, srcRGB, COLOR_BGR2GRAY);
-	srcRGB = img_result;
+	//srcRGB = img_result;
 	// resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
 	return is_Traffic_Light_red;
@@ -295,7 +295,7 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 			// resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 		}
 	}  
-	srcRGB = img_result;
+	//srcRGB = img_result;
 	// resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
 	return is_Traffic_Light;

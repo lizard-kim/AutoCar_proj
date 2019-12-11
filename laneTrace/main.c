@@ -376,10 +376,12 @@ int main(int argc, char **argv)
 					tdata.pre_angle = angle;//???
 					/** printf("speed, ratio %d %d\n", data->speed, data->speed_ratio); */
 					DesireSpeed_Write(50);
+                    CameraYServoControl_Write(1500);
 					if(data->speed == 0) usleep(500000);
-					usleep(100000);
+					usleep(100000); 
                     break;     
                 case HISTOGRAM_BACK_PROPAGATION :
+                    CameraYServoControl_Write(1500);
                     DesireSpeed_Write(50);
                     usleep(100000);
 					printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
@@ -764,7 +766,8 @@ void * capture_thread(void *arg)
 			if (data->mission_state == AUTO_DRIVE){
 				printf(" ###########  mission_state == AUTO_DRIVE in capture thread\n");
             }
-            if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 40){
+            if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 100){
+                CameraYServoControl_Write(1500);
                 data->mission_state = HISTOGRAM_BACK_PROPAGATION;
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
         
@@ -782,7 +785,7 @@ void * capture_thread(void *arg)
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
-                if (data->O_data_1 < 35){
+                if (data->O_data_1 < 70){
                     data->mission_state = BEFORE_PASSING_OVER;
                 }
 

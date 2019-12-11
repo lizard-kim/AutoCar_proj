@@ -90,7 +90,7 @@ void passing_left(){
     DesireSpeed_Write(50);
     Winker_Write(LEFT_ON);
     SteeringServoControl_Write(2000);
-    usleep(2000000);
+    usleep(2000000); 
     SteeringServoControl_Write(1100);
     usleep(2700000);
     Winker_Write(ALL_OFF);    
@@ -100,7 +100,7 @@ void passing_right(){
     DesireSpeed_Write(50);
     Winker_Write(RIGHT_ON);
     SteeringServoControl_Write(1000);
-    usleep(2000000);
+    usleep(1800000); // 20
     SteeringServoControl_Write(1900);
     usleep(2700000); // 25
     Winker_Write(ALL_OFF);    
@@ -117,7 +117,7 @@ void passing_left_later(){
     usleep(2000000);
     DesireSpeed_Write(30);
     SteeringServoControl_Write(1900);
-    usleep(3500000);
+    usleep(3500000); //35
     SteeringServoControl_Write(1000);
     usleep(3500000);
     while(line_trace_sensor() == 1){  // black:1, white:0

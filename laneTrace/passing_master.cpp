@@ -28,11 +28,11 @@ bool pixel_detector(Mat image){
 	int count = 0;
     int count1 = 0;
     int count2 = 0;
-    for(int j = 140; j < 170; j++){
+    for(int j = 80; j < 170; j++){
             uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
-            for(int i = 0; i < 100; i++){
+            for(int i = 0; i < 110; i++){
                 //cout << "(" << i << ", " << j << ") " << "pixel 값 : " << int(pointer[i]) << endl;
-                if(int(pointer[i]) == 255) count ++;
+                if(int(pointer[i]) > 0) count ++;
                 pointer[i]++;
             }
 	    }
@@ -43,11 +43,11 @@ bool pixel_detector(Mat image){
         cout << " <<<<<<<<<<<<<<<<<< count 값 : " << count << endl;
         cout << " <<<<<<<<<<<<<<<<<< count 값 : " << count << endl;
         cout << " <<<<<<<<<<<<<<<<<< count 값 : " << count << endl;
-    for(int j = 140; j < 170; j++){
+    for(int j = 80; j < 170; j++){
             uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
-            for(int i = 120; i < 200; i++){
+            for(int i = 110; i < 210; i++){
                 //cout << "(" << i << ", " << j << ") " << "pixel 값 : " << int(pointer[i]) << endl;
-                if(int(pointer[i]) == 255) count1 ++;
+                if(int(pointer[i]) > 0) count1 ++;
                 pointer[i]++;
             }
 	    }
@@ -58,11 +58,11 @@ bool pixel_detector(Mat image){
         cout << "<<<<<<<<<<<<<<<<<<  count1 값 : " << count1 << endl;
         cout << "<<<<<<<<<<<<<<<<<<  count1 값 : " << count1 << endl;
         cout << "<<<<<<<<<<<<<<<<<<  count1 값 : " << count1 << endl;
-    for(int j = 140; j < 180; j++){
+    for(int j = 80; j < 170; j++){
             uchar* pointer = image.ptr<uchar>(j); //j번째 행에 접근
-            for(int i = 220; i < 320; i++){
+            for(int i = 210; i < 320; i++){
                 //cout << "(" << i << ", " << j << ") " << "pixel 값 : " << int(pointer[i]) << endl;
-                if(int(pointer[i]) == 255) count2 ++;
+                if(int(pointer[i]) > 0) count2 ++;
                 pointer[i]++;
             }
 	    }
@@ -108,22 +108,26 @@ bool pixel_detector(Mat image){
 	//     }
     //     cout << "count2 값 : " << count2 << endl;
     // }
-	return abs(count - count1) > abs(count1 - count2) ? false : true; // false이면 오른쪽, true이면 왼쪽으로, 값이 같아도 왼쪽으로
+    bool answer = abs(count - count1) > abs(count1 - count2) ? true : false;
+    cout << "###########  answer == " << answer << endl;
+    cout << "###########  answer == " << answer << endl;
+	return abs(count - count1) > abs(count1 - count2) ? true : false; // false이면 오른쪽, true이면 왼쪽으로, 값이 같아도 왼쪽으로
 }
 
 
 Mat pre_histogram_backprojection(unsigned char* srcBuf, int iw, int ih){
     //Mat srcImage = imread("capture.png", IMREAD_COLOR); // 이게 기준값!
     Mat srcImage(ih, iw, CV_8UC3, srcBuf);
+    Mat srcImage2;
     //if (srcImage.empty())
 	//	return ;
-    resize(srcImage, srcImage, Size(320, 180));
-    Mat srcImage2 = srcImage.clone(); // 여기에 사각형을 그리자 (시각화)
+    resize(srcImage, srcImage2, Size(320, 180));
+    //Mat srcImage2 = srcImage.clone(); // 여기에 사각형을 그리자 (시각화)
     cout << "srcImage size(cols, rows) : " << srcImage.cols << " " << srcImage.rows << endl;
     Mat hsvImage;
     cvtColor(srcImage, hsvImage, COLOR_BGR2HSV);
     //Rect roi1(Point(0, 140), Point(80, 170));
-    Rect roi(Point(120, 140), Point(200, 170));
+    Rect roi(Point(130, 140), Point(190, 160));
     //Rect roi3(Point(220, 140), Point(320, 170));
     //rectangle(srcImage2, roi1, Scalar(0, 0, 255), 2);
     rectangle(srcImage2, roi, Scalar(0, 0, 255), 2);
@@ -197,8 +201,8 @@ char* histogram_backprojection(unsigned char* srcBuf, int iw, int ih, unsigned c
     Mat mask2 = getStructuringElement(MORPH_RECT, Size(4, 4));
     dilate(backProject2, backProject2, mask2, Point(-1, -1), 1);
 
-    cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
-
+    //cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+    cv::resize(backProject2, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
     bool answer = pixel_detector(backProject2); // 여기서 pixet_detector 함수 사용
     cout << "start pixel detector!!! " << endl;
 
