@@ -148,13 +148,20 @@ Mat pre_histogram_backprojection(unsigned char* srcBuf, int iw, int ih){
     return hist;
 }
 
-char* histogram_backprojection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh, Mat hist)
+char* histogram_backprojection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
 {   
-    cout << "srcBuf real size(ih, iw) : " << ih << " " << iw << " << in histogram_backprojection" << endl; 
-    Mat dstRGB(nh, nw, CV_8UC3, outBuf); // 나중에 
-    //Mat srcRGB(ih, iw, CV_8UC3, srcBuf); // 이미지 받아오기
-    Mat srcImage(ih, iw, CV_8UC3, srcBuf);
+
+    Mat dstRGB(nh, nw, CV_8UC3, outBuf);
+    Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
     Mat resRGB(ih, iw, CV_8UC3);
+    cout << "come in passing_master.cpp in passing_master" << endl;
+    cout << "come in passing_master.cpp in passing_master" << endl;
+    cout << "come in passing_master.cpp in passing_master" << endl;
+    cout << "srcBuf real size(ih, iw) : " << ih << " " << iw << " << in histogram_backprojection" << endl; 
+    //Mat dstRGB(nh, nw, CV_8UC3, outBuf); // 나중에 
+    //Mat srcRGB(ih, iw, CV_8UC3, srcBuf); // 이미지 받아오기
+    //Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
+    //Mat resRGB(ih, iw, CV_8UC3);
     Mat hsvImage;
     float hValue[] = { 0, 256 };
     float sValue[] = { 0, 256 };
@@ -163,16 +170,21 @@ char* histogram_backprojection(unsigned char* srcBuf, int iw, int ih, unsigned c
 	int channels[] = {0, 1, 2};
     //passing pre;
 
-
-    if (srcImage.empty())
-		cout << "이미지 인식 실패\n" << endl;
-        return "fail";//fail
-    cout << "이미지의 크기는 : " << srcImage.cols << " " << srcImage.rows << endl;
+    cout << "이미지의 크기는 : " << srcRGB.cols << " " << srcRGB.rows << endl;
+    if (srcRGB.empty()){
+        cout << "이미지 인식 실패\n" << endl;
+        return "fail"; //fail
+    }
+    //cout << "이미지의 크기는 : " << srcRGB.cols << " " << srcRGB.rows << endl;
     //resize(srcImage, srcImage, Size(srcImage.cols/5, srcImage.rows/5));
    
-    cvtColor(srcImage, hsvImage, COLOR_BGR2HSV); //히스토그램은 밝기값을 통해 계산하기 때문에
+    cvtColor(srcRGB, hsvImage, COLOR_BGR2HSV); //히스토그램은 밝기값을 통해 계산하기 때문에
 												 //RGB 영상을 HSV 영상으로 바꾼 후 H 채널만 분리하도록 한다.
-
+    Mat hist;
+    cout << "go to pre_histogram" << endl;
+    cout << "go to pre_histogram" << endl;
+    cout << "go to pre_histogram" << endl;
+    cout << "go to pre_histogram" << endl;
     hist = pre_histogram_backprojection(srcBuf, iw, ih); // 여기서 pre_histogram 함수 사용
     Mat backProject;
 	calcBackProject(&hsvImage, 1, channels, hist, backProject, ranges);
@@ -185,7 +197,7 @@ char* histogram_backprojection(unsigned char* srcBuf, int iw, int ih, unsigned c
     Mat mask2 = getStructuringElement(MORPH_RECT, Size(4, 4));
     dilate(backProject2, backProject2, mask2, Point(-1, -1), 1);
 
-    cv::resize(srcImage, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+    cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
     bool answer = pixel_detector(backProject2); // 여기서 pixet_detector 함수 사용
     cout << "start pixel detector!!! " << endl;

@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 	int start_sig = 2;
 
 	//init data struct
-	tdata.mission_id = 0; // 0 is basic driving 1 is for testing
+	tdata.mission_id = 7; // 0 is basic driving 1 is for testing
     tdata.driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
     tdata.pre_angle = 0;
     tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
@@ -339,6 +339,7 @@ int main(int argc, char **argv)
 
 	while (start_sig == 2){
 		printf("mission_id: %d\n", data->mission_id);
+        printf("mission_state: %d\n", data->mission_state);
 		if (data->mission_id == 1) {//test driving
 			//DesireSpeed_Write(100);
 			/** usleep(1000000); */
@@ -379,21 +380,24 @@ int main(int argc, char **argv)
 					usleep(100000);
                     break;     
                 case HISTOGRAM_BACK_PROPAGATION :
-                    DesireSpeed_Write(0);
-                    usleep(2000000);
+                    DesireSpeed_Write(50);
+                    usleep(100000);
 					printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
+                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
+                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
+                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
                     break;
 					// 추월 미션 진입
 				case PASSING_OVER_LEFT :
 					printf("------------------------ main_PASSING_OVER_LEFT ---------------------------\n");
-					CameraYServoControl_Write(1720);
+					CameraYServoControl_Write(1700);
                     passing_go_back();
 					passing_left();
                     data->mission_state = WAIT;
                     break;
 				case PASSING_OVER_RIGHT :
 					printf("------------------------ main_PASSING_OVER_RIGHT ---------------------------\n");
-					CameraYServoControl_Write(1720);
+					CameraYServoControl_Write(1700);
                     passing_go_back();
 					passing_right();
                     data->mission_state = WAIT;
@@ -424,6 +428,10 @@ int main(int argc, char **argv)
 					passing_stop();
 					data->after_passing = 1;
                     data->mission_state = BREAK;
+                    printf("------------------------ the end ---------------------------\n");
+                    printf("------------------------ the end ---------------------------\n");
+                    printf("------------------------ the end ---------------------------\n");
+                    printf("------------------------ the end ---------------------------\n");
                     break;
 			}
 		} /// 추월
@@ -718,8 +726,8 @@ void * capture_thread(void *arg)
 		/** } */
 
 		// 7 passing trigger 
-		if(data->parParkingSignal_2 == 2 && data->mission_state == AUTO_DRIVE && data->O_data_1 < 50) data->mission_id = 7;//passing master
-
+		//if(data->parParkingSignal_2 == 2 && data->mission_state == AUTO_DRIVE && data->O_data_1 < 50) data->mission_id = 7;//passing master
+        if(data->mission_state == AUTO_DRIVE && data->O_data_1 < 50) data->mission_id = 7;
 		// 8 traffic light trigger
 		if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light
 
@@ -743,7 +751,7 @@ void * capture_thread(void *arg)
 		// ----------------------- end of image process ----------------------------------
 
 		// -------------------------koo mission trigger---------------------
-		if (data->mission_id == 7&& data->after_passing == 0){
+		if (data->mission_id == 7 && data->after_passing == 0){
 			// ---- 적외선 센서 ----
 			printf("######### capture thread and id = 7 ###########\n");
 			printf("distance = %d \n", data->distance);
@@ -756,7 +764,7 @@ void * capture_thread(void *arg)
 			if (data->mission_state == AUTO_DRIVE){
 				printf(" ###########  mission_state == AUTO_DRIVE in capture thread\n");
             }
-            if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 50){
+            if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 40){
                 data->mission_state = HISTOGRAM_BACK_PROPAGATION;
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
         
@@ -766,8 +774,17 @@ void * capture_thread(void *arg)
             else if (data->mission_state == HISTOGRAM_BACK_PROPAGATION){
                 data->direction = passing_master(vpe->disp, capt, &data);
                 printf(" passing master direction = %s \n", data->direction);
+                printf(" passing master direction = %s \n", data->direction);
+                printf(" passing master direction = %s \n", data->direction);
+                printf(" passing master direction = %s \n", data->direction);
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
-                data->mission_state = BEFORE_PASSING_OVER;
+                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
+                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
+                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
+                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
+                if (data->O_data_1 < 35){
+                    data->mission_state = BEFORE_PASSING_OVER;
+                }
 
             }
         
@@ -781,7 +798,7 @@ void * capture_thread(void *arg)
                     data->mission_state = PASSING_OVER_RIGHT;
                 }
                 else if (strcmp(data->direction,"fail")==0){
-                    data->mission_state = PASSING_OVER_LEFT; // 만일 역히스토그램 투영으로 방향을 도출해내지 못하면 왼쪽으로 간다고 설정
+                    data->mission_state = PASSING_OVER_RIGHT; // 만일 역히스토그램 투영으로 방향을 도출해내지 못하면 왼쪽으로 간다고 설정
                 }
             }           
 
@@ -807,9 +824,9 @@ void * capture_thread(void *arg)
                     data->mission_state = PASSING_OVER_RETURN_RIGHT;
                     printf("fuck fuck fuck 1111\n");
                 }
-                else if (strcmp(data->direction, "right")){
+                else if (strcmp(data->direction, "right") == 0){
                     data->mission_state = PASSING_OVER_RETURN_LEFT;
-                    printf("fuck fuck fuck 1111\n");
+                    printf("fuck fuck fuck 11111111111\n");
                 }
             }
 
