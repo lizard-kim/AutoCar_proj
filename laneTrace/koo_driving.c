@@ -90,7 +90,7 @@ void passing_left(){
     DesireSpeed_Write(50);
     Winker_Write(LEFT_ON);
     SteeringServoControl_Write(2000);
-    usleep(2000000);
+    usleep(2000000); 
     SteeringServoControl_Write(1100);
     usleep(2700000);
     Winker_Write(ALL_OFF);    
@@ -100,7 +100,7 @@ void passing_right(){
     DesireSpeed_Write(50);
     Winker_Write(RIGHT_ON);
     SteeringServoControl_Write(1000);
-    usleep(2000000);
+    usleep(1800000); // 20
     SteeringServoControl_Write(1900);
     usleep(2700000); // 25
     Winker_Write(ALL_OFF);    
@@ -113,7 +113,7 @@ void passing_left_later(){
     usleep(2000000);
     DesireSpeed_Write(30);
     SteeringServoControl_Write(1900);
-    usleep(3500000);
+    usleep(3500000); //35
     SteeringServoControl_Write(1000);
     usleep(3500000);
     while(line_trace_sensor() == 1){  // black:1, white:0
@@ -258,7 +258,7 @@ void passing_right2(){
 }
 
 int line_trace_sensor(){
-	printf("line_trace_sensor\n");
+	/** printf("line_trace_sensor\n"); */
     int sum = 0;
     sensor = LineSensor_Read(); // black:1, white:0
     /** printf("LineSensor_Read() = "); */
@@ -273,14 +273,18 @@ int line_trace_sensor(){
             }
             sensor = sensor << 1;
         }
-	/** printf("\n"); */
+	printf("\n");
     //printf("LineSensor_Read() = %d \n", sensor);
     for(j=0; j<8; j++){
         /** printf("LineSensor_Read() = %d\n", line_buffer[j]); */
         sum = sum + line_buffer[j];
     }
-    if (sum > 1) return 1; // black:1, white:0
-    else if (sum <= 1) return 0; //0111111이 검은색, 000000이 흰색이었음
+    if (sum > 2) return 1; // black:1, white:0
+    else if (sum <= 2) {
+		printf("==============black!!!================\n");
+		return 0; //0111111이 검은색, 000000이 흰색이었음
+		
+	}
 }
 
 void passing_go_back_later(){

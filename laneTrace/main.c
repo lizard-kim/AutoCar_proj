@@ -153,7 +153,7 @@ static char* main_stop_line_detection(struct display *disp, struct buffer *cambu
 void warmSensorTrigger(); 
 static struct thr_data* pexam_data = NULL;
 void signal_handler(int sig);
-/** int stopLine_detect(void); // 정지선 인식하는 함수 1이면 정지선 위, 0이면 아님 by Doyeon */
+int stopLine_detect(void); // 정지선 인식하는 함수 1이면 정지선 위, 0이면 아님 by Doyeon
 int line_trace_sensor();
 double DistFunc(double data);
 void DistanceTest();
@@ -323,7 +323,8 @@ int main(int argc, char **argv)
     printf("DesireSpeed_Read() = %d \n", check_speed); 
 	
 	//for starting!
-	DesireSpeed_Write(0);
+	/** DesireSpeed_Write(0); */
+    SteeringServoControl_Write(1500);
 	usleep(100000);
 
 	while(start_sig == 0){
@@ -338,7 +339,7 @@ int main(int argc, char **argv)
 	/** printf("start_sig : %d\n", start_sig); */
 
 	while (start_sig == 2){
-		printf("mission_id: %d\n", data->mission_id);
+		printf("------------mission_id: %d\n", data->mission_id);
 		if (data->mission_id == 1) {//test driving
 			/** Alarm_Write(ON); */
 			/** usleep(100000); */
@@ -378,10 +379,12 @@ int main(int argc, char **argv)
 					tdata.pre_angle = angle;//???
 					/** printf("speed, ratio %d %d\n", data->speed, data->speed_ratio); */
 					DesireSpeed_Write(50);
+                    CameraYServoControl_Write(1500);
 					if(data->speed == 0) usleep(500000);
-					usleep(100000);
+					usleep(100000); 
                     break;     
                 case HISTOGRAM_BACK_PROPAGATION :
+                    CameraYServoControl_Write(1500);
                     DesireSpeed_Write(50);
                     usleep(100000);
 					printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
@@ -522,7 +525,9 @@ int main(int argc, char **argv)
 			SteeringServoControl_Write(angle); 
 			tdata.pre_angle = angle;//???
 			/** printf("speed, ratio %d %d\n", data->speed, data->speed_ratio); */
-			DesireSpeed_Write(data->speed);
+			/** DesireSpeed_Write(data->speed); */
+			DesireSpeed_Write(100);
+			printf("00000000000000000000000000000000speed : %d\n", data->speed);
 			if(data->speed == 0) usleep(500000);
 			usleep(100000);
 		} 
@@ -604,8 +609,7 @@ int Traffic_mission_green(struct display *disp, struct buffer *cambuf){
 
 void * capture_thread(void *arg)
 {
-	printf("capture_thread\n");
-	usleep(100000);
+	usleep(10000);
 	struct thr_data *data = (struct thr_data *)arg;
 	struct v4l2 *v4l2 = data->v4l2;
 	struct vpe *vpe = data->vpe;
@@ -638,6 +642,7 @@ void * capture_thread(void *arg)
 
 	while(1) {
 		printf("capture_thread!\n");
+		usleep(10000);
 
 		////////////////////////////do not touch////////////////////////////////////
 		index = v4l2_dqbuf(v4l2, &vpe->field); // 캡처 queue의 소유권으로 Application으로 가지고 옴
@@ -665,7 +670,7 @@ void * capture_thread(void *arg)
 		}
 		else{
 			// 4 tunnel trigger 
-			printf("data->tunnelSignal : %d\n", data->tunnelSignal);
+			/** printf("data->tunnelSignal : %d\n", data->tunnelSignal); */
 			if(data->tunnelend == 0 && data->tunnelSignal == 1 && data->O_data_2 < 30 && data->O_data_6 < 30){
 				data->tunnelSignal = 2;
 			}
@@ -734,7 +739,8 @@ void * capture_thread(void *arg)
 			}
 
 			// 7 passing trigger 
-			if(data->parParkingSignal_2 == 2 && data->mission_state == AUTO_DRIVE && data->O_data_1 < 50) data->mission_id = 7;//passing master
+			if(data->tunnelend == 1 && data->parParkingSignal_2 == 2 && data->mission_state == AUTO_DRIVE && data->O_data_1 < 90) data->mission_id = 7;//passing master
+			
 			// 8 traffic light trigger
 			if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light
 
@@ -751,6 +757,7 @@ void * capture_thread(void *arg)
 				/** printf("capture_thread is_Traffic_Light : %d\n", data->is_Traffic_Light); */
 			}
 			data->speed = v * data->speed_ratio;
+			printf("speed : %d, ratio : %d\n", v, data->speed_ratio);
 			/** if(data->speed == 0) usleep(50000); */
 			/** usleep(10000); */
 			// ----------------------- end of image process ----------------------------------
@@ -769,7 +776,7 @@ void * capture_thread(void *arg)
 				if (data->mission_state == AUTO_DRIVE){
 					printf(" ###########  mission_state == AUTO_DRIVE in capture thread\n");
 				}
-				if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 40){
+				if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 100){
 					data->mission_state = HISTOGRAM_BACK_PROPAGATION;
 					printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
 
@@ -787,7 +794,7 @@ void * capture_thread(void *arg)
 					printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
 					printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
 					printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
-					if (data->O_data_1 < 35){
+					if (data->O_data_1 < 70){
 						data->mission_state = BEFORE_PASSING_OVER;
 					}
 
@@ -857,110 +864,58 @@ void * capture_thread(void *arg)
 	return NULL;
 }
 
-/**
-  * @brief  Hough transform the captured image dump and save to file
-  * @param  arg: pointer to parameter of thr_data
-  * @retval none
-  */
-/** void * capture_dump_thread(void *arg) */
-/** { */
-/**     struct thr_data *data = (struct thr_data *)arg; */
-/**     FILE *fp; */
-/**     char file[50]; */
-/**     struct timeval timestamp; */
-/**     struct tm *today; */
-/**     DumpMsg dumpmsg; */
-/**  */
-/**     while(1) { */
-/**         if(msgrcv(data->msgq_id, &dumpmsg, sizeof(DumpMsg)-sizeof(long), DUMP_MSGQ_MSG_TYPE, 0) >= 0) { */
-/**             switch(dumpmsg.state_msg) { */
-/**                 case DUMP_CMD : */
-/**                     gettimeofday(&timestamp, NULL); */
-/**                     today = localtime(&timestamp.tv_sec); */
-/**                     sprintf(file, "dump_%04d%02d%02d_%02d%02d%02d.%s", today->tm_year+1900, today->tm_mon+1, today->tm_mday, today->tm_hour, today->tm_min, today->tm_sec,VPE_OUTPUT_FORMAT); */
-/**                     data->dump_state = DUMP_READY; */
-/**                     MSG("file name:%s", file); */
-/**                     break; */
-/**  */
-/**                 case DUMP_WRITE_TO_FILE : */
-/**                     if((fp = fopen(file, "w+")) == NULL){ */
-/**                         ERROR("Fail to fopen"); */
-/**                     } else { */
-/**                         fwrite(data->dump_img_data, VPE_OUTPUT_IMG_SIZE, 1, fp); */
-/**                     } */
-/**                     fclose(fp); */
-/**                     data->dump_state = DUMP_DONE; */
-/**                     break; */
-/**  */
-/**                 default : */
-/**                     MSG("dump msg wrong (%d)", dumpmsg.state_msg); */
-/**                     break; */
-/**             } */
-/**         } */
-/**     } */
-/**  */
-/**     return NULL; */
-/** } */
-/**  */
-/**
-  * @brief  handling an input command
-  * @param  arg: pointer to parameter of thr_data
-  * @retval none
-  */
-/**  */
-/** void * input_thread(void *arg) */
-/** { */
-/**     struct thr_data *data = (struct thr_data *)arg; */
-/**  */
-/**     char cmd_input[128]; */
-/**     char cmd_ready = true; */
-/**  */
-/**     while(!data->bstream_start) { */
-/**         usleep(100*1000); */
-/**     } */
-/**  */
-/**     MSG("\n\nInput command:"); */
-/**     MSG("\t dump  : display image(%s, %dx%d) dump", VPE_OUTPUT_FORMAT, VPE_OUTPUT_W, VPE_OUTPUT_H); */
-/**     MSG("\n"); */
-/**  */
-/**     while(1) */
-/**     { */
-/**         if(cmd_ready == true) { */
-			/*standby to input command */
-/**             cmd_ready = StandbyInput(cmd_input);     //define in cmd.cpp */
-/**         } else { */
-/**             if(0 == strncmp(cmd_input,"dump",4)) { */
-/**                 DumpMsg dumpmsg; */
-/**                 dumpmsg.type = DUMP_MSGQ_MSG_TYPE; */
-/**                 dumpmsg.state_msg = DUMP_CMD; */
-/**                 data->dump_state = DUMP_CMD; */
-/**                 MSG("image dump start"); */
-/**                 if (-1 == msgsnd(data->msgq_id, &dumpmsg, sizeof(DumpMsg)-sizeof(long), 0)) { */
-/**                     printf("dump cmd msg send fail\n"); */
-/**                 } */
-/**  */
-/**                 while(data->dump_state != DUMP_DONE) { */
-/**                     usleep(5*1000); */
-/**                 } */
-/**                 data->dump_state = DUMP_NONE; */
-/**                 MSG("image dump done"); */
-/**             } else { */
-/**                 printf("cmd_input:%s \n", cmd_input); */
-/**             } */
-/**             cmd_ready = true; */
-/**         } */
-/**     } */
-/**  */
-/**     return NULL; */
-/** } */
+void * line_thread(void *arg)
+{
+	struct thr_data *data = (struct thr_data *)arg;
+	/** usleep(100000); */
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	printf("=======================================line_thread!\n");
+	while(1) {
+		/** data->forline = line_trace_sensor(); */
+		usleep(100000);
+		// ---- sensor data input
+		printf("=======================================line_thread!\n");
+		/** printf("=======================================stopline %d\n", data->forline); */
+		if(data->parParkingSignal_2 == 2 && data->ParkingSignal_2 == 2 && data->stop_line_DY == 0){
+			data->forline = line_trace_sensor();
+			if(data->forline == 0) return 0;
+		}
+	}
+	return NULL;
+}
 
 void * sensor_thread(void *arg)
 {
 	struct thr_data *data = (struct thr_data *)arg;
+	usleep(100000);
 	while(1) {
 		// ---- sensor data input
-		printf("sensor_thread!\n");
+		/** usleep(100000); */
 		/** printf("odata1: %d\n", data->O_data_1); */
+		printf("sensor_thread\n");
 		data->I_data_1 = DistanceSensor(1);
 		data->O_data_1 = DistFunc(data->I_data_1);
 		data->I_data_2 = DistanceSensor(2);
@@ -973,7 +928,6 @@ void * sensor_thread(void *arg)
 		data->O_data_5 = DistFunc(data->I_data_5);
 		data->I_data_6 = DistanceSensor(6);
 		data->O_data_6 = DistFunc(data->I_data_6);
-		usleep(10000);
 		/** usLeep(100000); */
 		/** printf("2: %d, 3: %d, 5: %d, 6: %d\n", data->O_data_2, data->O_data_3, data->O_data_5, data->O_data_6); */
 		/** printf("O_data_4 : %d\n", data->O_data_4); */
@@ -982,21 +936,7 @@ void * sensor_thread(void *arg)
 	return NULL;
 }
 
-void * line_thread(void *arg)
-{
-	struct thr_data *data = (struct thr_data *)arg;
-	while(1) {
-		/** data->forline = line_trace_sensor(); */
-		// ---- sensor data input
-		printf("line_thread!\n");
-		if(data->parParkingSignal_2 == 2 && data->ParkingSignal_2 == 2 && data->stop_line_DY == 0){
-			data->forline = stopLine_detect();
-			usleep(100000);
-		}
-		usleep(100000);
-	}
-	return NULL;
-}
+
 
 
 
@@ -1010,6 +950,11 @@ void * line_thread(void *arg)
 void signal_handler(int sig)
 {
 	if(sig == SIGINT) {
+
+		DesireSpeed_Write(0);
+		usleep(10000);
+		SteeringServoControl_Write(1500);
+		usleep(10000);
 		pthread_cancel(pexam_data->threads[0]);
 		pthread_cancel(pexam_data->threads[1]);
 		/** pthread_cancel(pexam_data->threads[2]); */
@@ -1126,7 +1071,7 @@ void getSteeringWithLane(struct display *disp, struct buffer *cambuf, double *st
         draw_operatingtime(disp, optime);
     }
 	*steer = angle;
-    *speed = 100 * ratio;
+    *speed = 120 * ratio;
 }
 
 static char* passing_master(struct display *disp, struct buffer *cambuf, void *arg){
@@ -1313,7 +1258,7 @@ void parparking(void *arg)
     printf("step 1...\n");
 
     SteeringServoControl_Write(1500);
-    usleep(500000);
+    usleep(300000);
 
     SteeringServoControl_Write(1000);
 	usleep(1300000);
