@@ -334,7 +334,6 @@ int main(int argc, char **argv)
 		}
 		usleep(10000);
 	}
-
 	/** printf("start_sig : %d\n", start_sig); */
 
 	while (start_sig == 2){
@@ -592,13 +591,13 @@ int Traffic_mission_green(struct display *disp, struct buffer *cambuf){
     unsigned char* cam_pbuf[4];
     if(get_framebuf(cambuf, cam_pbuf) == 0) {
         memcpy(srcbuf, cam_pbuf[0], VPE_OUTPUT_W*VPE_OUTPUT_H*3);
-        /** gettimeofday(&st, NULL); */
+		/** gettimeofday(&st, NULL); */
 		is_Traffic_Light = OpenCV_green_Detection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
 		// 1 is red sign
-        /** gettimeofday(&et, NULL); */
-        /** optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000); */
-        /** draw_operatingtime(disp, optime); */
-    }
+		/** gettimeofday(&et, NULL); */
+		/** optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000); */
+		/** draw_operatingtime(disp, optime); */
+	}
 	return is_Traffic_Light; 
 }
 
@@ -607,37 +606,38 @@ void * capture_thread(void *arg)
 	printf("capture_thread\n");
 	usleep(100000);
 	struct thr_data *data = (struct thr_data *)arg;
-    struct v4l2 *v4l2 = data->v4l2;
-    struct vpe *vpe = data->vpe;
-    struct buffer *capt;
-    bool isFirst = true;
-    int index;
-    int i;
+	struct v4l2 *v4l2 = data->v4l2;
+	struct vpe *vpe = data->vpe;
+	struct buffer *capt;
+	bool isFirst = true;
+	int index;
+	int i;
 
 	//for understanding capture_thread...
-    v4l2_reqbufs(v4l2, NUMBUF); // 영상 저장할 큐 버퍼 메모리 할당
-    vpe_input_init(vpe); // VPE 입력 초기화
-    allocate_input_buffers(data); // VPE 입력 버퍼 할당
+	v4l2_reqbufs(v4l2, NUMBUF); // 영상 저장할 큐 버퍼 메모리 할당
+	vpe_input_init(vpe); // VPE 입력 초기화
+	allocate_input_buffers(data); // VPE 입력 버퍼 할당
 
-    // 이미지 색공간에 따른 설정 (NV12(Y plane UV plane 따로 있음)이면 multiplanar)))
-    if(vpe->dst.coplanar) vpe->disp->multiplanar = true;
-    else vpe->disp->multiplanar = false;
-    vpe_output_init(vpe); // VPE 출력 초기화
-    vpe_output_fullscreen(vpe, data->bfull_screen); // scaling 여부 설정
+	// 이미지 색공간에 따른 설정 (NV12(Y plane UV plane 따로 있음)이면 multiplanar)))
+	if(vpe->dst.coplanar) vpe->disp->multiplanar = true;
+	else vpe->disp->multiplanar = false;
+	vpe_output_init(vpe); // VPE 출력 초기화
+	vpe_output_fullscreen(vpe, data->bfull_screen); // scaling 여부 설정
 
-    // 영상 큐 처리 권한을 드라이버에게 이전하여 다음 영상 프레임 요청
-    for (i = 0; i < NUMBUF; i++) v4l2_qbuf(v4l2,vpe->input_buf_dmafd[i], i);
-    // VPE 출력 큐 처리 권한을 드라이버에게 이전하여 드라이버가 영상 가공 후 출력 큐에 데이터 저장
-    for (i = 0; i < NUMBUF; i++) vpe_output_qbuf(vpe, i);
+	// 영상 큐 처리 권한을 드라이버에게 이전하여 다음 영상 프레임 요청
+	for (i = 0; i < NUMBUF; i++) v4l2_qbuf(v4l2,vpe->input_buf_dmafd[i], i);
+	// VPE 출력 큐 처리 권한을 드라이버에게 이전하여 드라이버가 영상 가공 후 출력 큐에 데이터 저장
+	for (i = 0; i < NUMBUF; i++) vpe_output_qbuf(vpe, i);
 
-    v4l2_streamon(v4l2); // 영상 캡쳐 시작
-    vpe_stream_on(vpe->fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE); // VPE 하드웨어 입력 시작
-    vpe->field = V4L2_FIELD_ANY;
+	v4l2_streamon(v4l2); // 영상 캡쳐 시작
+	vpe_stream_on(vpe->fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE); // VPE 하드웨어 입력 시작
+	vpe->field = V4L2_FIELD_ANY;
 
 	double a, v;
 
 	while(1) {
 		printf("capture_thread!\n");
+
 		////////////////////////////do not touch////////////////////////////////////
 		index = v4l2_dqbuf(v4l2, &vpe->field); // 캡처 queue의 소유권으로 Application으로 가지고 옴
 		vpe_input_qbuf(vpe, index); // VPE 입력 큐 처리 권한을 드라이버에게 이전 (VPE 드라이버가 영상 가공)
@@ -654,191 +654,193 @@ void * capture_thread(void *arg)
 		// ------------- trigger ----------------
 		// 3 DY trigger [TODO] trigger is weird 
 		/** printf("capture_thread\n"); */
-		if (data->stop_line_DY == 0) { // if stop line was never detected, it start to find stopline, if it detected once, it never executes stopLine function anymore
-			/** data->white_stop_line = line_trace_sensor(); */
-			/** printf("stopline: %d\n", data->forline); */
-			if (data->parParkingSignal_2 == 2 && data->forline == 0) {
-				data->stop_line_DY = 1;
-				data->mission_id = 3;
-			}
+		if(data->parParkingSignal_2 == 2 && data->ParkingSignal_2 == 2 && data->stop_line_DY == 0){
+				/** data->white_stop_line = line_trace_sensor(); */
+				/** printf("stopline ======================================\n"); */
+				if (stopLine_detect() == 0) {
+					data->stop_line_DY = 1;
+					data->mission_id = 3;
+				}
 		}
-		// 4 tunnel trigger 
-		/** printf("data->tunnelSignal : %d\n", data->tunnelSignal); */
-		if(data->tunnelend == 0 && data->tunnelSignal == 1 && data->O_data_2 < 30 && data->O_data_6 < 30){
-			data->tunnelSignal = 2;
-		}
-		if(data->tunnelSignal == 2 && (data->O_data_2 > 30 || data->O_data_3 > 30)){
-			data->tunnelSignal = 1;
-		}
-		if(data->tunnelSignal == 2 && data->O_data_2 < 30 && data->O_data_3 < 30){
-			data->tunnelcount +=1;
-
-			if(data->tunnelcount > 5){
-				data->tunnelSignal = 3;
-			}
-		}
-		if(data->tunnelSignal == 3 && (data->O_data_2 > 30 || data->O_data_3 > 30)){
-			data->tunnelSignal = 1;
-			data->tunnelcount = 0;
-		}
-		if(data->tunnelend == 0 && data->tunnelSignal == 3 && data->O_data_2 < 30 && data->O_data_3 < 30){
-			data->mission_id = 4;
-		}
-
-		// 5 parking trigger 
-		if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30){
-			printf("step1\n");
-			data->ParkingSignal_1 = 1;
-		}
-		if(data->ParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30){
-			printf("step3\n");
-			data->ParkingSignal_1 = 2;
-		}
-		/** if(data->ParkingSignal_1 == 2 && data->O_data_2 < 30 && data->O_data_3 > 30) data->ParkingSignal_1 = 0; */
-		if(data->ParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30){
-			printf("step4\n");
-			data->ParkingSignal_1 = 3;
-		}
-		if(data->ParkingSignal_1 == 3 && data->O_data_2 < 30 && data->O_data_3 > 30) data->ParkingSignal_1 = 4;
-		if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 4 && data->O_data_3 < 30){
-			printf("step5\n");
-			data->ParkingSignal_2 = 2;
-			data->mission_id = 5;// test driving edit it to 0
-		}
-
-		// 6 parparking trigger 
-		if(data->ParkingSignal_2 == 2 && data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30){
-			printf("step1\n");
-			data->parParkingSignal_1 = 1;
-		}
-		if(data->parParkingSignal_1 == 1 && data->O_data_2 > 60 && data->O_data_3 > 60){
-			printf("step2\n");
-			data->parParkingSignal_1 = 0;
-		}
-		if(data->parParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30){
-			printf("step3\n");
-			data->parParkingSignal_1 = 2;
-		}
-		if(data->parParkingSignal_1 == 2 && data->O_data_2 < 30 && data->O_data_3 > 30) data->parParkingSignal_1 = 0;
-		if(data->parParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30){
-			printf("step4\n");
-			data->parParkingSignal_1 = 3;
-		}
-		if(data->parParkingSignal_1 == 3 && data->O_data_2 < 30 && data->O_data_3 > 30) data->parParkingSignal_1 = 4;
-		if(data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 4 && data->O_data_3 < 30){
-			printf("step5\n");
-			data->parParkingSignal_2 = 2;
-			data->mission_id = 6;// test driving edit it to 0
-		}
-
-		// 7 passing trigger 
-		if(data->parParkingSignal_2 == 2 && data->mission_state == AUTO_DRIVE && data->O_data_1 < 50) data->mission_id = 7;//passing master
-		// 8 traffic light trigger
-		if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light
-
-		// -------------------- image process by capt ----------------------------------
-		// ---- pky function
-		getSteeringWithLane(vpe->disp, capt, &a, &v);
-		data->angle = a;
-		/** data->speed = v; */
-		// ---- pky end
-		if(data->mission_id < 8 && data->mission_id != 4) data->speed_ratio = color_detection(vpe->disp, capt);
 		else{
-			if(data->is_Traffic_Light_for_traffic_light == 0) data->is_Traffic_Light_for_traffic_light = Traffic_mission(vpe->disp, capt);//red sign
-			data->is_Traffic_Light = Traffic_mission_green(vpe->disp, capt); //green sign
-			/** printf("capture_thread is_Traffic_Light : %d\n", data->is_Traffic_Light); */
+			// 4 tunnel trigger 
+			printf("data->tunnelSignal : %d\n", data->tunnelSignal);
+			if(data->tunnelend == 0 && data->tunnelSignal == 1 && data->O_data_2 < 30 && data->O_data_6 < 30){
+				data->tunnelSignal = 2;
+			}
+			if(data->tunnelSignal == 2 && (data->O_data_2 > 30 || data->O_data_3 > 30)){
+				data->tunnelSignal = 1;
+			}
+			if(data->tunnelSignal == 2 && data->O_data_2 < 30 && data->O_data_3 < 30){
+				data->tunnelcount +=1;
+
+				if(data->tunnelcount > 5){
+					data->tunnelSignal = 3;
+				}
+			}
+			if(data->tunnelSignal == 3 && (data->O_data_2 > 30 || data->O_data_3 > 30)){
+				data->tunnelSignal = 1;
+				data->tunnelcount = 0;
+			}
+			if(data->tunnelend == 0 && data->tunnelSignal == 3 && data->O_data_2 < 30 && data->O_data_3 < 30){
+				data->mission_id = 4;
+			}
+
+			// 5 parking trigger
+			if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30){
+				printf("step1\n");
+				data->ParkingSignal_1 = 1;
+			}
+			if(data->ParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30){
+				printf("step3\n");
+				data->ParkingSignal_1 = 2;
+			}
+			if(data->ParkingSignal_1 == 2 && data->O_data_2 < 30 && data->O_data_3 > 30) data->ParkingSignal_1 = 0;
+			if(data->ParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30){
+				printf("step4\n");
+				data->ParkingSignal_1 = 3;
+			}
+			if(data->ParkingSignal_1 == 3 && data->O_data_2 < 30 && data->O_data_3 > 30) data->ParkingSignal_1 = 4;
+			if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 4 && data->O_data_3 < 30){
+				printf("step5\n");
+				data->ParkingSignal_2 = 2;
+				data->mission_id = 5;// test driving edit it to 0
+			}
+
+			// 6 parparking trigger
+			if(data->ParkingSignal_2 == 2 && data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30){
+				printf("step1\n");
+				data->parParkingSignal_1 = 1;
+			}
+			if(data->parParkingSignal_1 == 1 && data->O_data_2 > 60 && data->O_data_3 > 60){
+				printf("step2\n");
+				data->parParkingSignal_1 = 0;
+			}
+			if(data->parParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30){
+				printf("step3\n");
+				data->parParkingSignal_1 = 2;
+			}
+			if(data->parParkingSignal_1 == 2 && data->O_data_2 < 30 && data->O_data_3 > 30) data->parParkingSignal_1 = 0;
+			if(data->parParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30){
+				printf("step4\n");
+				data->parParkingSignal_1 = 3;
+			}
+			if(data->parParkingSignal_1 == 3 && data->O_data_2 < 30 && data->O_data_3 > 30) data->parParkingSignal_1 = 4;
+			if(data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 4 && data->O_data_3 < 30){
+				printf("step5\n");
+				data->parParkingSignal_2 = 2;
+				data->mission_id = 6;// test driving edit it to 0
+			}
+
+			// 7 passing trigger 
+			if(data->parParkingSignal_2 == 2 && data->mission_state == AUTO_DRIVE && data->O_data_1 < 50) data->mission_id = 7;//passing master
+			// 8 traffic light trigger
+			if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light
+
+			// -------------------- image process by capt ----------------------------------
+			// ---- pky function
+			getSteeringWithLane(vpe->disp, capt, &a, &v);
+			data->angle = a;
+			/** data->speed = v; */
+			// ---- pky end
+			if(data->mission_id < 8 && data->mission_id != 4) data->speed_ratio = color_detection(vpe->disp, capt);
+			else{
+				if(data->is_Traffic_Light_for_traffic_light == 0) data->is_Traffic_Light_for_traffic_light = Traffic_mission(vpe->disp, capt);//red sign
+				data->is_Traffic_Light = Traffic_mission_green(vpe->disp, capt); //green sign
+				/** printf("capture_thread is_Traffic_Light : %d\n", data->is_Traffic_Light); */
+			}
+			data->speed = v * data->speed_ratio;
+			/** if(data->speed == 0) usleep(50000); */
+			/** usleep(10000); */
+			// ----------------------- end of image process ----------------------------------
+
+			// -------------------------koo mission trigger---------------------
+			if (data->mission_id == 7 && data->after_passing == 0){
+				// ---- 적외선 센서 ----
+				printf("######### capture thread and id = 7 ###########\n");
+				printf("distance = %d \n", data->distance);
+
+				// -------------------- capt로 이미지 처리 ------------------0x%04Xfalse로 바뀌면 chot됨
+
+				// 여기서 data->mission_state로 던져줍니다
+				printf("###### O_data_1 = %d\n", data->O_data_1);
+
+				if (data->mission_state == AUTO_DRIVE){
+					printf(" ###########  mission_state == AUTO_DRIVE in capture thread\n");
+				}
+				if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 40){
+					data->mission_state = HISTOGRAM_BACK_PROPAGATION;
+					printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
+
+				}
+
+				// 추월 미션 진입 트리거 원래 else if 라서 에러떴음
+				else if (data->mission_state == HISTOGRAM_BACK_PROPAGATION){
+					data->direction = passing_master(vpe->disp, capt, &data);
+					printf(" passing master direction = %s \n", data->direction);
+					printf(" passing master direction = %s \n", data->direction);
+					printf(" passing master direction = %s \n", data->direction);
+					printf(" passing master direction = %s \n", data->direction);
+					printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
+					printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
+					printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
+					printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
+					printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
+					if (data->O_data_1 < 35){
+						data->mission_state = BEFORE_PASSING_OVER;
+					}
+
+				}
+
+				else if (data->mission_state == BEFORE_PASSING_OVER && data->O_data_1 < 12){
+					printf(" ###########  mission_state == BEFORE_PASSING_OVER \n");
+					if (strcmp(data->direction, "left")==0){
+						printf(" ########### data->direction in capture thread = %s\n", data->direction);
+						data->mission_state = PASSING_OVER_LEFT;
+					}
+					else if (strcmp(data->direction, "right")==0){
+						data->mission_state = PASSING_OVER_RIGHT;
+					}
+					else if (strcmp(data->direction,"fail")==0){
+						data->mission_state = PASSING_OVER_RIGHT; // 만일 역히스토그램 투영으로 방향을 도출해내지 못하면 왼쪽으로 간다고 설정
+					}
+				}           
+
+				// 추월 이후 정지선을 인식할 때까지 차선 인식
+				if (data->mission_state == WAIT){ // WAIT은 불가피하게 main에서 바꾸어준다
+					printf(" ###########  mission_state == WAIT in capture thread \n");
+					data->yellow_stop_line = main_stop_line_detection(vpe->disp, capt); // 정지선 인식하면 stop_line_recognition을 1로 return
+					printf("data->yellow_stop_line = %s\n", data->yellow_stop_line);
+				}
+				// 정지선을 인식하면 다시 차로로 return
+				if (data->mission_state == WAIT && strcmp(data->yellow_stop_line, "stop")==0){
+					printf(" ###########  find yellow_stop_line in capture thread \n");
+					printf(" ########### data->direction in capture thread = %s\n", data->direction);
+
+					// 정지선 인식 신호
+					CarLight_Write(ALL_ON);
+					Alarm_Write(ON);
+					usleep(100000);
+					Alarm_Write(OFF);
+					CarLight_Write(ALL_OFF);
+
+					if (strcmp(data->direction, "left") == 0 || strcmp(data->direction, "fail") == 0){
+						data->mission_state = PASSING_OVER_RETURN_RIGHT;
+						printf("fuck fuck fuck 1111\n");
+					}
+					else if (strcmp(data->direction, "right") == 0){
+						data->mission_state = PASSING_OVER_RETURN_LEFT;
+						printf("fuck fuck fuck 11111111111\n");
+					}
+				}
+
+				else if (data->mission_state == PASSING_OVER_RETURN_RIGHT || data->mission_state == PASSING_OVER_RETURN_LEFT){
+					printf("fuck fuck fuck 2222\n");
+				}
+
+			}
 		}
-		data->speed = v * data->speed_ratio;
-		/** if(data->speed == 0) usleep(50000); */
-		/** usleep(10000); */
-		// ----------------------- end of image process ----------------------------------
-
-		// -------------------------koo mission trigger---------------------
-		if (data->mission_id == 7 && data->after_passing == 0){
-			// ---- 적외선 센서 ----
-			printf("######### capture thread and id = 7 ###########\n");
-			printf("distance = %d \n", data->distance);
-
-			// -------------------- capt로 이미지 처리 ------------------0x%04Xfalse로 바뀌면 chot됨
-
-			// 여기서 data->mission_state로 던져줍니다
-			printf("###### O_data_1 = %d\n", data->O_data_1);
-
-			if (data->mission_state == AUTO_DRIVE){
-				printf(" ###########  mission_state == AUTO_DRIVE in capture thread\n");
-            }
-            if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 40){
-                data->mission_state = HISTOGRAM_BACK_PROPAGATION;
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
-        
-            }
-
-            // 추월 미션 진입 트리거 원래 else if 라서 에러떴음
-            else if (data->mission_state == HISTOGRAM_BACK_PROPAGATION){
-                data->direction = passing_master(vpe->disp, capt, &data);
-                printf(" passing master direction = %s \n", data->direction);
-                printf(" passing master direction = %s \n", data->direction);
-                printf(" passing master direction = %s \n", data->direction);
-                printf(" passing master direction = %s \n", data->direction);
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
-                if (data->O_data_1 < 35){
-                    data->mission_state = BEFORE_PASSING_OVER;
-                }
-
-            }
-        
-            else if (data->mission_state == BEFORE_PASSING_OVER && data->O_data_1 < 12){
-                printf(" ###########  mission_state == BEFORE_PASSING_OVER \n");
-                if (strcmp(data->direction, "left")==0){
-                    printf(" ########### data->direction in capture thread = %s\n", data->direction);
-                    data->mission_state = PASSING_OVER_LEFT;
-                }
-                else if (strcmp(data->direction, "right")==0){
-                    data->mission_state = PASSING_OVER_RIGHT;
-                }
-                else if (strcmp(data->direction,"fail")==0){
-                    data->mission_state = PASSING_OVER_RIGHT; // 만일 역히스토그램 투영으로 방향을 도출해내지 못하면 왼쪽으로 간다고 설정
-                }
-            }           
-
-            // 추월 이후 정지선을 인식할 때까지 차선 인식
-            if (data->mission_state == WAIT){ // WAIT은 불가피하게 main에서 바꾸어준다
-                printf(" ###########  mission_state == WAIT in capture thread \n");
-                data->yellow_stop_line = main_stop_line_detection(vpe->disp, capt); // 정지선 인식하면 stop_line_recognition을 1로 return
-                printf("data->yellow_stop_line = %s\n", data->yellow_stop_line);
-            }
-            // 정지선을 인식하면 다시 차로로 return
-            if (data->mission_state == WAIT && strcmp(data->yellow_stop_line, "stop")==0){
-                printf(" ###########  find yellow_stop_line in capture thread \n");
-                printf(" ########### data->direction in capture thread = %s\n", data->direction);
-
-                // 정지선 인식 신호
-                CarLight_Write(ALL_ON);
-                Alarm_Write(ON);
-                usleep(100000);
-                Alarm_Write(OFF);
-                CarLight_Write(ALL_OFF);
-
-                if (strcmp(data->direction, "left") == 0 || strcmp(data->direction, "fail") == 0){
-                    data->mission_state = PASSING_OVER_RETURN_RIGHT;
-                    printf("fuck fuck fuck 1111\n");
-                }
-                else if (strcmp(data->direction, "right") == 0){
-                    data->mission_state = PASSING_OVER_RETURN_LEFT;
-                    printf("fuck fuck fuck 11111111111\n");
-                }
-            }
-
-            else if (data->mission_state == PASSING_OVER_RETURN_RIGHT || data->mission_state == PASSING_OVER_RETURN_LEFT){
-                printf("fuck fuck fuck 2222\n");
-            }
-
-        }
-//--------------------------koo mission trigger end-----------
+		//--------------------------koo mission trigger end-----------
 
 		// input video data to disp_buf
         if (disp_post_vid_buffer(vpe->disp, capt, 0, 0, vpe->dst.width, vpe->dst.height)) {
@@ -972,8 +974,10 @@ void * sensor_thread(void *arg)
 		data->I_data_6 = DistanceSensor(6);
 		data->O_data_6 = DistFunc(data->I_data_6);
 		usleep(10000);
-		data->forline = stopLine_detect();
-		usleep(100000);
+		if(data->parParkingSignal_2 == 2 && data->ParkingSignal_2 == 2 && data->stop_line_DY == 0){
+			usleep(1000000);
+		}
+		/** usLeep(100000); */
 		/** printf("2: %d, 3: %d, 5: %d, 6: %d\n", data->O_data_2, data->O_data_3, data->O_data_5, data->O_data_6); */
 		/** printf("O_data_4 : %d\n", data->O_data_4); */
 		/** printf(" O_data_4 : %d\n", data->O_data_4); */
@@ -1174,15 +1178,17 @@ void parking(void *arg)
     SteeringServoControl_Write(1500);
     while(1)
     {
+		printf("asdkljfjklsadkl;jsfdasd;ddfdfdfdfdfdfdfdfffffffffffffffffffffffffff\n");
         if(data->O_data_4 > 10)
         {//this condition is weird
             DesireSpeed_Write(-80);
+			usleep(10000);
         }
         else
         {
             break;
 		}
-		usleep(10000);
+		usleep(500000);
 	}
 	printf("wtf2\n");
     DesireSpeed_Write(0);
