@@ -49,11 +49,9 @@
 #define DUMP_MSGQ_KEY           1020
 #define DUMP_MSGQ_MSG_TYPE      0x02
 
-// DY part
 #define DYNAMIC_OBS_START 15
 #define DYNAMIC_OBS_END 15
 #define DYNAMIC_OBS_WAIT 25
-//
 
 typedef enum {
     DUMP_NONE,
@@ -93,6 +91,7 @@ struct thr_data {
 	signed short speed_ratio;// lizard edit this var 0 or 1
 
 	//region of junho[TODO]init
+	int forline;
 	int ParkingSignal_1;
 	int ParkingSignal_2;//after 수직주차 1
 	int parParkingSignal_1;
@@ -180,6 +179,7 @@ int main(int argc, char **argv)
 	int start_sig = 0;
 
 	//init data struct
+	tdata.forline = 1; //0 white	
 	tdata.mission_id = 0; // 0 is basic driving 1 is for testing
     tdata.driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
     tdata.pre_angle = 0;
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
 	tdata.after_passing = 0; //0 is initial value, 1 is finished
     tdata.direction = "NONE"; // 추월 차로 진행 방향, left or right
     tdata.yellow_stop_line = "NONE"; // 정지선 인식 변수, 관형 추가
-    tdata.white_stop_line = -1; // 정지선 인식 변수, 관형 추가
+    tdata.white_stop_line = 1; // 정지선 인식 변수, 관형 추가 white = 0 black = 1
 	tdata.mission_state = AUTO_DRIVE; // 여기서 mission_state를 HISTOGRAM_BACK_PROPAGATION로 설정함!!!
 	tdata.is_Traffic_Light = 0; // 1 is left 2 is right
 	tdata.is_Traffic_Light_for_traffic_light = 0; // 1 is red sign
@@ -325,8 +325,8 @@ int main(int argc, char **argv)
 	DesireSpeed_Write(0);
 	usleep(100000);
 
-	/** printf("start_sig : %d\n", start_sig); */
 	while(start_sig == 0){
+		printf("start_sig : %d\n", start_sig);
 		if(data->O_data_1 < 10 && start_sig != 2) start_sig = 1;
 		while(start_sig == 1){
 			printf("O_data_1 : %d\n", data->O_data_1);
@@ -338,7 +338,7 @@ int main(int argc, char **argv)
 	/** printf("start_sig : %d\n", start_sig); */
 
 	while (start_sig == 2){
-		/** printf("mission_id: %d\n", data->mission_id); */
+		printf("mission_id: %d\n", data->mission_id);
 		if (data->mission_id == 1) {//test driving
 			/** Alarm_Write(ON); */
 			/** usleep(100000); */
@@ -356,7 +356,7 @@ int main(int argc, char **argv)
 		else if (data->mission_id == 4) {/// 터널
 			tunnel_adv(&tdata);
 			data->tunnelend = 1;
-			data->mission_id = 1;// test driving edit it to 0
+			data->mission_id = 0;// test driving edit it to 0
 		}  
 		else if (data->mission_id == 5) {//수직
 			parking(&tdata);
@@ -382,21 +382,24 @@ int main(int argc, char **argv)
 					usleep(100000);
                     break;     
                 case HISTOGRAM_BACK_PROPAGATION :
-                    DesireSpeed_Write(0);
-                    usleep(2000000);
+                    DesireSpeed_Write(50);
+                    usleep(100000);
 					printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
+                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
+                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
+                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
                     break;
 					// 추월 미션 진입
 				case PASSING_OVER_LEFT :
 					printf("------------------------ main_PASSING_OVER_LEFT ---------------------------\n");
-					CameraYServoControl_Write(1720);
+					CameraYServoControl_Write(1700);
                     passing_go_back();
 					passing_left();
                     data->mission_state = WAIT;
                     break;
 				case PASSING_OVER_RIGHT :
 					printf("------------------------ main_PASSING_OVER_RIGHT ---------------------------\n");
-					CameraYServoControl_Write(1720);
+					CameraYServoControl_Write(1700);
                     passing_go_back();
 					passing_right();
                     data->mission_state = WAIT;
@@ -427,6 +430,10 @@ int main(int argc, char **argv)
 					passing_stop();
 					data->after_passing = 1;
                     data->mission_state = BREAK;
+                    printf("------------------------ the end ---------------------------\n");
+                    printf("------------------------ the end ---------------------------\n");
+                    printf("------------------------ the end ---------------------------\n");
+                    printf("------------------------ the end ---------------------------\n");
                     break;
 			}
 		} /// 추월
@@ -597,6 +604,7 @@ int Traffic_mission_green(struct display *disp, struct buffer *cambuf){
 
 void * capture_thread(void *arg)
 {
+	printf("capture_thread\n");
 	usleep(100000);
 	struct thr_data *data = (struct thr_data *)arg;
     struct v4l2 *v4l2 = data->v4l2;
@@ -629,7 +637,7 @@ void * capture_thread(void *arg)
 	double a, v;
 
 	while(1) {
-		/** printf("capture_thread!\n"); */
+		printf("capture_thread!\n");
 		////////////////////////////do not touch////////////////////////////////////
 		index = v4l2_dqbuf(v4l2, &vpe->field); // 캡처 queue의 소유권으로 Application으로 가지고 옴
 		vpe_input_qbuf(vpe, index); // VPE 입력 큐 처리 권한을 드라이버에게 이전 (VPE 드라이버가 영상 가공)
@@ -646,14 +654,16 @@ void * capture_thread(void *arg)
 		// ------------- trigger ----------------
 		// 3 DY trigger [TODO] trigger is weird 
 		/** printf("capture_thread\n"); */
-		/** if (data->stop_line_DY == 0) { // if stop line was never detected, it start to find stopline, if it detected once, it never executes stopLine function anymore */
-		/**     if (line_trace_sensor() == 0) { */
-		/**         data->stop_line_DY = 1; */
-		/**         data->mission_id = 3; */
-		/**     } */
-		/** } */
+		if (data->stop_line_DY == 0) { // if stop line was never detected, it start to find stopline, if it detected once, it never executes stopLine function anymore
+			/** data->white_stop_line = line_trace_sensor(); */
+			/** printf("stopline: %d\n", data->forline); */
+			if (data->parParkingSignal_2 == 2 && data->forline == 0) {
+				data->stop_line_DY = 1;
+				data->mission_id = 3;
+			}
+		}
 		// 4 tunnel trigger 
-		printf("data->tunnelSignal : %d\n", data->tunnelSignal);
+		/** printf("data->tunnelSignal : %d\n", data->tunnelSignal); */
 		if(data->tunnelend == 0 && data->tunnelSignal == 1 && data->O_data_2 < 30 && data->O_data_6 < 30){
 			data->tunnelSignal = 2;
 		}
@@ -722,10 +732,9 @@ void * capture_thread(void *arg)
 		}
 
 		// 7 passing trigger 
-		/** if(data->parParkingSignal_2 == 2 && data->mission_state == AUTO_DRIVE && data->O_data_1 < 50) data->mission_id = 7;//passing master */
-        /**  */
+		if(data->parParkingSignal_2 == 2 && data->mission_state == AUTO_DRIVE && data->O_data_1 < 50) data->mission_id = 7;//passing master
 		// 8 traffic light trigger
-		/** if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light */
+		if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light
 
 		// -------------------- image process by capt ----------------------------------
 		// ---- pky function
@@ -739,15 +748,13 @@ void * capture_thread(void *arg)
 			data->is_Traffic_Light = Traffic_mission_green(vpe->disp, capt); //green sign
 			/** printf("capture_thread is_Traffic_Light : %d\n", data->is_Traffic_Light); */
 		}
-		/** data->speed_ratio = 1;//test */
-		/** data->speed = data->speed * data->speed_ratio; */
 		data->speed = v * data->speed_ratio;
-		if(data->speed == 0) usleep(50000);
-		usleep(50000);
+		/** if(data->speed == 0) usleep(50000); */
+		/** usleep(10000); */
 		// ----------------------- end of image process ----------------------------------
 
 		// -------------------------koo mission trigger---------------------
-		if (data->mission_id == 7&& data->after_passing == 0){
+		if (data->mission_id == 7 && data->after_passing == 0){
 			// ---- 적외선 센서 ----
 			printf("######### capture thread and id = 7 ###########\n");
 			printf("distance = %d \n", data->distance);
@@ -760,7 +767,7 @@ void * capture_thread(void *arg)
 			if (data->mission_state == AUTO_DRIVE){
 				printf(" ###########  mission_state == AUTO_DRIVE in capture thread\n");
             }
-            if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 50){
+            if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 40){
                 data->mission_state = HISTOGRAM_BACK_PROPAGATION;
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
         
@@ -770,8 +777,17 @@ void * capture_thread(void *arg)
             else if (data->mission_state == HISTOGRAM_BACK_PROPAGATION){
                 data->direction = passing_master(vpe->disp, capt, &data);
                 printf(" passing master direction = %s \n", data->direction);
+                printf(" passing master direction = %s \n", data->direction);
+                printf(" passing master direction = %s \n", data->direction);
+                printf(" passing master direction = %s \n", data->direction);
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
-                data->mission_state = BEFORE_PASSING_OVER;
+                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
+                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
+                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
+                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
+                if (data->O_data_1 < 35){
+                    data->mission_state = BEFORE_PASSING_OVER;
+                }
 
             }
         
@@ -785,7 +801,7 @@ void * capture_thread(void *arg)
                     data->mission_state = PASSING_OVER_RIGHT;
                 }
                 else if (strcmp(data->direction,"fail")==0){
-                    data->mission_state = PASSING_OVER_LEFT; // 만일 역히스토그램 투영으로 방향을 도출해내지 못하면 왼쪽으로 간다고 설정
+                    data->mission_state = PASSING_OVER_RIGHT; // 만일 역히스토그램 투영으로 방향을 도출해내지 못하면 왼쪽으로 간다고 설정
                 }
             }           
 
@@ -811,9 +827,9 @@ void * capture_thread(void *arg)
                     data->mission_state = PASSING_OVER_RETURN_RIGHT;
                     printf("fuck fuck fuck 1111\n");
                 }
-                else if (strcmp(data->direction, "right")){
+                else if (strcmp(data->direction, "right") == 0){
                     data->mission_state = PASSING_OVER_RETURN_LEFT;
-                    printf("fuck fuck fuck 1111\n");
+                    printf("fuck fuck fuck 11111111111\n");
                 }
             }
 
@@ -941,7 +957,7 @@ void * sensor_thread(void *arg)
 	struct thr_data *data = (struct thr_data *)arg;
 	while(1) {
 		// ---- sensor data input
-		/** printf("sensor_thread!\n"); */
+		printf("sensor_thread!\n");
 		/** printf("odata1: %d\n", data->O_data_1); */
 		data->I_data_1 = DistanceSensor(1);
 		data->O_data_1 = DistFunc(data->I_data_1);
@@ -955,8 +971,10 @@ void * sensor_thread(void *arg)
 		data->O_data_5 = DistFunc(data->I_data_5);
 		data->I_data_6 = DistanceSensor(6);
 		data->O_data_6 = DistFunc(data->I_data_6);
-		/** printf("2: %d, 3: %d, 5: %d, 6: %d\n", data->O_data_2, data->O_data_3, data->O_data_5, data->O_data_6); */
 		usleep(10000);
+		data->forline = stopLine_detect();
+		usleep(100000);
+		/** printf("2: %d, 3: %d, 5: %d, 6: %d\n", data->O_data_2, data->O_data_3, data->O_data_5, data->O_data_6); */
 		/** printf("O_data_4 : %d\n", data->O_data_4); */
 		/** printf(" O_data_4 : %d\n", data->O_data_4); */
 	}
@@ -973,7 +991,7 @@ void signal_handler(int sig)
 	if(sig == SIGINT) {
 		pthread_cancel(pexam_data->threads[0]);
 		pthread_cancel(pexam_data->threads[1]);
-		pthread_cancel(pexam_data->threads[2]);
+		/** pthread_cancel(pexam_data->threads[2]); */
 
         msgctl(pexam_data->msgq_id, IPC_RMID, 0);
 
@@ -1087,8 +1105,7 @@ void getSteeringWithLane(struct display *disp, struct buffer *cambuf, double *st
         draw_operatingtime(disp, optime);
     }
 	*steer = angle;
-        /** *speed = 130 *ratio; */
-    *speed = 100 * ratio;//test
+    *speed = 100 * ratio;
 }
 
 static char* passing_master(struct display *disp, struct buffer *cambuf, void *arg){
@@ -1339,7 +1356,8 @@ void tunnel_adv(void *arg)
 		if(data->O_data_2 >= 30 && data->O_data_6 >= 30){
 			if(data->O_data_2 >= 40) angle = 1500;
 			SteeringServoControl_Write(angle);
-			printf("Tunnelofff\n");
+			CarLight_Write(0);
+			printf("ddddddddddddddddddddddddddddddTunnelofff\n");
 			break;
 		}
 	} 
@@ -1532,21 +1550,22 @@ static char* main_stop_line_detection(struct display *disp, struct buffer *cambu
 }
 
 
-/** int stopLine_detect(void) { /// 1 if stopline detected: the car is on white line */
-/**     int i; */
-/**     unsigned char sensor; */
-/**     sensor = LineSensor_Read(); */
-/**     int whitecount = 0; */
-/**     for(i=0; i<8; i++){ */
-/**         if (!sensor) whitecount++; */
-/**         sensor = sensor << 1; */
-/**     } */
-/**  */
-/**     // printf("\n"); */
-/**     // printf("whitecount: %d\n", whitecount); */
-/**     if (whitecount < 2) { */
-/**         printf("white stop line detect!"); */
-/**         return 1; /// black */
-/**     } */
-/**     else return 0; /// white */
-/** } */
+int stopLine_detect(void) { /// 1 if stopline detected: the car is on white line
+	printf("============================\n");
+	int i;
+	unsigned char sensor;
+	sensor = LineSensor_Read();
+	int whitecount = 0;
+	for(i=0; i<8; i++){
+		if (!sensor) whitecount++;
+		sensor = sensor << 1;
+	}
+
+	// printf("\n");
+	// printf("whitecount: %d\n", whitecount);
+	if (whitecount <= 5) {
+		printf("black\n");
+		return 1; /// black
+	}
+	else return 0; /// white
+}
