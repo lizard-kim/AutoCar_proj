@@ -175,7 +175,7 @@ void curveFitting(Mat &input, Mat &output, vector<Point2d> &route, vector<double
 
 void filterColors(Mat &input) {
     int range_count = 0;
-
+    int thr = 8;
 //    Scalar red(0, 0, 255);
 //    Scalar blue(255, 0, 0);
     Scalar yellow(0, 255, 255);
@@ -189,20 +189,20 @@ void filterColors(Mat &input) {
     int saturation = (int)hsv_color.at<Vec3b>(0, 0)[1];
     int value = (int)hsv_color.at<Vec3b>(0, 0)[2];
 
-    int low_hue = hue - 20;
-    int high_hue = hue + 20;
+    int low_hue = hue - thr;
+    int high_hue = hue + thr;
 
     int low_hue1 = 0, low_hue2 = 0;
     int high_hue1 = 0, high_hue2 = 0;
 
-    if (low_hue < 20 ) {
+    if (low_hue < thr ) {
         range_count = 2;
         high_hue1 = 180;
         low_hue1 = low_hue + 180;
         high_hue2 = high_hue;
         low_hue2 = 0;
     }
-    else if (high_hue > 160) {
+    else if (high_hue > 180 - thr) {
         range_count = 2;
         high_hue1 = low_hue;
         low_hue1 = 180;
@@ -240,12 +240,12 @@ void filterColors(Mat &input) {
 }
 
 
-// int connectedCom(Mat &frame, Mat &labels, Mat &stats, Mat centroids) {
-//     int cnt = connectedComponentsWithStats(frame, labels, stats, centroids);
-//     return cnt;
 
 
-// }
+bool comparePoints(const Point& t, const Point& u) {
+    if (t.y == u.y) return t.x <= u.x;
+    else return t.y >= u.y;
+}
 
 
 
@@ -302,43 +302,40 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
     warpPerspective(frame, warpframe, trans, warpSize);
 
 
-    //morphological opening 작은 점들을 제거
-   erode(warpframe, warpframe, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
-   dilate(warpframe, warpframe, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
+    // //morphological opening 작은 점들을 제거
+    // erode(warpframe, warpframe, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
+    // dilate(warpframe, warpframe, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
 
-   //morphological closing 영역의 구멍 메우기
-   dilate(warpframe, warpframe, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-   erode(warpframe, warpframe, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+    //morphological closing 영역의 구멍 메우기
+    dilate(warpframe, warpframe, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+    erode(warpframe, warpframe, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
+    //morphological opening 작은 점들을 제거
+    erode(warpframe, warpframe, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
+    dilate(warpframe, warpframe, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
 
     erode(warpframe, warpframe, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
 
 
     double steer = 0;
     double ratio = 1;
-    double lane_width = (double)new_width * width_ratio * 0.6;
+    double lane_width = (double)new_width * width_ratio * 0.55;
     vector<Point2d> line_points;
     vector<double> ans;
     int lane_type = 0;
     int lane_idx = -1;
 
-
-
-    double steer = 180;
-    double lane_width = (double)new_width * width_ratio * 0.5;
-    vector<Point2d> line_points;
-    vector<double> ans;
-    int lane_type = 0;
-    int lane_idx = -1;
 
     // 영상 출력할 이미지
     Mat frame_show = Mat::zeros(new_height, new_width, CV_8UC3);
 
     /// 1. 최소 기준으로 차선 후보집합 선별
     // 외곽선 검색
-    vector<vector<Point>> contours;
+    vector< vector<Point> > contours;
     findContours(warpframe, contours, RETR_LIST, CHAIN_APPROX_NONE);
     drawContours(frame_show, contours, -1, Scalar(255, 255, 255), 1); // 모든 외곽선 그리기
     int dx = 10000, bot_dx = 10000; // 차선 후보 시작점 좌표 차이
+    int dy = 0;
 
     vector<Point2d> line_temp;
 
@@ -347,7 +344,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
 
     //// 대표 차선 추출
     for (size_t i = 0; i < contours.size(); i++) {
-        if (contours[i].size() <= 200) continue; // 점 개수 필터링
+        if (contours[i].size() <= 150) continue; // 점 개수 필터링
 
         // 차선 점들 정렬
         sort(contours[i].begin(), contours[i].end(), comparePoints);
@@ -355,6 +352,11 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
         // 가장 안쪽 차선에 우선순위를 두어 인식
         temp_dx = contours[i][0].x - new_width/2;
         temp_bot_y = contours[i][0].y;
+
+
+        if (temp_bot_y <= new_height * 1/3) continue;
+
+
         // 같은 y 좌표에 여러 점들이 있는 경우 가장 중심에서 가까운 점을 우선하여 줌심 거리 계산
         for (int j = 1; contours[i][j].y == temp_bot_y; j++) {
             if (abs(contours[i][j].x - new_width/2) <= abs(temp_dx))
@@ -362,8 +364,10 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
             else break;
         }
         // 현재 차선이 기존보다 더 안쪽일 경우 교체
-        if (abs(temp_dx) < abs(dx)) {
+        // if (abs(temp_dx) < abs(dx)) {
+        if (temp_bot_y > dy) {
             dx = temp_dx; // 최소거리 업데이트
+            dy = temp_bot_y;
             lane_idx = i; // 주 차선 인덱스 업데이트
             lane_type = (dx >= 0) ? 1 : -1; // 오른쪽 차선이면 1, 왼쪽 차선이면 -1
 
@@ -406,17 +410,15 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
     cout << "contours.size() : " << contours.size() << endl;
     cout << "line_points.size() : " << line_points.size() << endl;
 
-    /// 3. 왼쪽/오른쪽 차선 구분 및 목표점 정의
-    // 차선이 인식된 경우
-    if (lane_idx != -1 && line_points.size() >= 20) {
 
+    if (lane_idx != -1) {
         //// 인식된 선 그리기
         for (size_t i = 0; i < line_points.size() - 1; i++) {
             line(frame_show, line_points[i], line_points[i+1], Scalar(0, 20, 50), 2);
         }
         //// 직각 차선 제거
         int gap = 20; // 직각 검사 단위
-        int s_thr = 50; // 직각 차선 검출 임계값
+        int s_thr = 60; // 직각 차선 검출 임계값
         vector<Point2d>::iterator iter;
         iter = line_points.begin();
         Point2d a, b, dir; // instant points
@@ -445,222 +447,174 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
             line(frame_show, line_points[i], line_points[i+1], Scalar(0, 255, 255), 2);
         }
 
-
-        int end = line_points[line_points.size()].y;
-        int start = line_points[0].y;
-
-
-        //// 목적지 방향 및 조향 계산
-        // 차선 기울기에 따른 타입 보정
-        a = *line_points.begin(); // 시작점
-        b = *line_points.end(); // 끝점
-        dir = b - a; // 차선 방향벡터
-        s = atan(dir.x / abs(dir.y)) * 180 / CV_PI; // 차선 기울기
-        if (s >= 50) lane_type = -1;
-        else if (s <= -50) lane_type = 1;
-
-        // 목적지 방향 계산
-        a = *line_points.begin(); // 시작점
-        b = *line_points.end(); // 끝점
-        dir = b - a; // 차선 방향벡터
-        s = atan(dir.x / abs(dir.y)) * 180 / CV_PI; // 차선 기울기
-        int check_h = new_height * 2/3; // 목적지 계산 위치
-        Point2i des; // 차량 목적지
-
-        a = line_points[line_points.size()/2];
-
-        // 왼쪽 차선
-        if (lane_type == -1) {
-            des.x = a.x + lane_width/cos(s*CV_PI/180);
-            des.y = a.y;
-        }
-        // 오른쪽 차선
-        else if (lane_type == 1) {
-            des.x = a.x - lane_width/cos(s*CV_PI/180);
-            des.y = a.y;
-        }
-
-
-
-//        // 차선 시작점이 너무 높이 있을 경우
-//        if (a.y <= check_h) {
-//            // 왼쪽 차선
-//            if (lane_type == -1) {
-//                des.x = a.x + lane_width/cos(s*CV_PI/180);
-//                des.y = a.y;
-//            }
-//            // 오른쪽 차선
-//            else if (lane_type == 1) {
-//                des.x = a.x - lane_width/cos(s*CV_PI/180);
-//                des.y = a.y;
-//            }
-//        }
-//        // 적당
-//        else if (b.y <= check_h) {
-//            // 목표점과 가까운 점 찾기
-//            for (iter = line_points.begin(); iter != line_points.end(); iter++) {
-//                if ((*iter).y <= check_h) {
-//                    a = (*iter);
-//                    break;
-//                }
-//            }
-//            // 왼쪽 차선
-//            if (lane_type == -1) {
-//                des.x = a.x + lane_width/cos(s*CV_PI/180);
-//                des.y = a.y;
-//            }
-//            // 오른쪽 차선
-//            else if (lane_type == 1) {
-//                des.x = a.x - lane_width/cos(s*CV_PI/180);
-//                des.y = a.y;
-//            }
-//        }
-//        // 너무 아래
-//        else {
-//            // 왼쪽 차선
-//            if (lane_type == -1) {
-//                des.x = b.x + lane_width/cos(s*CV_PI/180);
-//                des.y = b.y;
-//            }
-//            // 오른쪽 차선
-//            else if (l
-        circle(frame_show, des, 5, Scalar(250, 150, 100), -1);
-
-        // 조향각 계산
-        Point2d direction(des.x - (double)new_width/2, des.y - new_height * 14/10);
-        double direction_norm = sqrt((pow(direction.x, 2) + pow(direction.y, 2)));
-        direction =  direction * 50 / direction_norm;
-        line(frame_show, Point2i(new_width/2, new_height), Point2i(new_width/2, new_height) + (Point2i)direction, Scalar(150, 100, 200), 2);
-        // 조향 계산
-        steer = atan(direction.x / abs(direction.y)) * 180 / CV_PI;
-        cout << "steer : " << steer << endl;
-        // 최대 조향을 벗어날 경우 조향 제한
-        if (abs(steer) >= 45) {
-            cout << "steer out of range !!!" << endl;
-            if (steer < 0) steer = -45;
-            else steer = 45;
-        }
-    }
-    // 차선이 인식되지 않은 경우
-    else {
-        cout << "lane not detected !!!!!" << endl;
     }
 
 
 
-    /// 1. 최소 기준으로 차선 후보집합 선별
-    // 외곽선 검색
-    vector<vector<Point> > contours;
-    Point2d lane_top(new_width, new_height), lane_bot(0, 0);
-    Point2d lane_top_temp, lane_bot_temp;
-    Point2d averagePoint(0, 0);
-    findContours(warpframe, contours, RETR_LIST, CHAIN_APPROX_NONE);
-    int bot_dx = 10000; // 차선 후보 시작점 좌표 차이
-    vector<Point2d> line_temp;
-    for (size_t i = 0; i < contours.size(); i++) {
-//        stats.push_back(make_pair(Point2d(0, height), Point2d(0, 0)));
-        if (contours[i].size() <= 120) continue;
 
-        lane_top_temp.x = contours[i][0].x;
-        lane_top_temp.y = contours[i][0].y;
-        lane_bot_temp.x = contours[i][0].x;
-        lane_bot_temp.y = contours[i][0].y;
+    // /// 3. 왼쪽/오른쪽 차선 구분 및 목표점 정의
+    // // 차선이 인식된 경우
+    // if (lane_idx != -1 && line_points.size() >= 20) {
 
-        line_temp.clear();
-        for (size_t j = 0; j < contours[i].size(); j++) {
-            Point2d point((double)contours[i][j].x, (double)contours[i][j].y);
-
-            if (point.x < 0 || point.y < 0 || point.x > new_width || point.y > new_height) {
-                continue;
-            }
-
-            if (lane_top_temp.y >= point.y) {
-                lane_top_temp.x = point.x; lane_top_temp.y = point.y;
-            }
-            if (lane_bot_temp.y <= point.y) {
-                lane_bot_temp.x = point.x; lane_bot_temp.y = point.y;
-            }
-            line_temp.push_back(point);
-            averagePoint.x += point.x;
-            averagePoint.y += point.y;
-        }
-        averagePoint.x /= (double)contours[i].size();
-        averagePoint.y /= (double)contours[i].size();
-
-        if (lane_bot_temp.y <= new_height * 1/2) continue;
-
-        /// 2. 중앙부에 가장 가까운 선을 우선 선별하여 차선으로 정의
-        int dx = lane_bot_temp.x - new_width/2;
-        if (abs(dx) < abs(bot_dx)) {
-            bot_dx = dx;
-            lane_idx = i;
-            line_points.clear();
-            line_points.assign(line_temp.begin(), line_temp.end());
-
-            lane_top.x = lane_top_temp.x;
-            lane_top.y = lane_top_temp.y;
-            lane_bot.x = lane_bot_temp.x;
-            lane_bot.y = lane_bot_temp.y;
-
-            // line_points.resize((int)line_temp.size());
-            // copy(line_temp.begin(), line_temp.end(), line_points.begin());
-        }
-    }
-    // 외곽선 그리기
-    Mat frame_show = Mat::zeros(new_height, new_width, CV_8UC3);
-    drawContours(frame_show, contours, -1, Scalar(255, 255, 255), -1);
-    if (lane_idx != -1) drawContours(frame_show, contours, lane_idx, Scalar(50, 200, 50), -1);
-
-    cout << "contours.size() : " << contours.size() << endl;
-    cout << "line_points.size() : " << line_points.size() << endl;
+    //     //// 인식된 선 그리기
+    //     for (size_t i = 0; i < line_points.size() - 1; i++) {
+    //         line(frame_show, line_points[i], line_points[i+1], Scalar(0, 20, 50), 2);
+    //     }
+    //     //// 직각 차선 제거
+    //     int gap = 20; // 직각 검사 단위
+    //     int s_thr = 150; // 직각 차선 검출 임계값
+    //     vector<Point2d>::iterator iter;
+    //     iter = line_points.begin();
+    //     Point2d a, b, dir; // instant points
+    //     double s, pre_s; // instant slope
+    //     a = *(iter + gap); // point1
+    //     b = *(iter + gap * 2); // point2
+    //     dir = b - a; // direction between point1 & point2
+    //     s = atan(dir.x / abs(dir.y)) * 180 / CV_PI; // a,b angle
+    //     // 직각 차선 탐색 및 직각 구간 제거
+    //     for (iter = line_points.begin() + gap*2; iter < line_points.end() - gap; iter += gap) {
+    //         a = *(iter);
+    //         b = *(iter + gap); // 10칸 단위로 검색
+    //         dir = b - a;
+    //         pre_s = s;
+    //         s = atan(dir.x / abs(dir.y)) * 180 / CV_PI;
+    //         // 기울기 차이가 임계값 이상일 경우 이후 점들 모두 지우기
+    //         if (abs(s - pre_s) >= s_thr) {
+    //             // 이후 점들을 모두 지운다
+    //             for ( ; iter != line_points.end(); ) {
+    //                 iter = line_points.erase(iter);
+    //             }
+    //             break;
+    //         }
+    //     }
+    //     for (size_t i = 0; i < line_points.size() - 1; i++) {
+    //         line(frame_show, line_points[i], line_points[i+1], Scalar(0, 255, 255), 2);
+    //     }
 
 
-    // curveFitting(frame_show, frame_show, line_points, ans, lane_bot.y, lane_top.y);
+    //     int end = line_points[line_points.size() - 1].y;
+    //     int start = line_points[0].y;
+
+    //     curveFitting(frame_show, frame_show, line_points, ans, start, end);
+
+
+    //     //// 목적지 방향 및 조향 계산
+    //     // 차선 기울기에 따른 타입 보정
+    //     a = *line_points.begin(); // 시작점
+    //     b = *line_points.end(); // 끝점
+    //     dir = b - a; // 차선 방향벡터
+    //     s = atan(dir.x / abs(dir.y)) * 180 / CV_PI; // 차선 기울기
+    //     // if (s >= 50) lane_type = -1;
+    //     // else if (s <= -50) lane_type = 1;
+
+    //     // 목적지 방향 계산
+    //     a = *line_points.begin(); // 시작점
+    //     b = *line_points.end(); // 끝점
+    //     dir = b - a; // 차선 방향벡터
+    //     s = atan(dir.x / abs(dir.y)) * 180 / CV_PI; // 차선 기울기
+    //     int check_h = new_height * 2/3; // 목적지 계산 위치
+    //     Point2i des; // 차량 목적지
+
+    //     a = line_points[line_points.size()/2];
+
+    //     // 왼쪽 차선
+    //     if (lane_type == -1) {
+    //         des.x = a.x + lane_width/cos(s*CV_PI/180);
+    //         des.y = a.y;
+    //     }
+    //     // 오른쪽 차선
+    //     else if (lane_type == 1) {
+    //         des.x = a.x - lane_width/cos(s*CV_PI/180);
+    //         des.y = a.y;
+    //     }
+
+    //     circle(frame_show, des, 5, Scalar(250, 150, 100), -1);
+
+    //     // 방향벡터 계산
+    //     Point2d direction(des.x - (double)new_width/2, des.y - (new_height * 13/10));
+    //     // Point2d direction(des.x - (double)new_width/2, des.y - (new_height * 10/10 + 2/10 * (new_height - cen.y)));
+    //     // Point2d direction(des.x - (double)new_width/2, des.y - lane_bot.y);
+    //     double direction_norm = sqrt((pow(direction.x, 2) + pow(direction.y, 2)));
+    //     // direction =  direction * 50 / direction_norm;
+    //     direction.x = direction.x * 50 / direction_norm;
+    //     direction.y = direction.y * 50 / direction_norm;
+    //     line(frame_show, Point2i(new_width/2, new_height), Point2i((int)direction.x + new_width/2, (int)direction.y + new_height), Scalar(150, 100, 200), 2);
+    //     // 조향 계산
+    //     steer = atan(direction.x / abs(direction.y)) * 180 / CV_PI;
+    //     steer *= 1.0;
+    //     // steer = angle;
+    //     cout << "steer : " << steer << endl;
+
+    //     if (abs(s) < 50) {
+    //         ratio = 1;
+    //     }
+    //     else if (abs(s) > 50) {
+    //         ratio = 0.5;
+    //     }
+    //     else if (abs(s) < 30) {
+    //         ratio = 0.5;
+    //     }
+    //     else if (abs(s) < 40) {
+    //         ratio = 0.3;
+    //     }
+    //     else if (abs(s) < 50) {
+    //         ratio = 0.3;
+    //     }
+    //     else {
+    //         ratio = 0.3;
+    //     }
+    //     // ratio = 1;
+    //     // ratio = pow(cos(angle*CV_PI/180), 2);
+
+    //     // 최대 조향을 벗어날 경우 조향 제한
+    //     if (abs(steer) >= 50) {
+            
+    //         // steer = 50;
+    //         // ratio = 1;
+            
+    //         cout << "steer out of range !!!" << endl;
+    //         // steer = 0;
+    //         if (steer < 0) steer = -50;
+    //         else steer = 50;
+    //         // ratio = 1.0;
+    //         // ratio = -0.4;
+    //         // if (steer < 0) steer = -45;
+    //         // else steer = 45;
+    //     }
+
+
+
+
+    // }
+    // // 차선이 인식되지 않은 경우
+    // else {
+    //     cout << "lane not detected !!!!!" << endl;
+    //     ratio = 0;
+    // }
+
+
+
     
-    // circle(frame_show, lane_top, 10, Scalar(200, 200, 50), -1);
-    // circle(frame_show, lane_bot, 10, Scalar(200, 200, 50), -1);
-
-    if (lane_idx != -1) {
-        curveFitting(frame_show, frame_show, line_points, ans, lane_bot.y, lane_top.y);
-    
-        circle(frame_show, lane_top, 10, Scalar(200, 200, 50), -1);
-        circle(frame_show, lane_bot, 10, Scalar(200, 200, 50), -1);
-    }
-
     /// 3. 왼쪽/오른쪽 차선 구분 및 목표점 정의
     // 차선이 인식되지 않은 경우
     if (lane_idx == -1) {
-        cout << "lane not detected !!!!!" << endl;
-        ratio = 0;
-    }
-    else if (ans.empty()) {
-        ratio = 0.3;
+        // cout << "lane not detected !!!!!" << endl;
+        ratio = -0.3;//[TODO] edit it
     }
     // 차선이 인식된 경우
     else {
         // cout << "fuck1" << endl;
-        // 1) 차선 타입 정의
-        if (bot_dx >= 0) lane_type = 1; // 오른쪽 차선
-        else lane_type = -1; // 왼쪽 차선
+
+        Point2d lane_top = line_points[line_points.size()-1];
+        Point2d lane_bot = line_points[0];
         // cout << "fuck2" << endl;
-        // curveFitting(frame_show, frame_show, line_points, ans, lane_bot.y, lane_top.y);
-        
-        
+        curveFitting(frame_show, frame_show, line_points, ans, lane_bot.y, lane_top.y);
         // cout << "fuck3" << endl;
         // 3) 목적지 방향 및 조향 계산
         // *무게중심 좌표
-        Point2i cen = Point2i((lane_top.x + lane_bot.x)/2, (lane_top.y + lane_bot.y)/2);
-        // Point2i cen(averagePoint.x, averagePoint.y);
-
-        // Point2i cen;
-        // if (lane_bot.y <= new_height * 7.5/10 || lane_top.y >= new_height * 5.5/10) {
-        //     cen = Point2i((lane_top.x + lane_bot.x)/2, (lane_top.y + lane_bot.y)/2);
-        // }
-        // else {
-        //     cen = Point2i((lane_top.x + lane_bot.x)/2, new_height * 2/3);
-        // }
-        
-        Point2i cp(cen.x, cen.y), des;
+        // Point2i cen = Point2i((lane_top.x + lane_bot.x)/2, (lane_top.y + lane_bot.y)/2);
+        Point2i cen = line_points[line_points.size()*1/2];
+        Point2i cp, des;
         double angle;
         // **무게중심에 해당하는 곡선 위 좌표
         getCurvePoint(ans, cen.y, cp);
@@ -673,15 +627,11 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
         // 왼쪽 차선일 경우
         if (lane_type == -1) {
             des.x = cp.x + lane_width/cos(angle*CV_PI/180);
-            // des.x = cp.x + lane_width/sqrt(cos(angle*CV_PI/180));
-            // des.x = cp.x + lane_width;
             des.y = cp.y;
         }
         // 오른쪽 차선일 경우
         else if (lane_type == 1) {
             des.x = cp.x - lane_width/cos(angle*CV_PI/180);
-            // des.x = cp.x - lane_width/sqrt(cos(angle*CV_PI/180));
-            // des.x = cp.x - lane_width;
             des.y = cp.y;
         }
         circle(frame_show, des, 5, Scalar(250, 150, 100), -1);
@@ -700,45 +650,51 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
         steer = atan(direction.x / abs(direction.y)) * 180 / CV_PI;
         steer *= 1.0;
         // steer = angle;
-        cout << "steer : " << steer << endl;
+        // cout << "steer : " << steer << endl;
 
-        if (abs(angle) < 50) {
+        if (abs(angle) < 30) {
             ratio = 1;
         }
-        else if (abs(angle) > 50) {
-            ratio = 0.5;
-        }
-        else if (abs(angle) < 30) {
+        else if (abs(angle) >= 30) {
             ratio = 0.5;
         }
         else if (abs(angle) < 40) {
-            ratio = 0.3;
+            ratio = 0.5;
         }
         else if (abs(angle) < 50) {
             ratio = 0.3;
         }
         else {
-            ratio = 0.3;
+            ratio = 0.2;
         }
-        // ratio = 1;
+
         // ratio = pow(cos(angle*CV_PI/180), 2);
 
         // 최대 조향을 벗어날 경우 조향 제한
-        if (abs(steer) >= 50 || lane_top.y >= new_height * 4/5) {
+        if (abs(angle) >= 40 && lane_top.y >= new_height * 3/4) {
             
+            if (steer < 0) steer = -50;
+            else steer = 50;
+
             // steer = 50;
             // ratio = 1;
             
-            cout << "steer out of range !!!" << endl;
+            // cout << "steer out of range !!!" << endl;
             // steer = 0;
-            if (steer < 0) steer = -50;
-            else steer = 50;
+            // if (steer < 0) steer = -50;
+            // else steer = 50;
             // ratio = 1.0;
             // ratio = -0.4;
             // if (steer < 0) steer = -45;
             // else steer = 45;
         }
     }
+
+
+
+
+
+
     // cout << "fuck6" << endl;
     ostringstream temp;
     temp << steer;

@@ -659,7 +659,7 @@ void getSteeringWithLane(struct display *disp, struct buffer *cambuf, double *st
         draw_operatingtime(disp, optime);
     }
 	*steer = angle;
-    *speed = 150 *ratio;
+    *speed = 200 *ratio;
     // *speed = 0;
 }
 
