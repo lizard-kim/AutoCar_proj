@@ -646,12 +646,7 @@ void * capture_thread(void *arg)
 		// ------------- trigger ----------------
 		// 3 DY trigger [TODO] trigger is weird 
 		/** printf("capture_thread\n"); */
-		/** if (data->stop_line_DY == 0) { // if stop line was never detected, it start to find stopline, if it detected once, it never executes stopLine function anymore */
-		/**     if (line_trace_sensor() == 0) { */
-		/**         data->stop_line_DY = 1; */
-		/**         data->mission_id = 3; */
-		/**     } */
-		/** } */
+		
 		// 4 tunnel trigger 
 		printf("data->tunnelSignal : %d\n", data->tunnelSignal);
 		if(data->tunnelend == 0 && data->tunnelSignal == 1 && data->O_data_2 < 30 && data->O_data_6 < 30){
@@ -719,7 +714,7 @@ void * capture_thread(void *arg)
 			printf("step5\n");
 			data->parParkingSignal_2 = 2;
 			data->mission_id = 6;// test driving edit it to 0
-		}
+        }
 
 		// 7 passing trigger 
 		/** if(data->parParkingSignal_2 == 2 && data->mission_state == AUTO_DRIVE && data->O_data_1 < 50) data->mission_id = 7;//passing master */
@@ -842,99 +837,12 @@ void * capture_thread(void *arg)
   * @brief  Hough transform the captured image dump and save to file
   * @param  arg: pointer to parameter of thr_data
   * @retval none
-  */
-/** void * capture_dump_thread(void *arg) */
-/** { */
-/**     struct thr_data *data = (struct thr_data *)arg; */
-/**     FILE *fp; */
-/**     char file[50]; */
-/**     struct timeval timestamp; */
-/**     struct tm *today; */
-/**     DumpMsg dumpmsg; */
-/**  */
-/**     while(1) { */
-/**         if(msgrcv(data->msgq_id, &dumpmsg, sizeof(DumpMsg)-sizeof(long), DUMP_MSGQ_MSG_TYPE, 0) >= 0) { */
-/**             switch(dumpmsg.state_msg) { */
-/**                 case DUMP_CMD : */
-/**                     gettimeofday(&timestamp, NULL); */
-/**                     today = localtime(&timestamp.tv_sec); */
-/**                     sprintf(file, "dump_%04d%02d%02d_%02d%02d%02d.%s", today->tm_year+1900, today->tm_mon+1, today->tm_mday, today->tm_hour, today->tm_min, today->tm_sec,VPE_OUTPUT_FORMAT); */
-/**                     data->dump_state = DUMP_READY; */
-/**                     MSG("file name:%s", file); */
-/**                     break; */
-/**  */
-/**                 case DUMP_WRITE_TO_FILE : */
-/**                     if((fp = fopen(file, "w+")) == NULL){ */
-/**                         ERROR("Fail to fopen"); */
-/**                     } else { */
-/**                         fwrite(data->dump_img_data, VPE_OUTPUT_IMG_SIZE, 1, fp); */
-/**                     } */
-/**                     fclose(fp); */
-/**                     data->dump_state = DUMP_DONE; */
-/**                     break; */
-/**  */
-/**                 default : */
-/**                     MSG("dump msg wrong (%d)", dumpmsg.state_msg); */
-/**                     break; */
-/**             } */
-/**         } */
-/**     } */
-/**  */
-/**     return NULL; */
-/** } */
-/**  */
+ */
 /**
   * @brief  handling an input command
   * @param  arg: pointer to parameter of thr_data
   * @retval none
-  */
-/**  */
-/** void * input_thread(void *arg) */
-/** { */
-/**     struct thr_data *data = (struct thr_data *)arg; */
-/**  */
-/**     char cmd_input[128]; */
-/**     char cmd_ready = true; */
-/**  */
-/**     while(!data->bstream_start) { */
-/**         usleep(100*1000); */
-/**     } */
-/**  */
-/**     MSG("\n\nInput command:"); */
-/**     MSG("\t dump  : display image(%s, %dx%d) dump", VPE_OUTPUT_FORMAT, VPE_OUTPUT_W, VPE_OUTPUT_H); */
-/**     MSG("\n"); */
-/**  */
-/**     while(1) */
-/**     { */
-/**         if(cmd_ready == true) { */
-			/*standby to input command */
-/**             cmd_ready = StandbyInput(cmd_input);     //define in cmd.cpp */
-/**         } else { */
-/**             if(0 == strncmp(cmd_input,"dump",4)) { */
-/**                 DumpMsg dumpmsg; */
-/**                 dumpmsg.type = DUMP_MSGQ_MSG_TYPE; */
-/**                 dumpmsg.state_msg = DUMP_CMD; */
-/**                 data->dump_state = DUMP_CMD; */
-/**                 MSG("image dump start"); */
-/**                 if (-1 == msgsnd(data->msgq_id, &dumpmsg, sizeof(DumpMsg)-sizeof(long), 0)) { */
-/**                     printf("dump cmd msg send fail\n"); */
-/**                 } */
-/**  */
-/**                 while(data->dump_state != DUMP_DONE) { */
-/**                     usleep(5*1000); */
-/**                 } */
-/**                 data->dump_state = DUMP_NONE; */
-/**                 MSG("image dump done"); */
-/**             } else { */
-/**                 printf("cmd_input:%s \n", cmd_input); */
-/**             } */
-/**             cmd_ready = true; */
-/**         } */
-/**     } */
-/**  */
-/**     return NULL; */
-/** } */
-
+*/
 
 void * sensor_thread(void *arg)
 {
@@ -1273,7 +1181,7 @@ void parparking(void *arg)
     printf("step 1...\n");
 
     SteeringServoControl_Write(1500);
-    usleep(500000);
+    usleep(300000);
 
     SteeringServoControl_Write(1000);
 	usleep(1300000);
