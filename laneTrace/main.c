@@ -1254,6 +1254,8 @@ void parparking(void *arg)
 	data->parParkingSignal_1 = 0;
 	CarLight_Write(ALL_OFF);
 
+	data->stop_line_DY = 1;
+
 	//return 0;
 }
 
@@ -1329,14 +1331,27 @@ void DistanceTest()
 	usleep(50000);
 }
 
-void dynamic_obs_ver3(void *arg) {
+int dynamic_obs_ver3(void *arg) {
+	struct thr_data *data = (struct thr_data *)arg;
+
+	double angle1;
+	while (1) { /// go laneTracing before stop line detected
+		angle1 = 1500-(data->angle/50)*500;
+		angle1 = 0.5 * data->pre_angle + 0.5 * angle1;
+		/** printf("tdata.speed = %d\n", data->speed);//error */
+		SteeringServoControl_Write(angle1); 
+		data->pre_angle = angle1;
+        DesireSpeed_Write(data->speed);
+		
+		if (line_trace_sensor() == 0) break;
+	}
 
 	DesireSpeed_Write(0);
 	SteeringServoControl_Write(1500);
 	Alarm_Write(ON);
 	usleep(500*1000); // mission is over alarm signal */
 	Alarm_Write(OFF); //
-	struct thr_data *data = (struct thr_data *)arg;
+	
 	printf("I'm here00-------------------------\n ");
 	int testing;
 	while (1) { /// 앞에서 차가 지나갈 때 까지 기다림
@@ -1382,7 +1397,7 @@ void dynamic_obs_ver3(void *arg) {
 
     int b = 0;
     double angle2;
-    while (b<40) { // lane tracing part
+    while (b<30) { // lane tracing part
     	angle2 = 1500-(data->angle/50)*500;
 		angle2 = 0.5 * data->pre_angle + 0.5 * angle2;
 		/** printf("tdata.speed = %d\n", data->speed);//error */
@@ -1390,9 +1405,6 @@ void dynamic_obs_ver3(void *arg) {
 		data->pre_angle = angle2;//???
         DesireSpeed_Write(data->speed);
         usleep(1000*200);
-        //SteeringServoControl_Write(data->angle);
-        //printf("angle: %i\n", data->angle);
-        //usleep(1000*50); // in usleep, 1000 * 1000 is 1 second
         
         b++; // [TODO] 대회장에서 규열이 함수가 충분히 원형교차로 빠져나올 수 있을 수준으로 a 컨트롤하기
     }
@@ -1404,8 +1416,8 @@ void dynamic_obs_ver3(void *arg) {
     usleep(500*1000);
     Alarm_Write(OFF);
     data->mission_id = 10;
+	return 0;
 }
-
 void dynamic_obs_ver2(void *arg) {
 
     DesireSpeed_Write(0);
