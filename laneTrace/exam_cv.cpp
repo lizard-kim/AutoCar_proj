@@ -152,7 +152,7 @@ int OpenCV_red_Detection_for_traffic_light(unsigned char* srcBuf, int iw, int ih
 	Mat img_mask1, img_mask2, test;
 
 	//accept red filter for detect red stop sign
-	inRange(img_hsv, Scalar(170, 100, 0), Scalar(180, 255, 255), img_mask1);
+	inRange(img_hsv, Scalar(0, 100, 0), Scalar(10, 255, 255), img_mask1);
 	// inRange(img_input, Scalar(low_hue1, 250, 250), Scalar(high_hue1, 255, 255), test);
 	if (range_count == 2) {
 		inRange(img_hsv, Scalar(170, 100, 0), Scalar(180, 255, 255), img_mask2);
@@ -221,7 +221,9 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 	Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
 	Mat dstRGB(nh, nw, CV_8UC3, outBuf);
 	int is_Traffic_Light = 0;
-
+	int a, b;
+	a = 0;
+	b = 0;
 	Coloring(rgb_color, green);
 
 	cvtColor(rgb_color, hsv_color, COLOR_BGR2HSV);
@@ -245,9 +247,9 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 	Mat img_mask1, img_mask2;
 
 	//accept green filter for detect Traffic light
-	inRange(img_hsv, Scalar(60, 100, 100), Scalar(120, 255, 255), img_mask1);//70 100 70
+	inRange(img_hsv, Scalar(50, 60, 0), Scalar(130, 255, 255), img_mask1);//70 100 70
 	if (range_count == 2) {
-		inRange(img_hsv, Scalar(60, 100, 100), Scalar(120, 255, 255), img_mask2);
+		inRange(img_hsv, Scalar(50, 60, 0), Scalar(130, 255, 255), img_mask2);
 		img_mask1 |= img_mask2;
 	}
 
@@ -256,11 +258,10 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 
 	vector<Point> approx;
 	cvtColor(img_mask1, img_result, COLOR_GRAY2BGR);
-
 	for (size_t i = 0; i < contours.size(); i++){
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
 
-		if (fabs(contourArea(Mat(approx))) > 200) //[TODO]we have to do fine tuning 
+		if (fabs(contourArea(Mat(approx))) > 400) //[TODO]we have to do fine tuning 
 		{
 			int size = approx.size();
 
@@ -280,71 +281,34 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 				for (int k = 0; k < size; k++)
 					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
 			}
-
-			if (size == 7){//go left!
-				// setLabel(img_result, "left!", contours[i]); //¿¿¿
-				// cout << "traffic left" << endl;
-				is_Traffic_Light = 1; //left signal
+			for(int i = 0; i < 1000; i++){
+				if (size == 7){//go left!
+					// setLabel(img_result, "left!", contours[i]); //¿¿¿
+					// is_Traffic_Light = 1; //left signal
+					a++; 
+				}
+				else if (size >= 8){//circle, go right!!
+					// setLabel(img_result, "circle!!", contours[i]); //¿
+					// is_Traffic_Light = 2; //right signal
+					b++;
+				}
 			}
-			else if (size >= 8){//circle, go right!!
-				// setLabel(img_result, "circle!!", contours[i]); //¿
-				// cout << "traffic circle" << endl;
-				is_Traffic_Light = 2; //right signal
+			if(a >= b) {
+				is_Traffic_Light = 1;
+				cout << "traffic left" << endl;
 			}
-			// display result
-			// resize(img_gray, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+			else{
+				is_Traffic_Light = 2;
+				cout << "traffic circle" << endl;
+			}
 		}
 	}  
-	//srcRGB = img_result;
+	// srcRGB = img_result;
 	// resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
 	return is_Traffic_Light;
 }
 
-void OpenCV_hough_transform(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh)
-{
-    Scalar lineColor = cv::Scalar(255,255,255);
-    
-    Mat dstRGB(nh, nw, CV_8UC3, outBuf);
-    
-    Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
-    Mat resRGB(ih, iw, CV_8UC3);
-    //cvtColor(srcRGB, srcRGB, CV_BGR2BGRA);
-
-    cv::Mat contours;
-    cv::Canny(srcRGB, contours, 125, 350);
-    
-    std::vector<cv::Vec2f> lines;
-    cv::HoughLines(contours, lines, 1, PI/180, 80);
-    
-    cv::Mat result(contours.rows, contours.cols, CV_8UC3, lineColor);
-    //printf("Lines detected: %d\n", lines.size());
-
-    std::vector<cv::Vec2f>::const_iterator it= lines.begin();
-    while (it!=lines.end()) 
-    {
-        float rho = (*it)[0];
-        float theta = (*it)[1];
-        
-        if (theta < PI/4. || theta > 3.*PI/4.)
-        {
-            cv::Point pt1(rho/cos(theta), 0); 
-            cv::Point pt2((rho-result.rows*sin(theta))/cos(theta), result.rows);
-            cv::line(srcRGB, pt1, pt2, lineColor, 1);
-
-        } 
-        else 
-        { 
-            cv::Point pt1(0,rho/sin(theta));
-            cv::Point pt2(result.cols,(rho-result.cols*cos(theta))/sin(theta));
-            cv::line(srcRGB, pt1, pt2, lineColor, 1);
-        }
-        //printf("line: rho=%f, theta=%f\n", rho, theta);
-        ++it;
-    }
-
-    cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
-}
 
 /**
   * @brief  Merge two source images of the same size into the output buffer.
