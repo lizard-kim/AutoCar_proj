@@ -187,7 +187,7 @@ int main(int argc, char **argv)
     tdata.pre_angle = 0;
     tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
 	tdata.park = 0;//non
-	tdata.highway = 0; // before highway, it is 0 and after highway it becomes 1 # highway_change
+	tdata.highway = 1; // before highway, it is 0 and after highway it becomes 1 # highway_change
 	tdata.ParkingSignal_1 = 0;
 	tdata.ParkingSignal_2 = 0;
 	tdata.parParkingSignal_1 = 0;
@@ -753,12 +753,11 @@ void * capture_thread(void *arg)
 					data->parParkingSignal_2 = 2;
 					data->mission_id = 6;// test driving edit it to 0
 				}
-				printf("data->O_data == %d\n", data->O_data_1);
-				printf("data->O_data == %d\n", data->O_data_1);
-				printf("data->O_data == %d\n", data->O_data_1);
-				printf("data->O_data == %d\n", data->O_data_1);
-				// 7 passing trigger
-				if(data->parParkingSignal_2 == 2 && data->mission_state == AUTO_DRIVE && data->O_data_1 < 100) data->mission_id = 7;//passing master /////////////////////////////////////////////////
+				
+				if(data->parParkingSignal_2 == 2 && data->tunnelend == 1 && data->O_data_1 < 100) { 
+					printf("I love you!!!!!!!!!!!!!!!QQQQQQQQQQQqqqqqqqqqqqqqqqq!\n");
+					data->mission_id = 7;//passing master /////////////////////////////////////////////////
+				}
 				// 8 traffic light trigger
 				if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light
 
@@ -801,15 +800,15 @@ void * capture_thread(void *arg)
 					// 추월 미션 진입 트리거 원래 else if 라서 에러떴음
 					else if (data->mission_state == HISTOGRAM_BACK_PROPAGATION){
 						data->direction = passing_master(vpe->disp, capt, &data);
+						/* printf(" passing master direction = %s \n", data->direction);
 						printf(" passing master direction = %s \n", data->direction);
 						printf(" passing master direction = %s \n", data->direction);
 						printf(" passing master direction = %s \n", data->direction);
-						printf(" passing master direction = %s \n", data->direction);
 						printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
 						printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
 						printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
 						printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
-						printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
+						printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n"); */
 						if (data->O_data_1 < 75){
 							data->mission_state = BEFORE_PASSING_OVER;
 						}
@@ -1161,8 +1160,11 @@ void parking(void *arg)
 		usleep(500000);
 	}
 	printf("wtf2\n");
+	Alarm_Write(ON);
+	usleep(500000);
+	Alarm_Write(OFF);
     DesireSpeed_Write(0);
-    usleep(1000000);
+    usleep(500000); //1000000
     
 
     SteeringServoControl_Write(1500);
@@ -1247,8 +1249,11 @@ void parparking(void *arg)
         }
     }
 
+	Alarm_Write(ON);
+	usleep(500000);
+	Alarm_Write(OFF);
 
-    usleep(1000000);
+    usleep(500000); //1000000
 
     SteeringServoControl_Write(1999);
     DesireSpeed_Write(80);
@@ -1397,13 +1402,13 @@ int dynamic_obs_ver3(void *arg) {
 
     int a = 0;
     double angle;
-    while (a<13) { // go straight with pky function
+    while (a<20) { // go straight with pky function
     	angle = 1500-(data->angle/50)*500;
 		angle = 0.5 * data->pre_angle + 0.5 * angle;
 		/** printf("tdata.speed = %d\n", data->speed);//error */
 		SteeringServoControl_Write(angle); 
 		data->pre_angle = angle;
-        DesireSpeed_Write(data->speed);
+        DesireSpeed_Write(data->speed*0.5);
         usleep(1000*200);
         //SteeringServoControl_Write(data->angle);
         //printf("angle: %i\n", data->angle);
