@@ -187,7 +187,7 @@ int main(int argc, char **argv)
     tdata.pre_angle = 0;
     tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
 	tdata.park = 0;//non
-	tdata.highway = 1; // before highway, it is 0 and after highway it becomes 1 # highway_change
+	tdata.highway = 0; // before highway, it is 0 and after highway it becomes 1 # highway_change
 	tdata.ParkingSignal_1 = 0;
 	tdata.ParkingSignal_2 = 0;
 	tdata.parParkingSignal_1 = 0;
@@ -1147,7 +1147,7 @@ void parking(void *arg)
     SteeringServoControl_Write(1500);
     while(1)
     {
-		printf("asdkljfjklsadkl;jsfdasd;ddfdfdfdfdfdfdfdfffffffffffffffffffffffffff\n");
+		// printf("asdkljfjklsadkl;jsfdasd;ddfdfdfdfdfdfdfdfffffffffffffffffffffffffff\n");
         if(data->O_data_4 > 12)
         {//this condition is weird
             DesireSpeed_Write(-55);
@@ -1155,17 +1155,21 @@ void parking(void *arg)
         }
         else
         {
+			DesireSpeed_Write(0);
             break;
 		}
 		usleep(500000);
 	}
 	printf("wtf2\n");
-	Alarm_Write(ON);
-	usleep(500000);
-	Alarm_Write(OFF);
+	
     DesireSpeed_Write(0);
     usleep(500000); //1000000
     
+
+	Alarm_Write(ON);
+	usleep(500000);
+	Alarm_Write(OFF);
+
 
     SteeringServoControl_Write(1500);
     DesireSpeed_Write(100);
@@ -1209,12 +1213,12 @@ void parparking(void *arg)
     usleep(1500000+(tmpdist*5000)); //1300000
     
     int posRead_1 = EncoderCounter_Read();
-    printf("EncoderCounter_Read() = %d\n", posRead_1);
+    //printf("EncoderCounter_Read() = %d\n", posRead_1);
 
-    printf("-600 reached\n");
+    //printf("-600 reached\n");
     SteeringServoControl_Write(1500);
     usleep(1700000); //1800000
-    printf("-800 reached\n");
+    //printf("-800 reached\n");
     SteeringServoControl_Write(2000);
 
 	while(1)
@@ -1258,29 +1262,29 @@ void parparking(void *arg)
     SteeringServoControl_Write(1999);
     DesireSpeed_Write(80);
     usleep(300000);
-    printf("step 1...\n");
+    //printf("step 1...\n");
 
     SteeringServoControl_Write(1500);
     DesireSpeed_Write(-80);
     usleep(300000);
-    printf("step 1...\n");
+    //printf("step 1...\n");
 
     SteeringServoControl_Write(1999);
     DesireSpeed_Write(80);
     usleep(700000);
-    printf("step 1...\n");
+    //printf("step 1...\n");
 
     SteeringServoControl_Write(1500);
     usleep(300000);
 
     SteeringServoControl_Write(1000);
 	usleep(1300000);
-	printf("step 2...\n");
-
+	//printf("step 2...\n");
+ 
 	SteeringServoControl_Write(1500);
 
-	printf("Basic Mode is ready...Parking finished..!!!\n");
-	printf("tmpdist : %d\n", tmpdist);
+	//printf("Basic Mode is ready...Parking finished..!!!\n");
+	//printf("tmpdist : %d\n", tmpdist);
 	DesireSpeed_Write(0); //E-Stop;
 	data->parParkingSignal_1 = 0;
 	CarLight_Write(ALL_OFF);
@@ -1307,10 +1311,13 @@ void tunnel_adv(void *arg)
 	/** Alarm_Write(ON); */
 	/** usleep(100000); */
 	/** Alarm_Write(OFF); */
+	int speed;
+	if (data->highway == 0 ) speed = 80;
+	else speed = 100;
 	while(1)
 	{
 		/** printf("2: %d, 3: %d, 5: %d\n", data->O_data_2, data->O_data_3, data->O_data_5); */
-		DesireSpeed_Write(100);
+		DesireSpeed_Write(speed);
 		usleep(10000);
 		if(k == 0)CarLight_Write(FRONT_ON);
 		k++;
@@ -1324,7 +1331,7 @@ void tunnel_adv(void *arg)
 			/** if(data->O_data_2 >= 40) angle = 1500; */
 			SteeringServoControl_Write(angle);
 
-			DesireSpeed_Write(100);
+			DesireSpeed_Write(speed);
 			usleep(10000);
 		}
 		else if(data->O_data_2 < 13) // 10--> 1500 5 --> 2000            y = -31x + 1900
@@ -1340,7 +1347,7 @@ void tunnel_adv(void *arg)
 			if(data->O_data_2 >= 40) angle = 1500;
 			SteeringServoControl_Write(angle);
 			CarLight_Write(0);
-			printf("ddddddddddddddddddddddddddddddTunnelofff\n");
+			// printf("ddddddddddddddddddddddddddddddTunnelofff\n");
 			if (data->highway == 0) { data->highway = 1; } /// #highway_changed
 			else {data->tunnelend = 1;}
 			break;
@@ -1429,7 +1436,7 @@ int dynamic_obs_ver3(void *arg) {
 
     int b = 0;
     double angle2;
-    while (b<25) { // lane tracing part
+    while (b<20) { // lane tracing part
     	angle2 = 1500-(data->angle/50)*500;
 		angle2 = 0.5 * data->pre_angle + 0.5 * angle2;
 		/** printf("tdata.speed = %d\n", data->speed);//error */
