@@ -392,7 +392,7 @@ int main(int argc, char **argv)
 					angle = 1500-(tdata.angle/50)*500;
 					angle = 0.5 * tdata.pre_angle + 0.5 * angle;
 					/** printf("tdata.speed = %d\n", data->speed);//error */
-					SteeringServoControl_Write(1500); 
+					SteeringServoControl_Write(angle); 
 					tdata.pre_angle = angle;//???
 					/** printf("speed, ratio %d %d\n", data->speed, data->speed_ratio); */
 					DesireSpeed_Write(50);
@@ -460,13 +460,11 @@ int main(int argc, char **argv)
 					break;
 			}
 		} /// 추월
-
 		else if (data->mission_id == 8) {//[TODO] 튜닝
-			camera_angle = 1500;//1650
+
+			camera_angle = 1550;//1650
 			CameraYServoControl_Write(camera_angle);    
 
-			/** printf("traffic mission!!!!\n"); */
-			/** printf("main is_Traffic_Light : %d\n", data->is_Traffic_Light); */
 			if(data->is_Traffic_Light_for_traffic_light == 0){
 				DesireSpeed_Write(0);
 				usleep(100000);
@@ -477,66 +475,59 @@ int main(int argc, char **argv)
 				usleep(100000);
 				Alarm_Write(OFF);
 				DesireSpeed_Write(0);
-				/** printf("hhhhhhhhhh\n"); */
 				usleep(10000000); // detect red sign, wait few time
-				/** printf("hhh\n"); */
 				DesireSpeed_Write(120);
-				usleep(1000000);
+				usleep(1240000);
 				DesireSpeed_Write(0);
 				usleep(1000000);
-				printf("I am waiting...\n");
 				data->is_Traffic_Light_for_traffic_light = 2;
-				/** break; */
 			}
 
 			else if(data->is_Traffic_Light_for_traffic_light >= 1 && data->is_Traffic_Light == 1){
 				//go left
-				printf("go left\n");
+				/** printf("go left\n"); */
 				DesireSpeed_Write(-100);
 				usleep(500000);
 
 				SteeringServoControl_Write(1950);
 				DesireSpeed_Write(100);
 				usleep(1700000);
-				printf("step 1...\n");
+				/** printf("step 1...\n"); */
 
 				SteeringServoControl_Write(1500);
 				usleep(1000000);
-				printf("step 2...\n");
+				/** printf("step 2...\n"); */
 
-				printf("traffic light finished..!!!\n");
+				/** printf("traffic light finished..!!!\n"); */
 				DesireSpeed_Write(0); //E-Stop;
 				Alarm_Write(ON);
 				usleep(1000000);
 				Alarm_Write(OFF);
-				/** break; */
+				break;
 			}
 			else if(data->is_Traffic_Light_for_traffic_light >= 1 && data->is_Traffic_Light == 2){
 				//right
-				printf("go right\n");
+				/** printf("go right\n"); */
 				DesireSpeed_Write(-100);
 				usleep(500000);
 
 				SteeringServoControl_Write(1050);
 				DesireSpeed_Write(100);
 				usleep(1700000);
-				printf("step 1...\n");
+				/** printf("step 1...\n"); */
 
 				SteeringServoControl_Write(1500);
 				usleep(1000000);
-				printf("step 2...\n");
+				/** printf("step 2...\n"); */
 
-				printf("traffic light finished..!!!\n");
+				/** printf("traffic light finished..!!!\n"); */
 				DesireSpeed_Write(0); //E-Stop;
 				Alarm_Write(ON);
 				usleep(1000000);
 				Alarm_Write(OFF);
-				/** break; */
-			}
-			else{
-				printf("ERROR!!!!\n");
 				break;
 			}
+
 		}	/// 신호등
 		else { //basic driving 
 			angle = 1500-(tdata.angle/50)*500;
@@ -758,7 +749,7 @@ void * capture_thread(void *arg)
 				printf("data->O_data == %d\n", data->O_data_1);
 				printf("data->O_data == %d\n", data->O_data_1);
 				// 7 passing trigger
-				if(data->parParkingSignal_2 == 2 && data->mission_state == AUTO_DRIVE && data->O_data_1 < 100) data->mission_id = 7;//passing master /////////////////////////////////////////////////
+				if(data->parParkingSignal_2 == 2 && data->mission_state == AUTO_DRIVE && data->O_data_1 < 80) data->mission_id = 7;//passing master /////////////////////////////////////////////////
 				// 8 traffic light trigger
 				if(data->after_passing == 1 && data->mission_id == 7) data->mission_id = 8; //traffic light
 
@@ -770,8 +761,13 @@ void * capture_thread(void *arg)
 			// ---- pky end
 				if(data->mission_id < 8 && data->mission_id != 4) data->speed_ratio = color_detection(vpe->disp, capt);
 				else{
-					if(data->is_Traffic_Light_for_traffic_light == 0) data->is_Traffic_Light_for_traffic_light = Traffic_mission(vpe->disp, capt);//red sign
-					data->is_Traffic_Light = Traffic_mission_green(vpe->disp, capt); //green sign
+					if(data->is_Traffic_Light_for_traffic_light == 0)
+					{	
+						data->is_Traffic_Light_for_traffic_light = Traffic_mission(vpe->disp, capt);//red sign
+						usleep(13500000);
+					}
+					else data->is_Traffic_Light = Traffic_mission_green(vpe->disp, capt); //green sign
+					usleep(20000);
 					// printf("capture_thread is_Traffic_Light : %d\n", data->is_Traffic_Light);
 				}
 				data->speed = v * data->speed_ratio;
