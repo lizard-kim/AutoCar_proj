@@ -599,7 +599,7 @@ void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf,
     // 차선이 인식되지 않은 경우
     if (lane_idx == -1) {
         // cout << "lane not detected !!!!!" << endl;
-        ratio = -0.3;//[TODO] edit it
+        ratio = 0.2;//[TODO] edit it
     }
     // 차선이 인식된 경우
     else {
