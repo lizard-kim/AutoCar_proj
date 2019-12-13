@@ -365,7 +365,7 @@ int main(int argc, char **argv)
 			data->tunnelSignal = 1;
 			data->mission_id = 0;// test driving edit it to 0
 		} 
-		else if (data->mission_id == 7 && data->after_passing == 0) {//passing master
+		else if (data->mission_id == 7 && data->after_passing == 0) {//passing master // koo_trigger1
 			switch(data->mission_state){//[TODO] what is initial mission_state?
 				// 기본주행 모드
 				case AUTO_DRIVE : 
@@ -375,14 +375,15 @@ int main(int argc, char **argv)
 					SteeringServoControl_Write(angle); 
 					tdata.pre_angle = angle;//???
 					/** printf("speed, ratio %d %d\n", data->speed, data->speed_ratio); */
-					DesireSpeed_Write(50);
-                    CameraYServoControl_Write(1500);
+					DesireSpeed_Write(30);
+                    CameraYServoControl_Write(1650);
 					if(data->speed == 0) usleep(500000);
 					usleep(100000); 
                     break;     
                 case HISTOGRAM_BACK_PROPAGATION :
-                    CameraYServoControl_Write(1500);
-                    DesireSpeed_Write(50);
+                    CameraYServoControl_Write(1650);
+                    SteeringServoControl_Write(1500); 
+                    DesireSpeed_Write(30);
                     usleep(100000);
 					printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
                     printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
@@ -766,8 +767,8 @@ void * capture_thread(void *arg)
 			if (data->mission_state == AUTO_DRIVE){
 				printf(" ###########  mission_state == AUTO_DRIVE in capture thread\n");
             }
-            if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 100){
-                CameraYServoControl_Write(1500);
+            if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 15){ //koo_trigger
+                //CameraYServoControl_Write(1500);
                 data->mission_state = HISTOGRAM_BACK_PROPAGATION;
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
         
@@ -785,7 +786,7 @@ void * capture_thread(void *arg)
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
-                if (data->O_data_1 < 70){
+                if (data->O_data_1 < 13){
                     data->mission_state = BEFORE_PASSING_OVER;
                 }
 
@@ -1124,7 +1125,8 @@ static char* passing_master(struct display *disp, struct buffer *cambuf, void *a
         gettimeofday(&st, NULL);
     
         direction = histogram_backprojection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
-       
+        direction = "left"; // koo_trigger
+
         gettimeofday(&et, NULL);
         optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
         draw_operatingtime(disp, optime);

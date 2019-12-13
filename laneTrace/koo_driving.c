@@ -90,9 +90,9 @@ void passing_left(){
     DesireSpeed_Write(50);
     Winker_Write(LEFT_ON);
     SteeringServoControl_Write(2000);
-    usleep(2000000); 
+    usleep(2000000); //20
     SteeringServoControl_Write(1100);
-    usleep(2700000);
+    usleep(2500000); //27
     Winker_Write(ALL_OFF);    
 }
 
@@ -114,17 +114,20 @@ void passing_left_later(){
     printf("passing_left_later in !!!\n");
     DesireSpeed_Write(-50);
     printf("why22\n");
-    usleep(2000000);
+    usleep(1500000);
     DesireSpeed_Write(30);
     SteeringServoControl_Write(1900);
-    usleep(3500000); //35
+    usleep(3800000); //35
     SteeringServoControl_Write(1000);
     usleep(3500000);
-    while(line_trace_sensor() == 1){  // black:1, white:0
+    while(1){  // black:1, white:0
         printf("in the while line_trace_sensor\n");
         printf("in the while line_trace_sensor\n");
         SteeringServoControl_Write(1500);
         usleep(10000);
+        if(line_trace_sensor()==0){
+            break;
+        }
     } 
 }
 
@@ -136,17 +139,20 @@ void passing_right_later(){
     printf("passing_right_later in !!!\n");
     DesireSpeed_Write(-50); // -40
     printf("why\n");
-    usleep(2000000); //27
+    usleep(1500000); //27
     DesireSpeed_Write(30); // 40
     SteeringServoControl_Write(1100);
-    usleep(3500000); // 35
+    usleep(3800000); // 35
     SteeringServoControl_Write(2000);
     usleep(3500000); // 35
-    while(line_trace_sensor() == 1){ // black:1, white:0
+    while(1){ // black:1, white:0
         printf("in the while line_trace_sensor\n");
         printf("in the while line_trace_sensor\n");
         SteeringServoControl_Write(1500);
         usleep(10000);
+        if(line_trace_sensor()==0){
+            break;
+        }
     }
 }
 
