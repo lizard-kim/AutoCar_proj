@@ -103,14 +103,14 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
 			}
 			//circle!! stop!!
-			if (size >= 7){
+			if (size >= 4){
 				cout << "red_circle" << endl;
 				speed = 0;
 			}
 		}
 	}
 	// cvtColor(test, srcRGB, COLOR_BGR2GRAY);
-	//srcRGB = img_result;
+	// srcRGB = img_result;
 	// resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
 	return speed;
