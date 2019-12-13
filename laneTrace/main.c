@@ -668,24 +668,24 @@ void * capture_thread(void *arg)
 
 			// 4 tunnel trigger 
 			// printf("data->tunnelSignal : %d\n", data->tunnelSignal);
-			if(data->tunnelend == 0 && data->tunnelSignal == 1 && data->O_data_2 < 30 && data->O_data_6 < 30){
+			if(data->tunnelend == 0 && data->tunnelSignal == 1 && data->O_data_2 < 20 && data->O_data_6 < 18){
 				data->tunnelSignal = 2;
 			}
-			if(data->tunnelSignal == 2 && (data->O_data_2 > 30 || data->O_data_6 > 30)){
+			if(data->tunnelSignal == 2 && (data->O_data_2 > 20 || data->O_data_6 > 18)){
 				data->tunnelSignal = 1;
 			}
-			if(data->tunnelSignal == 2 && data->O_data_2 < 30 && data->O_data_6 < 30){
+			if(data->tunnelSignal == 2 && data->O_data_2 < 20 && data->O_data_6 < 18){
 				data->tunnelcount +=1;
 
 				if(data->tunnelcount > 1){
 					data->tunnelSignal = 3;
 				}
 			}
-			if(data->tunnelSignal == 3 && (data->O_data_2 > 30 || data->O_data_6 > 30)){
+			if(data->tunnelSignal == 3 && (data->O_data_2 > 20 || data->O_data_6 > 18)){
 				data->tunnelSignal = 1;
 				data->tunnelcount = 0;
 			}
-			if(data->tunnelend == 0 && data->tunnelSignal == 3 && data->O_data_2 < 30 && data->O_data_6 < 30){
+			if(data->tunnelend == 0 && data->tunnelSignal == 3 && data->O_data_2 < 20 && data->O_data_6 < 18){
 				data->mission_id = 4;
 			}
 
@@ -1237,7 +1237,7 @@ void tunnel_adv(void *arg)
 	usleep(100000);
 	Alarm_Write(OFF);
 	int speed;
-	speed = 100;
+	speed = 80;
 	while(1)
 	{
 		/** printf("2: %d, 3: %d, 5: %d\n", data->O_data_2, data->O_data_3, data->O_data_5); */
