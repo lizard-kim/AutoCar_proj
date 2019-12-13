@@ -178,11 +178,11 @@ int main(int argc, char **argv)
 
     tdata.dump_state = DUMP_NONE;
     memset(tdata.dump_img_data, 0, sizeof(tdata.dump_img_data)); // dump data를 0으로 채워서 초기화
-	int start_sig = 2; //////////////////////////////////////////////////////////////////////////////////////////////
+	int start_sig = 0; //////////////////////////////////////////////////////////////////////////////////////////////
 
 	//init data struct
 	tdata.forline = 1; //0 white	
-	tdata.mission_id = 7; // 0 is basic driving 1 is for testing
+	tdata.mission_id = 0; // 0 is basic driving 1 is for testing
     tdata.driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
     tdata.pre_angle = 0;
     tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
 	tdata.O_data_2 = 0;
 	tdata.O_data_3 = 0;
 	tdata.O_data_4 = 0;
-	tdata.after_passing = 1; //0 is initial value, 1 is finished
+	tdata.after_passing = 0; //0 is initial value, 1 is finished
     tdata.direction = "NONE"; // 추월 차로 진행 방향, left or right
     tdata.yellow_stop_line = "NONE"; // 정지선 인식 변수, 관형 추가
     tdata.white_stop_line = 1; // 정지선 인식 변수, 관형 추가 white = 0 black = 1
@@ -756,7 +756,7 @@ void * capture_thread(void *arg)
 			data->angle = a;
 			// data->speed = v;
 			// ---- pky end
-			if(data->mission_id < 8 && data->mission_id != 4) data->speed_ratio = color_detection(vpe->disp, capt);
+			if(data->mission_id < 8) data->speed_ratio = color_detection(vpe->disp, capt);
 			else{
 				if(data->is_Traffic_Light_for_traffic_light == 0){
 					data->is_Traffic_Light_for_traffic_light = Traffic_mission(vpe->disp, capt);//red sign
@@ -1234,7 +1234,7 @@ void tunnel_adv(void *arg)
 {
 	struct thr_data *data = (struct thr_data *)arg;
 	int angle;
-	/** int k = 0; */
+	int k = 0;
 	Alarm_Write(ON);
 	usleep(100000);
 	Alarm_Write(OFF);
@@ -1245,8 +1245,8 @@ void tunnel_adv(void *arg)
 		/** printf("2: %d, 3: %d, 5: %d\n", data->O_data_2, data->O_data_3, data->O_data_5); */
 		DesireSpeed_Write(speed);
 		usleep(10000);
-		/** if(k == 0)CarLight_Write(FRONT_ON); */
-		/** k++; */
+		if(k == 0)CarLight_Write(FRONT_ON);
+		k++;
 		if(data->O_data_2 >= 13)
 		{
 			angle = -71*data->O_data_2 + 2210;
@@ -1274,8 +1274,8 @@ void tunnel_adv(void *arg)
 			if(data->O_data_6 >= 30) angle = 1500;
 			SteeringServoControl_Write(angle);
 			usleep(50000);
-			/** CarLight_Write(0); */
-			// printf("ddddddddddddddddddddddddddddddTunnelofff\n");
+			CarLight_Write(0);
+			printf("ddddddddddddddddddddddddddddddTunnelofff\n");
 			data->tunnelend = 1;
 			break;
 		}
