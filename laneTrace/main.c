@@ -317,7 +317,7 @@ int main(int argc, char **argv)
     printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500
 
 	//camera setting
-	camera_angle = 1650;//1650
+	camera_angle = 1700;//1650
 	CameraYServoControl_Write(camera_angle);    
 
 	//speed set
@@ -377,18 +377,26 @@ int main(int argc, char **argv)
 			switch(data->mission_state){//[TODO] what is initial mission_state?
 				// 기본주행 모드
 				case AUTO_DRIVE : 
-					angle = 1500-(tdata.angle/50)*500;
-					angle = 0.5 * tdata.pre_angle + 0.5 * angle;
-					/** printf("tdata.speed = %d\n", data->speed);//error */
-					SteeringServoControl_Write(angle); 
-					tdata.pre_angle = angle;//???
-					/** printf("speed, ratio %d %d\n", data->speed, data->speed_ratio); */
-					DesireSpeed_Write(50);
-					/** SteeringServoControl_Write(1500); */
-					CameraYServoControl_Write(1700);
-					/** if(data->speed == 0) usleep(500000); */
-					usleep(150000); 
-					/** CameraYServoControl_Write(1500); */
+					DesireSpeed_Write(60);
+					SteeringServoControl_Write(1500);
+					usleep(2000000);
+					SteeringServoControl_Write(1900);
+					usleep(3000000);
+					SteeringServoControl_Write(1500);
+					usleep(500000);
+
+					// angle = 1500-(tdata.angle/50)*500;
+					// angle = 0.5 * tdata.pre_angle + 0.5 * angle;
+					// /** printf("tdata.speed = %d\n", data->speed);//error */
+					// SteeringServoControl_Write(angle); 
+					// tdata.pre_angle = angle;//???
+					// /** printf("speed, ratio %d %d\n", data->speed, data->speed_ratio); */
+					// DesireSpeed_Write(50);
+					// /** SteeringServoControl_Write(1500); */
+					// CameraYServoControl_Write(1700);
+					// /** if(data->speed == 0) usleep(500000); */
+					// usleep(150000); 
+					// /** CameraYServoControl_Write(1500); */
 					break;     
 				case HISTOGRAM_BACK_PROPAGATION :
 					CameraYServoControl_Write(1500);
@@ -742,9 +750,8 @@ void * capture_thread(void *arg)
 			// ---- pky end
 			if(data->mission_id != 8) {
 				data->speed_ratio = color_detection(vpe->disp, capt);
-				if(data->speed_ratio == 0){
-					CameraYServoControl_Write(1750);    
-				}
+				/** if(data->speed_ratio == 0){ */
+				/** } */
 			}
 			else{
 				if(data->is_Traffic_Light_for_traffic_light == 0){
@@ -1063,9 +1070,9 @@ void parking(void *arg)
 	while(1)
 	{
 		// printf("asdkljfjklsadkl;jsfdasd;ddfdfdfdfdfdfdfdfffffffffffffffffffffffffff\n");
-		if(data->O_data_4 > 12)
+		if(data->O_data_4 > 13)
 		{//this condition is weird
-			DesireSpeed_Write(-55);
+			DesireSpeed_Write(-50);
 			usleep(10000);
 		}
 		else
