@@ -709,46 +709,46 @@ void * capture_thread(void *arg)
 				}
 
 				// 5 parking trigger
-				if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30){
+				if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30 && data->O_data_6 < 80){
 					printf("step1\n");
 					data->ParkingSignal_1 = 1;
 				}
-				if(data->ParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30){
+				if(data->ParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30 && data->O_data_6 < 80){
 					printf("step3\n");
 					data->ParkingSignal_1 = 2;
 				}
-				if(data->ParkingSignal_1 == 2 && data->O_data_2 < 30 && data->O_data_3 > 30) data->ParkingSignal_1 = 0;
-				if(data->ParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30){
+				if(data->ParkingSignal_1 == 2 && data->O_data_2 < 30 && data->O_data_3 > 30 && data->O_data_6 < 80) data->ParkingSignal_1 = 0;
+				if(data->ParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30 && data->O_data_6 < 80){
 					printf("step4\n");
 					data->ParkingSignal_1 = 3;
 				}
-				if(data->ParkingSignal_1 == 3 && data->O_data_2 < 30 && data->O_data_3 > 30) data->ParkingSignal_1 = 4;
-				if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 4 && data->O_data_3 < 30){
+				if(data->ParkingSignal_1 == 3 && data->O_data_2 < 30 && data->O_data_3 > 30 && data->O_data_6 < 80) data->ParkingSignal_1 = 4;
+				if(data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 4 && data->O_data_3 < 30 && data->O_data_6 < 80){
 					printf("step5\n");
 					data->ParkingSignal_2 = 2;
 					data->mission_id = 5;// test driving edit it to 0
 				}
 
 				// 6 parparking trigger
-				if(data->ParkingSignal_2 == 2 && data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30){
+				if(data->ParkingSignal_2 == 2 && data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30 && data->O_data_6 < 80){
 					printf("step1\n");
 					data->parParkingSignal_1 = 1;
 				}
-				if(data->parParkingSignal_1 == 1 && data->O_data_2 > 60 && data->O_data_3 > 60){
+				if(data->parParkingSignal_1 == 1 && data->O_data_2 > 60 && data->O_data_3 > 60 && data->O_data_6 < 80){
 					printf("step2\n");
 					data->parParkingSignal_1 = 0;
 				}
-				if(data->parParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30){
+				if(data->parParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30 && data->O_data_6 < 80){
 					printf("step3\n");
 					data->parParkingSignal_1 = 2;
 				}
-				if(data->parParkingSignal_1 == 2 && data->O_data_2 < 30 && data->O_data_3 > 30) data->parParkingSignal_1 = 0;
-				if(data->parParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30){
+				if(data->parParkingSignal_1 == 2 && data->O_data_2 < 30 && data->O_data_3 > 30 && data->O_data_6 < 80) data->parParkingSignal_1 = 0;
+				if(data->parParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30 && data->O_data_6 < 80){
 					printf("step4\n");
 					data->parParkingSignal_1 = 3;
 				}
-				if(data->parParkingSignal_1 == 3 && data->O_data_2 < 30 && data->O_data_3 > 30) data->parParkingSignal_1 = 4;
-				if(data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 4 && data->O_data_3 < 30){
+				if(data->parParkingSignal_1 == 3 && data->O_data_2 < 30 && data->O_data_3 > 30 && data->O_data_6 < 80) data->parParkingSignal_1 = 4;
+				if(data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 4 && data->O_data_3 < 30 && data->O_data_6 < 80){
 					printf("step5\n");
 					data->parParkingSignal_2 = 2;
 					data->mission_id = 6;// test driving edit it to 0
@@ -1124,7 +1124,7 @@ void parking(void *arg)
 	CarLight_Write(REAR_ON);
 
     DesireSpeed_Write(100);
-    usleep(200000+(meandist*3000)); //210000
+    usleep(210000+(meandist*3000)); //210000
 	printf("wtf3\n");
     DesireSpeed_Write(0);
     usleep(500000);
@@ -1275,7 +1275,7 @@ void parparking(void *arg)
     //printf("step 1...\n");
 
     SteeringServoControl_Write(1500);
-    usleep(300000);
+    usleep(150000);
 
     SteeringServoControl_Write(1000);
 	usleep(1300000);
