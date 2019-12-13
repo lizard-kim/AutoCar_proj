@@ -361,13 +361,13 @@ int main(int argc, char **argv)
 			data->mission_id = 7;// test driving edit it to 0
 			CameraYServoControl_Write(1650);
 			DesireSpeed_Write(0);
+			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
+			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
+			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
+			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
+			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
+			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
 			usleep(5000000);
-			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
-			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
-			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
-			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
-			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
-			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
 		}  
 		else if (data->mission_id == 5) {//수직
 			parking(&tdata);
@@ -393,7 +393,7 @@ int main(int argc, char **argv)
 					/** SteeringServoControl_Write(1500); */
 					CameraYServoControl_Write(1700);
 					/** if(data->speed == 0) usleep(500000); */
-					usleep(15000); 
+					usleep(150000); 
 					/** CameraYServoControl_Write(1500); */
 					break;     
 				case HISTOGRAM_BACK_PROPAGATION :
@@ -434,7 +434,7 @@ int main(int argc, char **argv)
 					data->mission_state = STOP;
 					break;
 				case STOP :
-					CameraYServoControl_Write(1650);
+					CameraYServoControl_Write(1450);
 					passing_stop();
 					data->after_passing = 1;
 					data->mission_state = BREAK;
@@ -703,7 +703,7 @@ void * capture_thread(void *arg)
 				data->ParkingSignal_1 = 2;
 			}
 			if(data->ParkingSignal_1 == 2 && data->O_data_2 < 20 && data->O_data_3 > 20) data->ParkingSignal_1 = 0;
-			if(data->ParkingSignal_1 == 2 && (data->O_data_2 > 80 || data->O_data_3 > 80)) data->ParkingSignal_1 = 0;
+			if(data->ParkingSignal_1 == 2 && (data->O_data_2 > 100 || data->O_data_3 > 100)) data->ParkingSignal_1 = 0;
 			if(data->ParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30&& data->O_data_6 < 40){
 				printf("step4\n");
 				data->ParkingSignal_1 = 3;
