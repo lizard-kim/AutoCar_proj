@@ -178,11 +178,11 @@ int main(int argc, char **argv)
 
     tdata.dump_state = DUMP_NONE;
     memset(tdata.dump_img_data, 0, sizeof(tdata.dump_img_data)); // dump data를 0으로 채워서 초기화
-	int start_sig = 0; //////////////////////////////////////////////////////////////////////////////////////////////
+	int start_sig = 2; //////////////////////////////////////////////////////////////////////////////////////////////
 
 	//init data struct
 	tdata.forline = 1; //0 white	
-	tdata.mission_id = 0; // 0 is basic driving 1 is for testing
+	tdata.mission_id = 7; // 0 is basic driving 1 is for testing
     tdata.driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
     tdata.pre_angle = 0;
     tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
 	tdata.O_data_2 = 0;
 	tdata.O_data_3 = 0;
 	tdata.O_data_4 = 0;
-	tdata.after_passing = 0; //0 is initial value, 1 is finished
+	tdata.after_passing = 1; //0 is initial value, 1 is finished
     tdata.direction = "NONE"; // 추월 차로 진행 방향, left or right
     tdata.yellow_stop_line = "NONE"; // 정지선 인식 변수, 관형 추가
     tdata.white_stop_line = 1; // 정지선 인식 변수, 관형 추가 white = 0 black = 1
@@ -444,7 +444,7 @@ int main(int argc, char **argv)
 
 		else if (data->mission_id == 8) {//[TODO] 튜닝
 			
-			camera_angle = 1450;//1650
+			camera_angle = 1500;//1650 delete it!!!
 			CameraYServoControl_Write(camera_angle);    
 
 			if(data->is_Traffic_Light_for_traffic_light == 0){
@@ -469,7 +469,7 @@ int main(int argc, char **argv)
 				//go left
 				/** printf("go left\n"); */
 				DesireSpeed_Write(-100);
-				usleep(500000);
+				usleep(400000);
 
 				SteeringServoControl_Write(1950);
 				DesireSpeed_Write(100);
@@ -477,11 +477,13 @@ int main(int argc, char **argv)
 				/** printf("step 1...\n"); */
 
 				SteeringServoControl_Write(1500);
-				usleep(1000000);
+				DesireSpeed_Write(100);
+				usleep(900000);
 				/** printf("step 2...\n"); */
 
 				/** printf("traffic light finished..!!!\n"); */
 				DesireSpeed_Write(0); //E-Stop;
+
 				Alarm_Write(ON);
 				usleep(1000000);
 				Alarm_Write(OFF);
@@ -491,7 +493,7 @@ int main(int argc, char **argv)
 				//right
 				/** printf("go right\n"); */
 				DesireSpeed_Write(-100);
-				usleep(500000);
+				usleep(400000);
 
 				SteeringServoControl_Write(1050);
 				DesireSpeed_Write(100);
@@ -499,7 +501,9 @@ int main(int argc, char **argv)
 				/** printf("step 1...\n"); */
 
 				SteeringServoControl_Write(1500);
-				usleep(1000000);
+				DesireSpeed_Write(100);
+				usleep(900000);
+				/** usleep(1000000); */
 				/** printf("step 2...\n"); */
 
 				/** printf("traffic light finished..!!!\n"); */
