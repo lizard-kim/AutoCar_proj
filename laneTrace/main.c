@@ -164,6 +164,8 @@ void tunnel_adv(void *arg);
 void dynamic_obs_ver2(void *arg); // 
 int dynamic_obs_ver3(void *arg);
 
+int mission = 0;
+
 int main(int argc, char **argv)
 {
     struct v4l2 *v4l2;
@@ -182,7 +184,7 @@ int main(int argc, char **argv)
 
 	//init data struct
 	tdata.forline = 1; //0 white	
-	tdata.mission_id = 0; // 0 is basic driving 1 is for testing
+	tdata.mission_id = 3; // 0 is basic driving 1 is for testing
     tdata.driving_flag_onoff = true; /// by dy: true면 주행중, false면 주행종료
     tdata.pre_angle = 0;
     tdata.speed_ratio = 1; /// by dy: 태영이랑 도연이만 이 변수 건드릴 수 있음. 정지 표지판이나 회전교차로에서 정지해야하면 이 비율을 0으로 두기
@@ -210,7 +212,7 @@ int main(int argc, char **argv)
 	tdata.mission_state = AUTO_DRIVE; // 여기서 mission_state를 HISTOGRAM_BACK_PROPAGATION로 설정함!!!
 	tdata.is_Traffic_Light = 0; // 1 is left 2 is right
 	tdata.is_Traffic_Light_for_traffic_light = 0; // 1 is red sign
-    tdata.stop_line_DY = 0; // DY: stop line detected if first stop line is detected it will change to 1, second 2
+    tdata.stop_line_DY = 1; // DY: stop line detected if first stop line is detected it will change to 1, second 2
 
 	// ---------------- init data structure end -------------------
 
@@ -342,7 +344,11 @@ int main(int argc, char **argv)
 	/** printf("start_sig : %d\n", start_sig); */
 
 	while (start_sig == 2){
-		/** printf("------------mission_id: %d\n", data->mission_id); */
+		printf("------------mission_id: %d\n", data->mission_id);
+		printf("------------------------mission_id: %d\n", data->mission_id);
+		printf("-------------------------------mission_id: %d\n", data->mission_id);
+		printf("---------------------------------------mission_id: %d\n", data->mission_id);
+		printf("----------------------------------------------------mission_id: %d\n", data->mission_id);
 		if (data->mission_id == 1) {//test driving
 			/** Alarm_Write(ON); */
 			/** usleep(100000); */
@@ -352,6 +358,7 @@ int main(int argc, char **argv)
 		} 
 		else if (data->mission_id == 3 ) { /// DY mission
 			dynamic_obs_ver3(&tdata);
+			data->stop_line_DY = 2;
 			data->tunnelSignal = 1;//[TODO] move it!
 			data->mission_id = 0;
 		} 
@@ -648,13 +655,13 @@ void * capture_thread(void *arg)
 		index = vpe_output_dqbuf(vpe); // VPE 출력 큐 처리 권한을 어플리케이션이 가지고 옴
 		capt = vpe->disp_bufs[index];
 		///////////////////////////////////////////////////////////////////////////
-		
 		// ------------- trigger ----------------
 		/** if (data->highway == 0) { data->mission_id = 2; } /// #highway_changed : at first, this car start at highway */
 		/** else { */
 		if( data->stop_line_DY == 1 ) { 
 			data->mission_id = 3; /// [TODO] 준호 주차 미션이 끝나면 주행 가능하도록 바꿀 것
-			data->stop_line_DY = 2;
+			data->tunnelSignal = 1;
+			data->parParkingSignal_2 = 2; // to start 
 		}
 		else{
 
@@ -682,6 +689,7 @@ void * capture_thread(void *arg)
 			}
 
 			// 5 parking trigger
+			/*
 			if(data->parParkingSignal_2 == 2 && data->ParkingSignal_2 == 0 && data->ParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 20 && data->O_data_6 < 40){
 				printf("step1\n");
 				data->ParkingSignal_1 = 1;
@@ -726,6 +734,7 @@ void * capture_thread(void *arg)
 				printf("step5\n");
 				data->mission_id = 6;// test driving edit it to 0
 			}
+			*/
 
 			if(data->parParkingSignal_2 == 2 && data->tunnelend == 1 && data->O_data_1 < 80) { 
 				/** pri\cntf("I love you!!!!!!!!!!!!!!!QQQQQQQQQQQqqqqqqqqqqqqqqqq!\n"); */
