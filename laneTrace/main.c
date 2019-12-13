@@ -317,7 +317,7 @@ int main(int argc, char **argv)
     printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500
 
 	//camera setting
-	camera_angle = 1750;//1650
+	camera_angle = 1700;//1650
 	CameraYServoControl_Write(camera_angle);    
 
 	//speed set
@@ -361,13 +361,7 @@ int main(int argc, char **argv)
 			data->mission_id = 7;// test driving edit it to 0
 			CameraYServoControl_Write(1650);
 			DesireSpeed_Write(0);
-			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
-			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
-			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
-			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
-			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
-			printf("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\n");
-			usleep(5000000);
+			usleep(100000);
 		}  
 		else if (data->mission_id == 5) {//수직
 			parking(&tdata);
@@ -434,19 +428,18 @@ int main(int argc, char **argv)
 					data->mission_state = STOP;
 					break;
 				case STOP :
-					CameraYServoControl_Write(1450);
+					CameraYServoControl_Write(1500);
 					passing_stop();
-					data->after_passing = 1;
 					data->mission_state = BREAK;
+					data->after_passing = 1;
 					break;
 			}
 		} /// 추월
 
 		else if (data->mission_id == 8) {//[TODO] 튜닝
 			
-			camera_angle = 1500;//1650 delete it!!!
-			CameraYServoControl_Write(camera_angle);    
-
+			/** camera_angle = 1500;//1650 delete it!!! */
+			/** CameraYServoControl_Write(camera_angle);     */
 			if(data->is_Traffic_Light_for_traffic_light == 0){
 				DesireSpeed_Write(0);
 				usleep(100000);
@@ -525,15 +518,6 @@ int main(int argc, char **argv)
 			/** printf("tdata.speed = %d\n", data->speed);//error */
 			SteeringServoControl_Write(angle); 
 			tdata.pre_angle = angle;//???
-			/** printf("speed, ratio %d %d\n", data->speed, data->speed_ratio); */
-			/** if(data->highway == 0 && hightime < 6){ */
-			/**     hightime++; */
-			/**     printf("%d\n", hightime); */
-			/**     DesireSpeed_Write(200); */
-			/** } */
-			/** else if(data->highway == 0 && hightime >= 6){ */
-			/**     DesireSpeed_Write(50); */
-			/** } */
 			DesireSpeed_Write(data->speed);
 			/** DesireSpeed_Write(100); */
 			if(data->speed == 0) usleep(500000);
@@ -756,7 +740,7 @@ void * capture_thread(void *arg)
 			data->angle = a;
 			// data->speed = v;
 			// ---- pky end
-			if(data->mission_id < 8) data->speed_ratio = color_detection(vpe->disp, capt);
+			if(data->mission_id != 8) data->speed_ratio = color_detection(vpe->disp, capt);
 			else{
 				if(data->is_Traffic_Light_for_traffic_light == 0){
 					data->is_Traffic_Light_for_traffic_light = Traffic_mission(vpe->disp, capt);//red sign
@@ -1270,8 +1254,8 @@ void tunnel_adv(void *arg)
 			SteeringServoControl_Write(angle);
 			usleep(50000);
 		}
-		if(data->O_data_6 >= 30){
-			if(data->O_data_6 >= 30) angle = 1500;
+		if(data->O_data_6 > 19 && data->O_data_1 > 80){
+			angle = 1500;
 			SteeringServoControl_Write(angle);
 			usleep(50000);
 			CarLight_Write(0);
