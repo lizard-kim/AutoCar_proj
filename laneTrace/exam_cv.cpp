@@ -81,7 +81,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
 		// approxPolyDP(Mat(contours[i]), approx, 1, true);
 
-		if (fabs(contourArea(Mat(approx))) > 1200)  // edit responsiveness...
+		if (fabs(contourArea(Mat(approx))) > 1000)  // edit responsiveness...
 		{
 			int size = approx.size();
 

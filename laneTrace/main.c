@@ -712,7 +712,7 @@ void * capture_thread(void *arg)
 			}
 
 			// 6 parparking trigger
-			if(data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30&& data->O_data_6 < 40){
+			if(data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 0 && data->O_data_2 < 30 && data->O_data_3 > 30){
 				printf("step1\n");
 				data->parParkingSignal_1 = 1;
 			}
@@ -720,17 +720,18 @@ void * capture_thread(void *arg)
 				printf("step2\n");
 				data->parParkingSignal_1 = 0;
 			}
-			if(data->parParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30&& data->O_data_6 < 40){
+			if(data->parParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30){
 				printf("step3\n");
 				data->parParkingSignal_1 = 2;
 			}
+			if(data->parParkingSignal_1 == 2 && (data->O_data_2 > 100 || data->O_data_3 > 100)) data->parParkingSignal_1 = 0;
 			if(data->parParkingSignal_1 == 2 && data->O_data_2 < 30 && data->O_data_3 > 30) data->parParkingSignal_1 = 0;
-			if(data->parParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30&& data->O_data_6 < 40){
+			if(data->parParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30){
 				printf("step4\n");
 				data->parParkingSignal_1 = 3;
 			}
-			if(data->parParkingSignal_1 == 3 && data->O_data_2 < 30 && data->O_data_3 > 30&& data->O_data_6 < 40) data->parParkingSignal_1 = 4;
-			if(data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 4 && data->O_data_3 < 30&& data->O_data_6 < 40){
+			if(data->parParkingSignal_1 == 3 && data->O_data_2 < 30 && data->O_data_3 > 30) data->parParkingSignal_1 = 4;
+			if(data->parParkingSignal_2 == 0 && data->parParkingSignal_1 == 4 && data->O_data_3 < 30){
 				printf("step5\n");
 				data->mission_id = 6;// test driving edit it to 0
 			}
