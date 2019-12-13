@@ -317,7 +317,7 @@ int main(int argc, char **argv)
     printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500
 
 	//camera setting
-	camera_angle = 1700;//1650
+	camera_angle = 1650;//1650
 	CameraYServoControl_Write(camera_angle);    
 
 	//speed set
@@ -740,7 +740,12 @@ void * capture_thread(void *arg)
 			data->angle = a;
 			// data->speed = v;
 			// ---- pky end
-			if(data->mission_id != 8) data->speed_ratio = color_detection(vpe->disp, capt);
+			if(data->mission_id != 8) {
+				data->speed_ratio = color_detection(vpe->disp, capt);
+				if(data->speed_ratio == 0){
+					CameraYServoControl_Write(1750);    
+				}
+			}
 			else{
 				if(data->is_Traffic_Light_for_traffic_light == 0){
 					data->is_Traffic_Light_for_traffic_light = Traffic_mission(vpe->disp, capt);//red sign
@@ -1007,7 +1012,8 @@ static char* passing_master(struct display *disp, struct buffer *cambuf, void *a
 		gettimeofday(&st, NULL);
 
 		direction = histogram_backprojection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
-
+		direction = "left";//Koo trigger
+		
 		gettimeofday(&et, NULL);
 		optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
 		draw_operatingtime(disp, optime);
