@@ -68,7 +68,10 @@ typedef struct _DumpMsg{
 //--koo structure
 typedef enum {
     AUTO_DRIVE,
-	NEXT_AUTO_DRIVE,
+    NEXT_AUTO_DRIVE,
+    DECISION,
+    DECISION_LEFT,
+    DECISION_RIGHT,
     HISTOGRAM_BACK_PROPAGATION,
     BEFORE_PASSING_OVER, // 추월차로 미션 전의 임의의 미션
     PASSING_OVER_LEFT,
@@ -114,6 +117,8 @@ struct thr_data {
     int white_stop_line; // 정지선 인식 변수, 관형 추가
     MissionState mission_state;
     int after_passing; // to judge whether passing mission
+    int contour_size_right;
+    int contour_size_left;
 	//end
 
 	// --- lizard
@@ -318,7 +323,7 @@ int main(int argc, char **argv)
 	printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500
 
 	//camera setting
-	camera_angle = 1680;//1650
+	camera_angle = 1700;//1650
 	CameraYServoControl_Write(camera_angle);    
 
 	//speed set
@@ -360,14 +365,13 @@ int main(int argc, char **argv)
 		else if (data->mission_id == 4) {/// 터널
 			tunnel_adv(&tdata);
 			data->tunnelend = 1;
-			data->mission_id = 7;// test driving edit it to 0
+			data->mission_id = 0;// test driving edit it to 0
 			CameraYServoControl_Write(1650);
 			DesireSpeed_Write(0);
 			usleep(100000);
 		}  
 		else if (data->mission_id == 5) {//수직
 			parking(&tdata);
-			/** data->tunnelSignal = 1; */
 			data->mission_id = 0;// test driving edit it to 0
 		} 
 		else if (data->mission_id == 6) {//수평주차
@@ -381,30 +385,38 @@ int main(int argc, char **argv)
 				case AUTO_DRIVE : //koo_trigger
 					DesireSpeed_Write(50);
 					SteeringServoControl_Write(1500);
-					usleep(2000000);
-					SteeringServoControl_Write(1900);
-					usleep(3000000);
-					SteeringServoControl_Write(1500);
-					usleep(100000);
-					data->mission_state = NEXT_AUTO_DRIVE;
+					usleep(200000);
+					/** SteeringServoControl_Write(1900); */
+					/** usleep(3000000); */
+					/** SteeringServoControl_Write(1500); */
+					/** usleep(100000); */
+					/** data->mission_state = NEXT_AUTO_DRIVE; */
 
 					/** CameraYServoControl_Write(1500); */
 					break;     
+                case NEXT_AUTO_DRIVE :
+                    DesireSpeed_Write(50);
+                    SteeringServoControl_Write(1500);
+                    usleep(100000);
+                    if(data->O_data_1 < 12){
+                        DesireSpeed_Write(0);
+                        usleep(100000);
+                        data->mission_state = PASSING_OVER_RIGHT; 
 
-				case NEXT_AUTO_DRIVE :
-					DesireSpeed_Write(50);
-					SteeringServoControl_Write(1500);
-					usleep(100000);
-					if(data->O_data_1 < 12){
-						data->mission_state = PASSING_OVER_LEFT;
-					}
-				case HISTOGRAM_BACK_PROPAGATION :
-					CameraYServoControl_Write(1500);
-					SteeringServoControl_Write(1500);
-					DesireSpeed_Write(50);
-					usleep(100000);
-					break;
-					// 추월 미션 진입
+                    }
+                    break;
+
+                case DECISION_RIGHT :
+                    CameraXServoControl_Write(1700);
+                    usleep(200000); // 오른쪽 먼저 확인
+                    data->mission_state = DECISION_LEFT;
+
+                case DECISION_LEFT :
+                    CameraXServoControl_Write(1700);
+                    usleep(200000);
+ 
+					
+				// 추월 미션 진입
 				case PASSING_OVER_LEFT :
 					CameraYServoControl_Write(1700);
 					passing_go_back();
@@ -738,7 +750,7 @@ void * capture_thread(void *arg)
 				data->mission_id = 6;// test driving edit it to 0
 			}
 
-			if(data->parParkingSignal_2 == 2 && data->tunnelend == 1 && data->O_data_1 < 80) { 
+			if(data->parParkingSignal_2 == 2 && data->tunnelend == 1 && data->O_data_1 < 70) { 
 				/** pri\cntf("I love you!!!!!!!!!!!!!!!QQQQQQQQQQQqqqqqqqqqqqqqqqq!\n"); */
 				data->mission_id = 7;//passing master /////////////////////////////////////////////////
 			}
@@ -1077,36 +1089,36 @@ void parking(void *arg)
 	meandist = data->O_data_3;
 	usleep(200000);
 	SteeringServoControl_Write(1500);
-	while(1)
-	{
-		int posRead_1 = data->O_data_4;
-		printf("DIST4 SENSOR = %d\n", posRead_1);
-
-		if(data->O_data_4 > 13)
-		{
-			DesireSpeed_Write(-50);
-		}
-		else
-		{
-			DesireSpeed_Write(0);
-			break;
-		}
-	}
-
 	/** while(1) */
 	/** { */
+	/**     int posRead_1 = data->O_data_4; */
+	/**     printf("DIST4 SENSOR = %d\n", posRead_1); */
+    /**  */
 	/**     if(data->O_data_4 > 13) */
-	/**     {//this condition is weird */
+	/**     { */
 	/**         DesireSpeed_Write(-50); */
-	/**         usleep(10000); */
 	/**     } */
 	/**     else */
 	/**     { */
 	/**         DesireSpeed_Write(0); */
 	/**         break; */
 	/**     } */
-	/**     usleep(500000); */
 	/** } */
+
+	while(1)
+	{
+		if(data->O_data_4 > 13)
+		{//this condition is weird
+			DesireSpeed_Write(-50);
+			usleep(10000);
+		}
+		else
+		{
+			DesireSpeed_Write(0);
+			break;
+		}
+		/** usleep(500000); */
+	}
 	printf("wtf2\n");
 
 	DesireSpeed_Write(0);
@@ -1150,7 +1162,7 @@ void parparking(void *arg)
 	{
 		tmpdist = tmpdist_1;
 	}
-	usleep(210000+(tmpdist*5000));
+	usleep(190000+(tmpdist*5000));
 
 	DesireSpeed_Write(0);
 	usleep(500000);
@@ -1158,21 +1170,21 @@ void parparking(void *arg)
 	SteeringServoControl_Write(1000);
 	EncoderCounter_Write(0);
 	DesireSpeed_Write(-50);
-	usleep(1500000+(tmpdist*5000)); //1300000
+	usleep(1600000+(tmpdist*5000)); //1300000
 
 	int posRead_1 = EncoderCounter_Read();
 	//printf("EncoderCounter_Read() = %d\n", posRead_1);
 
 	//printf("-600 reached\n");
 	SteeringServoControl_Write(1500);
-	usleep(1400000); //1800000
+	usleep(1200000); //1800000
 	//printf("-800 reached\n");
 	SteeringServoControl_Write(2000);
 	usleep(50000); //1800000
 
 	while(1)
 	{
-		if(data->O_data_4 > 10 && data->O_data_3 > 4)
+		if(data->O_data_4 > 8 && data->O_data_3 > 4)
 		{//this condition is weird
 			DesireSpeed_Write(-80);
 		}
@@ -1191,7 +1203,7 @@ void parparking(void *arg)
 		int posRead_1 = data->O_data_4;
 		printf("DIST4 SENSOR = %d\n", posRead_1);
 
-		if(data->O_data_4 > 10)
+		if(data->O_data_4 > 8)
 		{
 			DesireSpeed_Write(-50);
 		}
@@ -1356,22 +1368,22 @@ int dynamic_obs_ver3(void *arg) {
 	int a = 0;
 	double angle;
 	while (a<15) { // go straight with pky function
-		/** angle = 1500-(data->angle/50)*500; */
-		angle = 1500;
-		/** angle = 0.5 * data->pre_angle + 0.5 * angle; */
+		angle = 1500-(data->angle/50)*500;
+		/** angle = 1500; */
+		angle = 0.5 * data->pre_angle + 0.5 * angle;
 		/** printf("tdata.speed = %d\n", data->speed);//error */
 		SteeringServoControl_Write(angle);
-		/** data->pre_angle = angle; */
-		DesireSpeed_Write(50);
+		data->pre_angle = angle;
+		DesireSpeed_Write(80);
 		usleep(1000*200);
-		//SteeringServoControl_Write(data->angle);
+		SteeringServoControl_Write(data->angle);
 		//printf("angle: %i\n", data->angle);
-		//usleep(1000*50); // in usleep, 1000 * 1000 is 1 second
+		usleep(1000*50); // in usleep, 1000 * 1000 is 1 second
 		a++; // [TODO] 대회장에서 규열이 함수가 충분히 원형교차로 빠져나올 수 있을 수준으로 a 컨트롤하기
 	}
 	DesireSpeed_Write(0);
 	printf("I am here2---------------------------- \n");
-	usleep(1000*1000*19);
+	usleep(1000*1000*5);
 	// printf("here3 data: %d\n", data->O_data_4);
 	/// 뒤에서 차가 따라옴. Dynamic obs end 수치 이하일때
 	/** printf("I am here3-------------------------- \n"); */
