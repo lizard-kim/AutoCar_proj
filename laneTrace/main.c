@@ -1335,12 +1335,13 @@ int dynamic_obs_ver3(void *arg) {
 	int a = 0;
 	double angle;
 	while (a<30) { // go straight with pky function
-		angle = 1500-(data->angle/50)*500;
-		angle = 0.5 * data->pre_angle + 0.5 * angle;
+		/** angle = 1500-(data->angle/50)*500; */
+		angle = 1500;
+		/** angle = 0.5 * data->pre_angle + 0.5 * angle; */
 		/** printf("tdata.speed = %d\n", data->speed);//error */
 		SteeringServoControl_Write(angle);
-		data->pre_angle = angle;
-		DesireSpeed_Write(data->speed*0.5);
+		/** data->pre_angle = angle; */
+		DesireSpeed_Write(50);
 		usleep(1000*200);
 		//SteeringServoControl_Write(data->angle);
 		//printf("angle: %i\n", data->angle);

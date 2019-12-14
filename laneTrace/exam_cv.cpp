@@ -175,7 +175,7 @@ int OpenCV_red_Detection_for_traffic_light(unsigned char* srcBuf, int iw, int ih
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
 		// approxPolyDP(Mat(contours[i]), approx, 1, true);
 
-		if (fabs(contourArea(Mat(approx))) > 100)  // edit responsiveness...
+		if (fabs(contourArea(Mat(approx))) > 80)  // edit responsiveness...
 		{
 			int size = approx.size();
 
@@ -204,8 +204,8 @@ int OpenCV_red_Detection_for_traffic_light(unsigned char* srcBuf, int iw, int ih
 		}
 	}
 	// cvtColor(test, srcRGB, COLOR_BGR2GRAY);
-	//srcRGB = img_result;
-	// resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+	srcRGB = img_result;
+	resize(srcRGB, dstRGB, Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 
 	return is_Traffic_Light_red;
 }
