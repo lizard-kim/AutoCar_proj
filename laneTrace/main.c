@@ -344,11 +344,6 @@ int main(int argc, char **argv)
 	/** printf("start_sig : %d\n", start_sig); */
 
 	while (start_sig == 2){
-		printf("------------mission_id: %d\n", data->mission_id);
-		printf("------------------------mission_id: %d\n", data->mission_id);
-		printf("-------------------------------mission_id: %d\n", data->mission_id);
-		printf("---------------------------------------mission_id: %d\n", data->mission_id);
-		printf("----------------------------------------------------mission_id: %d\n", data->mission_id);
 		if (data->mission_id == 1) {//test driving
 			/** Alarm_Write(ON); */
 			/** usleep(100000); */
@@ -383,19 +378,27 @@ int main(int argc, char **argv)
 		else if (data->mission_id == 7 && data->after_passing == 0) {//passing master
 			switch(data->mission_state){//[TODO] what is initial mission_state?
 				// 기본주행 모드
-				case AUTO_DRIVE : 
-					angle = 1500-(tdata.angle/50)*500;
-					angle = 0.5 * tdata.pre_angle + 0.5 * angle;
-					/** printf("tdata.speed = %d\n", data->speed);//error */
-					SteeringServoControl_Write(angle); 
-					tdata.pre_angle = angle;//???
-					/** printf("speed, ratio %d %d\n", data->speed, data->speed_ratio); */
-					DesireSpeed_Write(50);
-					/** SteeringServoControl_Write(1500); */
-					CameraYServoControl_Write(1700);
-					/** if(data->speed == 0) usleep(500000); */
-					usleep(150000); 
-					/** CameraYServoControl_Write(1500); */
+				case AUTO_DRIVE : //koo_trigger
+					DesireSpeed_Write(70);
+					SteeringServoControl_Write(1500);
+					usleep(2000000);
+					SteeringServoControl_Write(1900);
+					usleep(1500000);
+					SteeringServoControl_Write(1500);
+					usleep(100000);
+
+					// angle = 1500-(tdata.angle/50)*500;
+					// angle = 0.5 * tdata.pre_angle + 0.5 * angle;
+					// /** printf("tdata.speed = %d\n", data->speed);//error */
+					// SteeringServoControl_Write(angle); 
+					// tdata.pre_angle = angle;//???
+					// /** printf("speed, ratio %d %d\n", data->speed, data->speed_ratio); */
+					// DesireSpeed_Write(50);
+					// /** SteeringServoControl_Write(1500); */
+					// CameraYServoControl_Write(1700);
+					// /** if(data->speed == 0) usleep(500000); */
+					// usleep(150000); 
+					// /** CameraYServoControl_Write(1500); */
 					break;     
 				case HISTOGRAM_BACK_PROPAGATION :
 					CameraYServoControl_Write(1500);
