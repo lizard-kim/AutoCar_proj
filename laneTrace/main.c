@@ -1079,19 +1079,34 @@ void parking(void *arg)
 	SteeringServoControl_Write(1500);
 	while(1)
 	{
-		// printf("asdkljfjklsadkl;jsfdasd;ddfdfdfdfdfdfdfdfffffffffffffffffffffffffff\n");
+		int posRead_1 = data->O_data_4;
+		printf("DIST4 SENSOR = %d\n", posRead_1);
+
 		if(data->O_data_4 > 13)
-		{//this condition is weird
+		{
 			DesireSpeed_Write(-50);
-			usleep(10000);
 		}
 		else
 		{
 			DesireSpeed_Write(0);
 			break;
 		}
-		usleep(500000);
 	}
+
+	/** while(1) */
+	/** { */
+	/**     if(data->O_data_4 > 13) */
+	/**     {//this condition is weird */
+	/**         DesireSpeed_Write(-50); */
+	/**         usleep(10000); */
+	/**     } */
+	/**     else */
+	/**     { */
+	/**         DesireSpeed_Write(0); */
+	/**         break; */
+	/**     } */
+	/**     usleep(500000); */
+	/** } */
 	printf("wtf2\n");
 
 	DesireSpeed_Write(0);
@@ -1150,7 +1165,7 @@ void parparking(void *arg)
 
 	//printf("-600 reached\n");
 	SteeringServoControl_Write(1500);
-	usleep(1700000); //1800000
+	usleep(1400000); //1800000
 	//printf("-800 reached\n");
 	SteeringServoControl_Write(2000);
 	usleep(50000); //1800000
