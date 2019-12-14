@@ -247,6 +247,7 @@ extern "C" {
 		else return t.y >= u.y;
 	}
 
+
 	void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh, double *output_angle, double *output_ratio) {
 		Mat dstRGB(nh, nw, CV_8UC3, outBuf);
 		Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
@@ -259,15 +260,14 @@ extern "C" {
 		int height = frame.rows;
 		//    float width = iw;
 		//    float height = ih;
-		//    cv::Rect myROI(0, (int)((float)height*0.45), width, (int)((float)height*0.55)); // (x,y,w,h)
-		cv::Rect myROI(0, (int)((float)height*0.2), width, (int)((float)height*0.8)); // (x,y,w,h)
+		cv::Rect myROI(0, (int)((float)height*0.45), width, (int)((float)height*0.55)); // (x,y,w,h)
 		// ROI 영역으로 자르기
 		frame = frame(myROI);
 		int new_width = frame.cols;
 		int new_height = frame.rows;
 		// warping
 		//    float width_ratio = 0.3; // 사다리꼴의 상단과 하단 간의 비율
-		float width_ratio = 0.25;
+		float width_ratio = 0.55;
 		float height_ratio = 0.8; // 밑변과 높이 간의 비율
 		// Warping 전의 이미지 상의 좌표
 		vector<Point2f> corners(4);
@@ -298,7 +298,7 @@ extern "C" {
 		double steer = 0;
 		double ratio = 1;
 		//    double lane_width = (double)new_width * width_ratio * 0.55;
-		double lane_width = (double)new_width * width_ratio * 0.6;
+		double lane_width = (double)new_width * width_ratio * 0.8;
 		vector<Point2d> line_points;
 		vector<double> ans;
 		int lane_type = 0;
@@ -519,18 +519,20 @@ extern "C" {
 		ostringstream temp;
 		temp << steer;
 		string str = temp.str();
-		// putText(frame_show, "steer : " + str, Point(10, 15), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 0, 255));
-		// cout << "steer : " << steer << endl;
-		//    srcRGB = frame_show;
-		//    cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+		putText(frame_show, "steer : " + str, Point(10, 15), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 0, 255));
+		cout << "steer : " << steer << endl;
+		// srcRGB = frame_show;
+		// cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
 		// cout << "fuck7" << endl;
-		//    ratio = 0;
-		//    steer = 0;
+		// if (ratio > 0) ratio = ratio * pow(cos(steer*CV_PI/180), 1);
+		// if (lane_idx != -1 && lane_top.y >= new_height * 1/3) {
+		//     steer = 0;
+		//     ratio = -1;
+		// }
 		*output_angle = steer;
 		*output_ratio = ratio;
 		// cout << "fuck8" << endl;
 		}
-
 
 // void laneDetection(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh, double *output_angle, double *output_ratio) {
 //     Mat dstRGB(nh, nw, CV_8UC3, outBuf);

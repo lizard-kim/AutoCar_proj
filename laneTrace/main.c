@@ -317,7 +317,7 @@ int main(int argc, char **argv)
     printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500
 
 	//camera setting
-	camera_angle = 1700;//1650
+	camera_angle = 1680;//1650
 	CameraYServoControl_Write(camera_angle);    
 
 	//speed set
@@ -641,6 +641,7 @@ void * capture_thread(void *arg)
 	vpe->field = V4L2_FIELD_ANY;
 
 	double a, v;
+	int temp = 1;
 
 	while(1) {
 		while(data->mission_id == 4) usleep(100000);
@@ -752,10 +753,16 @@ void * capture_thread(void *arg)
 			data->angle = a;
 			// data->speed = v;
 			// ---- pky end
+			
 			if(data->mission_id != 8) {
 				data->speed_ratio = color_detection(vpe->disp, capt);
-				/** if(data->speed_ratio == 0){ */
-				/** } */
+				if(data->speed_ratio == 0){
+					temp = 0;		
+				}
+				else if(temp < data->speed_ratio){
+					CameraYServoControl_Write(1750);
+					usleep(10000);
+				}
 			}
 			else{
 				if(data->is_Traffic_Light_for_traffic_light == 0){
