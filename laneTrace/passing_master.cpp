@@ -409,6 +409,98 @@ char* stop_line_detection(unsigned char* srcBuf, int iw, int ih, unsigned char* 
 
 }
 
+Mat filterColors_2(Mat &input) {
+    int range_count = 0;
+
+//    Scalar red(0, 0, 255);
+//    Scalar blue(255, 0, 0);
+    Scalar yellow(0, 255, 255);
+
+    Mat rgb_color = Mat(1, 1, CV_8UC3, yellow);
+    Mat hsv_color;
+
+    cvtColor(rgb_color, hsv_color, COLOR_BGR2HSV);
+
+    int hue = (int)hsv_color.at<Vec3b>(0, 0)[0];
+    int saturation = (int)hsv_color.at<Vec3b>(0, 0)[1];
+    int value = (int)hsv_color.at<Vec3b>(0, 0)[2];
+
+    int low_hue = hue - 10;
+    int high_hue = hue + 10;
+
+    int low_hue1 = 0, low_hue2 = 0;
+    int high_hue1 = 0, high_hue2 = 0;
+
+    if (low_hue < 10 ) {
+        range_count = 2;
+        high_hue1 = 180;
+        low_hue1 = low_hue + 180;
+        high_hue2 = high_hue;
+        low_hue2 = 0;
+    }
+    else if (high_hue > 170) {
+        range_count = 2;
+        high_hue1 = low_hue;
+        low_hue1 = 180;
+        high_hue2 = high_hue - 180;
+        low_hue2 = 0;
+    }
+    else {
+        range_count = 1;
+        low_hue1 = low_hue;
+        high_hue1 = high_hue;
+    }
+
+    Mat img_hsv;
+
+    //HSV로 변환
+    cvtColor(input, img_hsv, COLOR_BGR2HSV);
+
+    //지정한 HSV 범위를 이용하여 영상을 이진화
+    Mat img_mask1, img_mask2;
+    inRange(img_hsv, Scalar(low_hue1, 20, 20), Scalar(high_hue1, 255, 255), img_mask1);
+    if (range_count == 2) {
+        inRange(img_hsv, Scalar(low_hue2, 20, 20), Scalar(high_hue2, 255, 255), img_mask2);
+        img_mask1 |= img_mask2;
+    }
+
+   //morphological opening 작은 점들을 제거
+   erode(img_mask1, img_mask1, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+   dilate(img_mask1, img_mask1, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+//
+//    //morphological closing 영역의 구멍 메우기
+//    dilate(img_mask1, img_mask1, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+//    erode(img_mask1, img_mask1, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
+    input = img_mask1;
+    return input;
+}
+
+int contour_size(unsigned char* srcBuf, int iw, int ih, unsigned char* outBuf, int nw, int nh){
+    Mat dstRGB(nh, nw, CV_8UC3, outBuf);
+    Mat srcRGB(ih, iw, CV_8UC3, srcBuf);
+    Mat resRGB(ih, iw, CV_8UC3);
+
+    Mat filter;
+    filter = filterColors_2(srcRGB);
+
+    //Find contours 
+    vector<vector<Point> > contours;
+    vector<Vec4i> hierarchy;
+    findContours(filter, contours, hierarchy, RETR_LIST, CHAIN_APPROX_NONE);
+    // imshow("findContours", filter);
+    // waitKey(0);
+    cout << "contours.size() : " << contours.size() << endl;
+    int contour_size=0;
+    for (size_t i = 0; i < contours.size(); i++) {
+        cout << "contourArea" << " " << i << " " << contourArea(contours[i]) << endl;
+        contour_size = contour_size < contourArea(contours[i]) ? contourArea(contours[i]) : contour_size;
+    }
+    cout << "max size : " << contour_size << endl;
+    return contour_size;
+}
+
+
 #ifdef __cplusplus
 }
 #endif
