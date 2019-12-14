@@ -386,6 +386,8 @@ int main(int argc, char **argv)
 					DesireSpeed_Write(50);
 					SteeringServoControl_Write(1500);
 					usleep(200000);
+					data->mission_state = NEXT_AUTO_DRIVE;
+
 					/** SteeringServoControl_Write(1900); */
 					/** usleep(3000000); */
 					/** SteeringServoControl_Write(1500); */
@@ -1141,6 +1143,7 @@ void parking(void *arg)
 	SteeringServoControl_Write(1500);
 
 	DesireSpeed_Write(0); //E-Stop;
+	usleep(7000000);
 	data->ParkingSignal_1 = 0;
 	CarLight_Write(ALL_OFF);
 	data->stop_line_DY = 1;
