@@ -70,6 +70,10 @@ typedef struct _DumpMsg{
 //--koo structure
 typedef enum {
     AUTO_DRIVE,
+    NEXT_AUTO_DRIVE,
+    DECISION,
+    DECISION_LEFT,
+    DECISION_RIGHT,
     HISTOGRAM_BACK_PROPAGATION,
     BEFORE_PASSING_OVER, // 추월차로 미션 전의 임의의 미션
     PASSING_OVER_LEFT,
@@ -113,6 +117,8 @@ struct thr_data {
     int white_stop_line; // 정지선 인식 변수, 관형 추가
     MissionState mission_state;
     int after_passing; // to judge whether passing mission
+    int contour_size_right;
+    int contour_size_left;
 	//end
 
 	// --- lizard
@@ -149,6 +155,7 @@ void * sensor_thread(void *arg);
 double distance_calculate(double data); // make sensor input data to real distance data
 int distance_sensor(); //get sensor input data
 static char* passing_master(struct display *disp, struct buffer *cambuf, void *arg); // 2019.11.16 관형 변경
+static int contour(struct display *disp, struct buffer *cambuf, void *arg); // 2019.12.14 관형 변경
 static char* main_stop_line_detection(struct display *disp, struct buffer *cambuf);
 void warmSensorTrigger(); 
 static struct thr_data* pexam_data = NULL;
@@ -369,28 +376,57 @@ int main(int argc, char **argv)
 			switch(data->mission_state){//[TODO] what is initial mission_state?
 				// 기본주행 모드
 				case AUTO_DRIVE : 
-					angle = 1500-(tdata.angle/50)*500;
-					angle = 0.5 * tdata.pre_angle + 0.5 * angle;
-					/** printf("tdata.speed = %d\n", data->speed);//error */
-					SteeringServoControl_Write(angle); 
-					tdata.pre_angle = angle;//???
-					/** printf("speed, ratio %d %d\n", data->speed, data->speed_ratio); */
-					DesireSpeed_Write(30);
-                    CameraYServoControl_Write(1650);
-					if(data->speed == 0) usleep(500000);
-					usleep(100000); 
-                    break;     
-                case HISTOGRAM_BACK_PROPAGATION :
-                    CameraYServoControl_Write(1650);
-                    SteeringServoControl_Write(1500); 
-                    DesireSpeed_Write(30);
+                    DesireSpeed_Write(50);
+                    SteeringServoControl_Write(1500);
+                    usleep(2000000); 
+                    SteeringServoControl_Write(1900);
+                    usleep(3000000); 
+                    SteeringServoControl_Write(1500);
                     usleep(100000);
-					printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
-                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
-                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
-                    printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
+                    data->mission_state = NEXT_AUTO_DRIVE;
+					// angle = 1500-(tdata.angle/50)*500;
+					// angle = 0.5 * tdata.pre_angle + 0.5 * angle;
+					// /** printf("tdata.speed = %d\n", data->speed);//error */
+					// SteeringServoControl_Write(angle); t
+					// tdata.pre_angle = angle;//???
+					// /** printf("speed, ratio %d %d\n", data->speed, data->speed_ratio); */
+					// DesireSpeed_Write(30);
+                    // CameraYServoControl_Write(1650);
+					// if(data->speed == 0) usleep(500000);
+					// usleep(100000); 
+                    break;     
+
+                case NEXT_AUTO_DRIVE :
+                    DesireSpeed_Write(50);
+                    SteeringServoControl_Write(1500);
+                    usleep(100000);
+                    if(data->O_data_1 < 12){
+                        DesireSpeed_Write(0);
+                        usleep(100000);
+                        data->mission_state = DECISION; 
+                    }
                     break;
+
+                case DECISION_RIGHT :
+                    CameraXServoControl_Write(1700);
+                    usleep(200000); // 오른쪽 먼저 확인
+                    data->mission_state = DECISION_LEFT;
+
+                case DECISION_LEFT :
+                    CameraXServoControl_Write(1700);
+                    usleep(200000);
+                // case HISTOGRAM_BACK_PROPAGATION :
+                //     CameraYServoControl_Write(1700);
+                //     SteeringServoControl_Write(1500);
+                //     DesireSpeed_Write(30);
+                //     usleep(100000);
+				// 	printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
+                //     printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
+                //     printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
+                //     printf("------------------------ main_HISTOGRAM_BACK_PROPAGATION ---------------------------\n");
+                //     break;
 					// 추월 미션 진입
+
 				case PASSING_OVER_LEFT :
 					printf("------------------------ main_PASSING_OVER_LEFT ---------------------------\n");
 					CameraYServoControl_Write(1700);
@@ -767,12 +803,12 @@ void * capture_thread(void *arg)
 			if (data->mission_state == AUTO_DRIVE){
 				printf(" ###########  mission_state == AUTO_DRIVE in capture thread\n");
             }
-            if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 15){ //koo_trigger
-                //CameraYServoControl_Write(1500);
-                data->mission_state = HISTOGRAM_BACK_PROPAGATION;
-                printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
+            // if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 80){ //koo_trigger
+            //     //CameraYServoControl_Write(1500);
+            //     data->mission_state = HISTOGRAM_BACK_PROPAGATION;
+            //     printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION\n");
         
-            }
+            // }
 
             // 추월 미션 진입 트리거 원래 else if 라서 에러떴음
             else if (data->mission_state == HISTOGRAM_BACK_PROPAGATION){
@@ -786,7 +822,7 @@ void * capture_thread(void *arg)
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
                 printf(" ###########  mission_state == HISTOGRAM_BACK_PROPAGATION 2222222\n");
-                if (data->O_data_1 < 13){
+                if (data->O_data_1 < 70){
                     data->mission_state = BEFORE_PASSING_OVER;
                 }
 
@@ -805,7 +841,19 @@ void * capture_thread(void *arg)
                     data->mission_state = PASSING_OVER_RIGHT; // 만일 역히스토그램 투영으로 방향을 도출해내지 못하면 왼쪽으로 간다고 설정
                 }
             }           
+            else if (data->mission_state == DECISION_LEFT){
+                data->contour_size_left = contour(vpe->disp, capt, &data);
+            }
+            else if (data->mission_state == DECISION_RIGHT){
+                data->contour_size_right = contour(vpe->disp, capt, &data);
+                if (data->contour_size_left > data->contour_size_right){
+                    data->mission_state = PASSING_OVER_LEFT;
+                } 
+                else {
+                    data->mission_state = PASSING_OVER_RIGHT;
+                }
 
+            }
             // 추월 이후 정지선을 인식할 때까지 차선 인식
             if (data->mission_state == WAIT){ // WAIT은 불가피하게 main에서 바꾸어준다
                 printf(" ###########  mission_state == WAIT in capture thread \n");
@@ -1106,6 +1154,33 @@ void getSteeringWithLane(struct display *disp, struct buffer *cambuf, double *st
 	*steer = angle;
         /** *speed = 130 *ratio; */
     *speed = 100 * ratio;//test
+}
+
+static int contour(struct display *disp, struct buffer *cambuf, void *arg){
+    /** struct thr_data *data = (struct thr_data *)arg; */
+    unsigned char srcbuf[VPE_OUTPUT_W*VPE_OUTPUT_H*3];
+    uint32_t optime;
+    struct timeval st, et; 
+    /** signed short speed; */
+    double distance;
+    int max_contour_size; // 갈 방향, left of right!
+	/** printf("Koo is Passing master!!!!!!! wow!!!!!!\n"); */
+
+    unsigned char* cam_pbuf[4];
+    if(get_framebuf(cambuf, cam_pbuf) == 0) {
+        memcpy(srcbuf, cam_pbuf[0], VPE_OUTPUT_W*VPE_OUTPUT_H*3);
+
+        gettimeofday(&st, NULL);
+    
+        max_contour_size = contour_size(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
+
+        gettimeofday(&et, NULL);
+        optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
+        draw_operatingtime(disp, optime);
+    }
+
+    return max_contour_size;
+
 }
 
 static char* passing_master(struct display *disp, struct buffer *cambuf, void *arg){
