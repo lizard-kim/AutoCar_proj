@@ -699,7 +699,7 @@ void * capture_thread(void *arg)
 				data->ParkingSignal_1 = 2;
 			}
 			if(data->ParkingSignal_1 == 2 && data->O_data_2 < 20 && data->O_data_3 > 20) data->ParkingSignal_1 = 0;
-			if(data->ParkingSignal_1 == 2 && (data->O_data_2 > 100 || data->O_data_3 > 100)) data->ParkingSignal_1 = 0;
+			if(data->ParkingSignal_1 == 2 && (data->O_data_2 > 200 || data->O_data_3 > 200)) data->ParkingSignal_1 = 0;
 			if(data->ParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30&& data->O_data_6 < 40){
 				printf("step4\n");
 				data->ParkingSignal_1 = 3;
@@ -716,15 +716,16 @@ void * capture_thread(void *arg)
 				printf("step1\n");
 				data->parParkingSignal_1 = 1;
 			}
+			/*
 			if(data->parParkingSignal_1 == 1 && data->O_data_2 > 60 && data->O_data_3 > 60){
 				printf("step2\n");
 				data->parParkingSignal_1 = 0;
-			}
+			}*/
 			if(data->parParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30){
 				printf("step3\n");
 				data->parParkingSignal_1 = 2;
 			}
-			if(data->parParkingSignal_1 == 2 && (data->O_data_2 > 100 || data->O_data_3 > 100)) data->parParkingSignal_1 = 0;
+			if(data->parParkingSignal_1 == 2 && (data->O_data_2 > 200 || data->O_data_3 > 200)) data->parParkingSignal_1 = 0;
 			if(data->parParkingSignal_1 == 2 && data->O_data_2 < 30 && data->O_data_3 > 30) data->parParkingSignal_1 = 0;
 			if(data->parParkingSignal_1 == 2 && data->O_data_2 > 30 && data->O_data_3 > 30){
 				printf("step4\n");
