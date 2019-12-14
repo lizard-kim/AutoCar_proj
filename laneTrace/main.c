@@ -1340,7 +1340,7 @@ int dynamic_obs_ver3(void *arg) {
 	}
 	int a = 0;
 	double angle;
-	while (a<30) { // go straight with pky function
+	while (a<15) { // go straight with pky function
 		/** angle = 1500-(data->angle/50)*500; */
 		angle = 1500;
 		/** angle = 0.5 * data->pre_angle + 0.5 * angle; */
