@@ -378,12 +378,12 @@ int main(int argc, char **argv)
 		else if (data->mission_id == 7 && data->after_passing == 0) {//passing master
 			switch(data->mission_state){//[TODO] what is initial mission_state?
 				// 기본주행 모드
-				case AUTO_DRIVE : 
+				case AUTO_DRIVE : //koo_trigger
 					DesireSpeed_Write(50);
 					SteeringServoControl_Write(1500);
-					usleep(3000000);
-					SteeringServoControl_Write(1900);
 					usleep(2000000);
+					SteeringServoControl_Write(1900);
+					usleep(3000000);
 					SteeringServoControl_Write(1500);
 					usleep(100000);
 					data->mission_state = NEXT_AUTO_DRIVE;
@@ -1029,7 +1029,7 @@ static char* passing_master(struct display *disp, struct buffer *cambuf, void *a
 		gettimeofday(&st, NULL);
 
 		direction = histogram_backprojection(srcbuf, VPE_OUTPUT_W, VPE_OUTPUT_H, cam_pbuf[0], VPE_OUTPUT_W, VPE_OUTPUT_H);
-		/** direction = "left";//Koo trigger */
+		direction = "left";// koo_trigger */
 		
 		gettimeofday(&et, NULL);
 		optime = ((et.tv_sec - st.tv_sec)*1000)+ ((int)et.tv_usec/1000 - (int)st.tv_usec/1000);
