@@ -81,7 +81,7 @@ signed short OpenCV_red_Detection(unsigned char* srcBuf, int iw, int ih, unsigne
 		approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);
 		// approxPolyDP(Mat(contours[i]), approx, 1, true);
 
-		if (fabs(contourArea(Mat(approx))) > 1000)  // edit responsiveness...
+		if (fabs(contourArea(Mat(approx))) > 1200)  // edit responsiveness...
 		{
 			int size = approx.size();
 
@@ -247,9 +247,9 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 	Mat img_mask1, img_mask2;
 
 	//accept green filter for detect Traffic light
-	inRange(img_hsv, Scalar(50, 60, 20), Scalar(130, 200, 255), img_mask1);//70 100 70
+	inRange(img_hsv, Scalar(50, 80, 0), Scalar(130, 255, 150), img_mask1);//70 100 70
 	if (range_count == 2) {
-		inRange(img_hsv, Scalar(50, 60, 20), Scalar(130, 200, 255), img_mask2);
+		inRange(img_hsv, Scalar(50, 80, 0), Scalar(130, 255, 150), img_mask2);
 		img_mask1 |= img_mask2;
 	}
 
@@ -282,7 +282,7 @@ int OpenCV_green_Detection(unsigned char* srcBuf, int iw, int ih, unsigned char*
 					circle(img_result, approx[k], 3, Scalar(0, 0, 255));
 			}
 			for(int i = 0; i < 1000; i++){
-				if (size == 7){//go left!
+				if (size <= 7){//go left!
 					// setLabel(img_result, "left!", contours[i]); //¿¿¿
 					// is_Traffic_Light = 1; //left signal
 					a++; 

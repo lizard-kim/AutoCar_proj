@@ -100,9 +100,9 @@ void passing_right(){
     DesireSpeed_Write(50);
     Winker_Write(RIGHT_ON);
     SteeringServoControl_Write(1000);
-    usleep(1800000); // 20
+    usleep(2000000); // 20
     SteeringServoControl_Write(1900);
-    usleep(2700000); // 25
+    usleep(2500000); // 25
     Winker_Write(ALL_OFF);    
 }
 
