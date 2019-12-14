@@ -68,6 +68,7 @@ typedef struct _DumpMsg{
 //--koo structure
 typedef enum {
     AUTO_DRIVE,
+	NEXT_AUTO_DRIVE,
     HISTOGRAM_BACK_PROPAGATION,
     BEFORE_PASSING_OVER, // 추월차로 미션 전의 임의의 미션
     PASSING_OVER_LEFT,
@@ -236,37 +237,37 @@ int main(int argc, char **argv)
     set_z_order(vpe->disp, vpe->disp->overlay_p.id);
     set_global_alpha(vpe->disp, vpe->disp->overlay_p.id);
     set_pre_multiplied_alpha(vpe->disp, vpe->disp->overlay_p.id);
-    alloc_overlay_plane(vpe->disp, OVERLAY_DISP_FORCC, 0, 0, OVERLAY_DISP_W, OVERLAY_DISP_H);
-    vpe->translen = 1;
-    if (vpe->src.height < 0 || vpe->src.width < 0 || vpe->src.fourcc < 0 || vpe->dst.height < 0 || vpe->dst.width < 0 || vpe->dst.fourcc < 0) {
-        ERROR("Invalid parameters\n");
-    }
+	alloc_overlay_plane(vpe->disp, OVERLAY_DISP_FORCC, 0, 0, OVERLAY_DISP_W, OVERLAY_DISP_H);
+	vpe->translen = 1;
+	if (vpe->src.height < 0 || vpe->src.width < 0 || vpe->src.fourcc < 0 || vpe->dst.height < 0 || vpe->dst.width < 0 || vpe->dst.fourcc < 0) {
+		ERROR("Invalid parameters\n");
+	}
 
-    // init for capture the video
-    v4l2 = v4l2_open(vpe->src.fourcc, vpe->src.width, vpe->src.height);
-    if (!v4l2) {
-        ERROR("v4l2 open error!");
-        disp_close(vpe->disp);
-        vpe_close(vpe);
-        return 1;
-    }
+	// init for capture the video
+	v4l2 = v4l2_open(vpe->src.fourcc, vpe->src.width, vpe->src.height);
+	if (!v4l2) {
+		ERROR("v4l2 open error!");
+		disp_close(vpe->disp);
+		vpe_close(vpe);
+		return 1;
+	}
 
-    tdata.disp = vpe->disp;
-    tdata.v4l2 = v4l2;
-    tdata.vpe = vpe;
-    tdata.bfull_screen = true;
-    tdata.bstream_start = false;
+	tdata.disp = vpe->disp;
+	tdata.v4l2 = v4l2;
+	tdata.vpe = vpe;
+	tdata.bfull_screen = true;
+	tdata.bstream_start = false;
 
-    if(-1 == (tdata.msgq_id = msgget((key_t)DUMP_MSGQ_KEY, IPC_CREAT | 0666))) {
-        fprintf(stderr, "%s msg create fail!!!\n", __func__);
-        return -1;
-    }
+	if(-1 == (tdata.msgq_id = msgget((key_t)DUMP_MSGQ_KEY, IPC_CREAT | 0666))) {
+		fprintf(stderr, "%s msg create fail!!!\n", __func__);
+		return -1;
+	}
 
-    pexam_data = &tdata;
+	pexam_data = &tdata;
 
-    ret = pthread_create(&tdata.threads[0], NULL, capture_thread, &tdata);
-    if(ret) MSG("Failed creating capture thread");
-    pthread_detach(tdata.threads[0]);
+	ret = pthread_create(&tdata.threads[0], NULL, capture_thread, &tdata);
+	if(ret) MSG("Failed creating capture thread");
+	pthread_detach(tdata.threads[0]);
 
 	ret = pthread_create(&tdata.threads[1], NULL, sensor_thread, &tdata);
 	if(ret) MSG("Failed creating capture dump thread");
@@ -276,45 +277,45 @@ int main(int argc, char **argv)
 	/** if(ret) MSG("Failed creating input thread"); */
 	/** pthread_detach(tdata.threads[2]); */
 
-    /* register signal handler for <CTRL>+C in order to clean up */
-    if(signal(SIGINT, signal_handler) == SIG_ERR) {
-        MSG("could not register signal handler");
-        closelog();
-        exit(EXIT_FAILURE);
-    }
+	/* register signal handler for <CTRL>+C in order to clean up */
+	if(signal(SIGINT, signal_handler) == SIG_ERR) {
+		MSG("could not register signal handler");
+		closelog();
+		exit(EXIT_FAILURE);
+	}
 
-    printf("\n\n 2. speed control\n");
-    unsigned char gain;
-    signed short speed, check_speed;
-    double angle = 1500;
-    int camera_angle;
+	printf("\n\n 2. speed control\n");
+	unsigned char gain;
+	signed short speed, check_speed;
+	double angle = 1500;
+	int camera_angle;
 
 	CarControlInit();
-    SpeedControlOnOff_Write(CONTROL);
-    PositionControlOnOff_Write(UNCONTROL);
+	SpeedControlOnOff_Write(CONTROL);
+	PositionControlOnOff_Write(UNCONTROL);
 
-    //speed controller gain set
-    //P-gain
-    gain = SpeedPIDProportional_Read();        // default value = 10, range : 1~50
-    printf("SpeedPIDProportional_Read() = %d \n", gain);
-    gain = 50;
-    SpeedPIDProportional_Write(gain);
+	//speed controller gain set
+	//P-gain
+	gain = SpeedPIDProportional_Read();        // default value = 10, range : 1~50
+	printf("SpeedPIDProportional_Read() = %d \n", gain);
+	gain = 50;
+	SpeedPIDProportional_Write(gain);
 
-    //I-gain
-    gain = SpeedPIDIntegral_Read();        // default value = 10, range : 1~50
-    printf("SpeedPIDIntegral_Read() = %d \n", gain);
-    gain = 50;
-    SpeedPIDIntegral_Write(gain);
-    
-    //D-gain
-    gain = SpeedPIDDifferential_Read();        // default value = 10, range : 1~50
-    printf("SpeedPIDDefferential_Read() = %d \n", gain);
-    gain = 10;
-    SpeedPIDDifferential_Write(gain);
+	//I-gain
+	gain = SpeedPIDIntegral_Read();        // default value = 10, range : 1~50
+	printf("SpeedPIDIntegral_Read() = %d \n", gain);
+	gain = 50;
+	SpeedPIDIntegral_Write(gain);
 
-    //camera y servo set
-    camera_angle = CameraYServoControl_Read();
-    printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500
+	//D-gain
+	gain = SpeedPIDDifferential_Read();        // default value = 10, range : 1~50
+	printf("SpeedPIDDefferential_Read() = %d \n", gain);
+	gain = 10;
+	SpeedPIDDifferential_Write(gain);
+
+	//camera y servo set
+	camera_angle = CameraYServoControl_Read();
+	printf("CameraYServoControl_Read() = %d\n", camera_angle);    //default = 1500
 
 	//camera setting
 	camera_angle = 1680;//1650
@@ -378,27 +379,25 @@ int main(int argc, char **argv)
 			switch(data->mission_state){//[TODO] what is initial mission_state?
 				// 기본주행 모드
 				case AUTO_DRIVE : 
-					/** DesireSpeed_Write(60); */
-					/** SteeringServoControl_Write(1500); */
-					/** usleep(2000000); */
-					/** SteeringServoControl_Write(1900); */
-					/** usleep(3000000); */
-					/** SteeringServoControl_Write(1500); */
-					/** usleep(500000); */
-
-					angle = 1500-(tdata.angle/50)*500;
-					angle = 0.5 * tdata.pre_angle + 0.5 * angle;
-					/** printf("tdata.speed = %d\n", data->speed);//error */
-					SteeringServoControl_Write(angle); 
-					tdata.pre_angle = angle;//???
-					/** printf("speed, ratio %d %d\n", data->speed, data->speed_ratio); */
 					DesireSpeed_Write(50);
-					/** SteeringServoControl_Write(1500); */
-					CameraYServoControl_Write(1750);
-					/** if(data->speed == 0) usleep(500000); */
-					usleep(50000); 
+					SteeringServoControl_Write(1500);
+					usleep(3000000);
+					SteeringServoControl_Write(1900);
+					usleep(2000000);
+					SteeringServoControl_Write(1500);
+					usleep(100000);
+					data->mission_state = NEXT_AUTO_DRIVE;
+
 					/** CameraYServoControl_Write(1500); */
 					break;     
+
+				case NEXT_AUTO_DRIVE :
+					DesireSpeed_Write(50);
+					SteeringServoControl_Write(1500);
+					usleep(100000);
+					if(data->O_data_1 < 12){
+						data->mission_state = PASSING_OVER_LEFT;
+					}
 				case HISTOGRAM_BACK_PROPAGATION :
 					CameraYServoControl_Write(1500);
 					SteeringServoControl_Write(1500);
@@ -446,7 +445,7 @@ int main(int argc, char **argv)
 		} /// 추월
 
 		else if (data->mission_id == 8) {//[TODO] 튜닝
-			
+
 			/** camera_angle = 1500;//1650 delete it!!! */
 			/** CameraYServoControl_Write(camera_angle);     */
 			if(data->is_Traffic_Light_for_traffic_light == 0){
@@ -520,7 +519,7 @@ int main(int argc, char **argv)
 			/**     printf("ERROR!!!!\n"); */
 			/**     break; */
 			/** } */
-	
+
 		}	/// 신호등
 		else { //basic driving 
 			angle = 1500-(tdata.angle/50)*500;
@@ -659,7 +658,7 @@ void * capture_thread(void *arg)
 		index = vpe_output_dqbuf(vpe); // VPE 출력 큐 처리 권한을 어플리케이션이 가지고 옴
 		capt = vpe->disp_bufs[index];
 		///////////////////////////////////////////////////////////////////////////
-		
+
 		// ------------- trigger ----------------
 		/** if (data->highway == 0) { data->mission_id = 2; } /// #highway_changed : at first, this car start at highway */
 		/** else { */
@@ -668,7 +667,6 @@ void * capture_thread(void *arg)
 			/** data->stop_line_DY = 2; */
 		}
 		else{
-
 			// 4 tunnel trigger 
 			// printf("data->tunnelSignal : %d\n", data->tunnelSignal);
 			if(data->tunnelend == 0 && data->tunnelSignal == 1 && data->O_data_2 < 20 && data->O_data_6 < 18){
@@ -720,10 +718,10 @@ void * capture_thread(void *arg)
 				data->parParkingSignal_1 = 1;
 			}
 			/*
-			if(data->parParkingSignal_1 == 1 && data->O_data_2 > 60 && data->O_data_3 > 60){
-				printf("step2\n");
-				data->parParkingSignal_1 = 0;
-			}*/
+			   if(data->parParkingSignal_1 == 1 && data->O_data_2 > 60 && data->O_data_3 > 60){
+			   printf("step2\n");
+			   data->parParkingSignal_1 = 0;
+			   }*/
 			if(data->parParkingSignal_1 == 1 && data->O_data_2 > 30 && data->O_data_3 < 30){
 				printf("step3\n");
 				data->parParkingSignal_1 = 2;
@@ -753,7 +751,7 @@ void * capture_thread(void *arg)
 			data->angle = a;
 			// data->speed = v;
 			// ---- pky end
-			
+
 			if(data->mission_id != 8) {
 				data->speed_ratio = color_detection(vpe->disp, capt);
 				if(data->speed_ratio == 0){
@@ -770,7 +768,9 @@ void * capture_thread(void *arg)
 					/** data->red = 1; */
 					usleep(12000000);
 				}
-				else data->is_Traffic_Light = Traffic_mission_green(vpe->disp, capt); //green sign
+				else {
+					data->is_Traffic_Light = Traffic_mission_green(vpe->disp, capt); //green sign
+				}
 				usleep(20000);
 				/** printf("capture_thread is_Traffic_Light : %d\n", data->is_Traffic_Light); */
 			}
@@ -786,17 +786,16 @@ void * capture_thread(void *arg)
 				// -------------------- capt로 이미지 처리 ------------------0x%04Xfalse로 바뀌면 chot됨
 
 				// 여기서 data->mission_state로 던져줍니다
-				if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 60){
-					data->mission_state = HISTOGRAM_BACK_PROPAGATION;
-				}
+				//	if (data->mission_state == AUTO_DRIVE && data->O_data_1 < 60){
+				//		data->mission_state = HISTOGRAM_BACK_PROPAGATION;
+				//}
 
 				// 추월 미션 진입 트리거 원래 else if 라서 에러떴음
-				else if (data->mission_state == HISTOGRAM_BACK_PROPAGATION){
+				if (data->mission_state == HISTOGRAM_BACK_PROPAGATION){
 					data->direction = passing_master(vpe->disp, capt, &data);
 					if (data->O_data_1< 55){
 						data->mission_state = BEFORE_PASSING_OVER;
 					}
- 
 				}
 
 				else if (data->mission_state == BEFORE_PASSING_OVER && data->O_data_1 < 12){
@@ -832,24 +831,24 @@ void * capture_thread(void *arg)
 					else if (strcmp(data->direction, "right") == 0){
 						data->mission_state = PASSING_OVER_RETURN_LEFT;
 					}
-				}
+					/** } */
 				else if (data->mission_state == PASSING_OVER_RETURN_RIGHT || data->mission_state == PASSING_OVER_RETURN_LEFT){
 				}
- 
+
 			}
 		}
 
 		//--------------------------koo mission trigger end-----------
-		/** } */
-		// input video data to disp_buf
-		if (disp_post_vid_buffer(vpe->disp, capt, 0, 0, vpe->dst.width, vpe->dst.height)) {
-			error("post buffer failed");
-			return NULL;
-		}
-		update_overlay_disp(vpe->disp); // diplay overay plane                                       
-		vpe_output_qbuf(vpe, index); // VPE 출력 큐 처리 권한을 드라이버에게 이전
-		index = vpe_input_dqbuf(vpe); // VPE 입력 큐 처리 권한을 어플리케이션이 가지고 옴
-		v4l2_qbuf(v4l2, vpe->input_buf_dmafd[index], index); // 영상 큐 처리 권한을 드라이버에게 이전하여 다음 영상 프레임 요청
+	}
+	// input video data to disp_buf
+	if (disp_post_vid_buffer(vpe->disp, capt, 0, 0, vpe->dst.width, vpe->dst.height)) {
+		error("post buffer failed");
+		return NULL;
+	}
+	update_overlay_disp(vpe->disp); // diplay overay plane                                       
+	vpe_output_qbuf(vpe, index); // VPE 출력 큐 처리 권한을 드라이버에게 이전
+	index = vpe_input_dqbuf(vpe); // VPE 입력 큐 처리 권한을 어플리케이션이 가지고 옴
+	v4l2_qbuf(v4l2, vpe->input_buf_dmafd[index], index); // 영상 큐 처리 권한을 드라이버에게 이전하여 다음 영상 프레임 요청
 	}
 	MSG("Ok!");
 	return NULL;

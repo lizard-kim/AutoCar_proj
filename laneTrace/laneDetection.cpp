@@ -500,10 +500,10 @@ extern "C" {
 			//            ratio = 10 + 200 -  200 * (abs(angle_sum) * 2/90);
 			//        }
 			if (abs(angle) < 10) {
-				ratio = 100;
+				ratio = 110;
 			}
 			else if (abs(angle) <= 40) {
-				ratio = 100 - 50 * (abs(angle) - 10)/50;
+				ratio = 110 - 50 * (abs(angle) - 10)/50;
 			}
 			else {
 				ratio = 50;
